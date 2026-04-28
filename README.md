@@ -1,4 +1,4 @@
-# basis-skills
+# skills
 
 Agent skills com os padrões de engenharia da [Basis](https://www.basis.com.br) para uso em Claude Code, Cursor, Codex, OpenCode e qualquer agente que consuma o formato `SKILL.md`.
 
@@ -16,19 +16,19 @@ Com [skills CLI](https://github.com/vercel-labs/skills):
 
 ```bash
 # Lista as skills do repo e pergunta qual instalar
-npx skills add BasisTI/basis-skills
+npx skills add BasisTI/skills
 
 # Instala uma específica
-npx skills add BasisTI/basis-skills --skill basis-spring-app
+npx skills add BasisTI/skills --skill basis-spring-app
 
 # Por URL direta
-npx skills add https://github.com/BasisTI/basis-skills/tree/main/skills/basis-k8s-deploy
+npx skills add https://github.com/BasisTI/skills/tree/main/skills/basis-k8s-deploy
 ```
 
 Resolve por padrão pra `main`. Pra pinar numa versão estável, use a URL com a tag:
 
 ```bash
-npx skills add https://github.com/BasisTI/basis-skills/tree/v2026.04.26/skills/basis-spring-app
+npx skills add https://github.com/BasisTI/skills/tree/v2026.04.26/skills/basis-spring-app
 ```
 
 Em projetos que usam Claude Code também é possível clonar o repo e referenciar via plugin/skills locais.
