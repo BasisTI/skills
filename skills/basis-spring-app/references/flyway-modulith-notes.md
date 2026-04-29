@@ -23,20 +23,18 @@ Migrations em `src/main/resources/db/migration/V<N>__<nome>.sql`. Spring Boot au
 
 ## Naming
 
-Convenção Basis: `V<N>__<descricao_snake>.sql` onde `N` é sequencial inteiro (`V1__`, `V2__`, ...).
+Convenção Basis: timestamp `V20260424123000__nome.sql` — útil em projetos grandes ou onde múltiplas branches geram migrations em paralelo.
 
-Alternativa: timestamp `V20260424123000__nome.sql` — útil em projetos grandes ou onde múltiplas branches geram migrations em paralelo. Para projeto novo, comece com sequencial; migre pra timestamp se houver colisão.
-
-Exemplo do identity-hub:
+Exemplo:
 ```
-V1__create_colaborador.sql
-V2__create_processo.sql
-V3__create_event_publication.sql
-V4__add_dados_pessoais.sql
-V5__add_chave_ocorrencia_jira.sql
-V6__remove_bairro_telefone.sql
-V7__fix_nascimento_sexo_types.sql
-V8__evolve_processo.sql
+V20260419080100__create_colaborador.sql
+V20260420095600__create_processo.sql
+V20260420123000__create_event_publication.sql
+V20260420193500__add_dados_pessoais.sql
+V20260421144400__add_chave_ocorrencia_jira.sql
+V20260423123000__remove_bairro_telefone.sql
+V20260424120000__fix_nascimento_sexo_types.sql
+V20260424123000__evolve_processo.sql
 ```
 
 ## Modulith JDBC event publisher: criar a tabela manualmente
