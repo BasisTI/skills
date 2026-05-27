@@ -30,17 +30,16 @@ spring:
           group: core
 ```
 
-A queue criada (ou consumida) tem o nome `<destination>.<group>`. Sem `group` = anonymous queue (NÃO usar em produção — perde mensagens em redeploy).
+A queue criada (ou consumida) tem o nome `<destination>.<group>`. O uso de `group` é obrigatório.
 
-## Decisão: quem é dono da topologia?
+## K8s é dono da topologia em staging/production
 
-Duas opções, escolher uma — **misturar quebra**.
 
-### Opção A: K8s dono (recomendado em prod)
+### Configuração padrão
 
 Filas, exchanges, DLX, DLQ, bindings, Policies → todos em CRDs do RabbitMQ Topology Operator.
 
-SCS NÃO redeclara nada:
+SCS NÃO redeclara nada, `application.yml`:
 ```yaml
 spring:
   cloud:
@@ -60,9 +59,9 @@ Vantagens:
 
 Ver `basis-k8s-deploy/references/rabbitmq-topology-pattern.md`.
 
-### Opção B: SCS dono (recomendado em dev local)
+### Configuração para dev local: SCS dono
 
-SCS cria tudo automaticamente quando a app sobe.
+SCS cria tudo automaticamente quando a app sobe, quando o perfil `dev` é ativado, `application-dev.yml`:
 
 ```yaml
 spring:
@@ -89,42 +88,7 @@ Vantagens:
 - Zero infra extra em dev (só docker-compose com rabbit)
 - Útil pra prototipagem e testes locais
 
-Limitações:
-- DLX é DIRECT (não topic) — múltiplos fluxos compartilhando DLX único só funcionam por causa do routing-key default = destination
-- Em prod, perde controle: TTL, lazy queues, max-length precisam de Policy ou args, e args são imutáveis
-
-## Combinando: dev usa Opção B, prod usa Opção A
-
-`application.yml` (sem default — força profile a decidir):
-```yaml
-spring:
-  cloud:
-    stream:
-      bindings:
-        onboarding-in-0:
-          destination: identity-hub.onboarding
-          group: core
-        # ...
-      function:
-        definition: onboarding;emailCreation;...
-```
-
-`application-dev.yml`:
-```yaml
-spring:
-  cloud:
-    stream:
-      rabbit:
-        bindings:
-          default:
-            consumer:
-              bind-queue: true
-              auto-bind-dlq: true
-```
-
-`application-prod.yml`: nada — usa o `default.consumer.bind-queue: false` + `auto-bind-dlq: false` que viria do `application.yml` (ou explícito):
-
-> Atalho: deixar prod implícito ou ser explícito no application.yml com defaults `false`. Sugiro explicitar no application.yml e overrider no `-dev.yml` pra true.
+Limitação: DLX é DIRECT (não topic) — múltiplos fluxos compartilhando DLX único só funcionam por causa do routing-key default = destination. Para ambiente dev local não é problema.
 
 ## Retry e DLQ
 
@@ -174,7 +138,7 @@ Implementação base usa `RabbitTemplate.convertAndSend(exchange, "", payload, p
 ## Anti-padrões
 
 - **Sem `group`** em consumer-side — queue anonymous, mensagens perdidas em redeploy
-- **DLX type=fanout em opção B** — SCS cria como direct e dá conflito na declaração
+- **DLX type=fanout no dev local** — SCS cria como direct e dá conflito na declaração
 - **Mixing K8s + SCS topology** — type/args conflict no startup
 - **Retry sem max** — loop infinito, DLQ nunca chega
 - **`auto-bind-dlq: true` + topology K8s** — SCS tenta redeclarar DLX/DLQ, falha
