@@ -11,9 +11,9 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 
 - **Java**: LTS mais recente (em 04/2026: 25)
 - **Build**: Maven (nunca Gradle — não há benefício para nossos casos)
-- **Spring**: estável mais recente (em 04/2026: Spring 4.0)
-- **Modulith**: versão pareada com Spring (em 04/2026: 2.0)
-- **Banco**: PostgreSQL
+- **Spring**: estável mais recente (em 07/2026: Spring 4.1)
+- **Modulith**: versão pareada com Spring (em 07/2026: 2.1)
+- **Banco**: PostgreSQL 17
 - **Migrações**: Flyway (sem exceção — todo sistema TEM ferramenta de migração)
 - **Persistência**: Spring Data JDBC > JPA para novos projetos
 - **Mensageria**: RabbitMQ via Spring Cloud Stream (SCS)
@@ -23,7 +23,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 
 ## 2. Esqueleto de projeto
 
-- Multi-módulo: `<app>-domain`, `<app>-core`, `<app>-ingress` quando aplicável
+- Multi-módulo: `<app>-domain`, `<app>-core` quando aplicável
 - Parent pom + Modulith BOM
 - Plugins essenciais:
   - `spring-boot-maven-plugin`
@@ -87,6 +87,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 - **Source `input.css` em `src/frontend/`** (FORA do classpath, senão acaba no jar)
 - Output gerado em `target/classes/static/css/style.css` (vai pro jar via classpath, não versionado)
 - JS vendored (htmx, list.js) também copiado pra `target/classes/static/js/`
+- Tema DaisyUI padrão a aplicar: `caramellatte`
 - `package.json` build script:
   ```
   mkdir -p ./target/classes/static/css ./target/classes/static/js
