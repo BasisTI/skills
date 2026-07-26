@@ -1,11 +1,11 @@
 ---
 name: basis-spring-app
-description: Use when starting, extending, or refactoring a Basis Spring application — Java LTS + Maven + Spring (latest stable) + Spring Modulith, configuration via yaml + env vars + @ConfigurationProperties under the `application.*` prefix, Postgres + Flyway always, RabbitMQ via Spring Cloud Stream, web stack Thymeleaf + HTMX + Tailwind + DaisyUI. Activate for new modules, configuration cleanup, async messaging wiring, or web/frontend build questions.
+description: Use when starting, extending, or refactoring a Basis Spring application — Java LTS + Maven + Spring (latest stable) + Spring Modulith, configuration via yaml + env vars + @ConfigurationProperties under the `application.*` prefix, Postgres + Flyway always, RabbitMQ via Spring Cloud Stream, web stack Thymeleaf + HTMX + Tailwind + DaisyUI, local dev via Docker Compose (Keycloak on the app's Postgres), startup banner and DEBUG logging at entry points, Modulith structure tests. Activate for new modules, configuration cleanup, async messaging wiring, local dev environment setup, or web/frontend build questions.
 ---
 
 # Basis Spring Application
 
-Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documenta o lado dev; aquela documenta o lado ops/infra).
+Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documenta o lado dev; aquela documenta o lado ops/infra) e com `basis-java-code-standards` (como o código Java é escrito dentro dela).
 
 ## 1. Stack default (sempre, sem exceção)
 
@@ -20,6 +20,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 - **Web (quando aplicável)**: Thymeleaf + HTMX + Tailwind + DaisyUI; alternativamente Angular
 - **Auth (quando autenticada)**: Keycloak (realm `basis`) via OIDC, registration sempre `keycloak`, autorização por client roles
 - **Observability**: Spring Boot Actuator (obrigatório — health probes pra K8s)
+- **Dev local**: Docker Compose com Postgres + RabbitMQ + Keycloak (quando autenticada), profile `dev` pronto pra rodar sem editar config
 
 ## 2. Esqueleto de projeto
 
@@ -78,25 +79,15 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 
 ## 6. Web stack (quando aplicável)
 
-### Templates e HTMX
-- Thymeleaf em `src/main/resources/templates/`
-- Fragmentos `monitoring/fragments/<frag>.html` servidos por Controller pra `hx-target` requests
-- Reutilizar layouts via `th:fragment`/`th:replace`
+O padrão de UI (layout com sidebar, tabelas com cabeçalho/rodapé fixos, formulários, página de erro, tema `caramellatte`, build de CSS/JS) está na skill **`basis-web-frontend`**. Resumo do que a app Spring precisa saber:
 
-### Tailwind v4 + DaisyUI
-- **Source `input.css` em `src/frontend/`** (FORA do classpath, senão acaba no jar)
-- Output gerado em `target/classes/static/css/style.css` (vai pro jar via classpath, não versionado)
-- JS vendored (htmx, list.js) também copiado pra `target/classes/static/js/`
-- Tema DaisyUI padrão a aplicar: `caramellatte`
-- `package.json` build script:
-  ```
-  mkdir -p ./target/classes/static/css ./target/classes/static/js
-  && tailwindcss -i ./src/frontend/input.css -o ./target/classes/static/css/style.css
-  && cp node_modules/htmx.org/dist/htmx.min.js target/classes/static/js/
-  && cp node_modules/list.js/dist/list.min.js target/classes/static/js/
-  ```
+- Thymeleaf em `src/main/resources/templates/`, layout único em `layout.html` (`th:fragment="layout(content, activeMenu)"`)
+- Fragmentos HTMX servidos por Controller dedicado, devolvendo só o trecho (`~{::fragmento}`)
+- Tema DaisyUI **`caramellatte`**; `input.css` em `src/frontend/` (fora do classpath), output gerado em `target/classes/static/`
 - `frontend-maven-plugin` na fase `generate-resources` roda `npm run build`
 - `.gitignore`: `src/main/resources/static/*` exceto `static/images/` (assets versionáveis)
+- `templates/error.html` **obrigatório** — sem ele a app cai na Whitelabel Error Page do Spring Boot; `server.error.whitelabel.enabled: false` e `include-stacktrace: never`
+- `@ControllerAdvice` com `@ModelAttribute` para `appVersion` (de `BuildProperties`) e `currentUser` (do `OidcUser`), que o layout consome em toda página
 
 ## 7. Autenticação (Keycloak OIDC)
 
@@ -110,6 +101,7 @@ Apps web autenticadas usam Keycloak no realm `basis`, fluxo OIDC. Padrões:
 - `/actuator/health/**` + estáticos sempre `permitAll()` (probes K8s precisam acesso anônimo)
 
 Ver [`references/keycloak-oidc.md`](references/keycloak-oidc.md) — config completa, SecurityConfig template, setup do client no Keycloak.
+Para Keycloak local (compose + import do realm `basis`), ver §10 e [`references/local-dev-compose.md`](references/local-dev-compose.md).
 
 ## 8. Observability (Actuator)
 
@@ -121,13 +113,68 @@ Ver [`references/keycloak-oidc.md`](references/keycloak-oidc.md) — config comp
 
 Ver [`references/actuator.md`](references/actuator.md) — config completa, integração com SecurityConfig e probes K8s.
 
-## 9. Testes
+## 9. Logging e depuração
+
+Convenções gerais de log (SLF4J, `{}`, níveis, nada sensível) estão em `basis-java-code-standards` §9. O que é específico de app Spring:
+
+### Banner de startup — obrigatório
+- Após `app.run(...)`, logar bloco com nome da aplicação, URL local, URL externa, context path e **profiles ativos**
+- Responde na hora "qual app, em que porta, com que profile" sem acesso ao pod
+- Ler `server.port` e profiles do `Environment` (não do yml) — reflete a porta efetiva e o profile realmente ativo
+- Nada de segredo no banner
+
+### DEBUG nos pontos de entrada — obrigatório
+- Todo ponto onde estímulo externo entra loga em `DEBUG` o que chegou: Controller, consumer SCS, `@Scheduled`, listener de evento Modulith, webhook
+- Identificador e campos que direcionam o fluxo — não o payload inteiro (payload em `TRACE`), nunca PII/segredo
+- Consumer loga também o desfecho (processado/rejeitado + motivo) — mensagem sem contraparte no log é o sintoma de consumer travado
+
+### DEBUG em processamento complexo
+- Método com várias etapas, chamada externa ou regra densa: um `DEBUG` no início (entrada) e um no fim (resultado, e duração quando útil), com o mesmo identificador nas duas linhas
+- Critério: se falhar em produção, o log de erro sozinho diz *com que entrada* e *até onde foi*? Se não, precisa do par
+- Duração em `DEBUG` é diagnóstico; o que precisa de acompanhamento contínuo vai para Micrometer/Actuator
+
+### Níveis
+- `application.yml`: `br.com.basis.<app>: INFO`; `application-dev.yml`: `DEBUG`
+- Em prod sobe para `DEBUG` sem redeploy via `LOGGING_LEVEL_*` ou `/actuator/loggers` — é para isso que os `DEBUG` existem no código
+- `DEBUG`/`TRACE` de pacote de terceiro é investigação pontual, não config commitada (`org.springframework.jdbc.core: TRACE` loga valores de parâmetro de SQL)
+
+Ver [`references/logging-e-banner.md`](references/logging-e-banner.md) — código do banner, exemplos por tipo de entry point, guard `isDebugEnabled`.
+
+## 10. Ambiente de desenvolvimento local
+
+Meta: `git clone` → `docker compose up -d` → `mvn spring-boot:run -Dspring-boot.run.profiles=dev`, **sem editar arquivo de configuração**. `compose.yaml` e `application-dev.yml` são escritos como par — os valores do yml são os defaults declarados no compose.
+
+- `compose.yaml` na raiz: Postgres, RabbitMQ, Keycloak (quando autenticada), + o que a app usar (MinIO, GreenMail, Ollama). Portas sempre em `127.0.0.1`, healthcheck em todo serviço
+- **Keycloak usa o Postgres da própria aplicação**, em banco/role separados (`keycloak`/`keycloak`) criados via `docker/postgres/init.sql`. Motivo principal: permite rodar comandos de administração no container com o Keycloak no ar — em especial `kc.sh export` do realm, que com o dev-file (H2) esbarra no lock do arquivo. De quebra: um container de banco só, estado sobrevivendo ao `down`, e mesma topologia de prod
+- Realm `basis` importado de `./docker/keycloak` via `--import-realm`; partir de [`references/basis-realm-dev.json`](references/basis-realm-dev.json) (client `<app>-admin`, client roles `<APP>_USER`/`<APP>_ADMIN`, usuários `admin`/`admin` e `user`/`user`)
+- **Export de realm nunca vai cru para o repo** — carrega chave RSA privada, segredos HMAC/AES, client secret e hashes de senha
+- `application-dev.yml` traz datasource apontando para o compose (`localhost:5432`, usuário/senha = nome da app) e o issuer local (`http://localhost:9080/realms/basis`)
+- **RabbitMQ não aparece no `application-dev.yml`**: os defaults do Spring (`localhost:5672`, `guest`/`guest`, vhost `/`) já batem com o container. Vhost dedicado e credencial real só em prod, via env var
+- Em dev o SCS é dono da topologia (`declare-exchange`/`bind-queue`/`auto-bind-dlq: true`); em prod os CRDs do operator são
+
+### Anti-padrões
+- `application-dev.yml` apontando para infra compartilhada/remota com credencial real — vira segredo versionado, quebra o "clone e roda" e um dev derruba o ambiente do outro
+- URL/credencial comentada com a alternativa "de verdade" logo abaixo — o profile deixa de ter config válida
+- Senha forte em dev (a porta só escuta em `127.0.0.1`); `<app>`/`<app>`, `guest`/`guest`, `admin`/`admin` são melhores por serem obviamente descartáveis
+
+Ver [`references/local-dev-compose.md`](references/local-dev-compose.md) — compose completo, `init.sql`, `application-dev.yml`, comando de export do realm.
+
+## 11. Testes
 
 - **Unit**: Mockito quando faz sentido (controllers, services puros)
 - **Integração**: Testcontainers pra Postgres/RabbitMQ — não mockar infra que sobe local em segundos
 - **APIs externas opacas** (AD/LDAP, Mailcow, Secullum, OPNsense): interface + impl real, teste manual contra infra; mocks só pros happy paths em controller tests
 
-## 10. Interface com `basis-k8s-deploy`
+### Estrutura (Modulith) — obrigatório quando a app usa Modulith
+- `ApplicationModules.of(<App>Application.class).verify()` num teste — pega acesso a pacote `internal` de outro módulo, ciclo entre módulos e dependência não declarada
+- Sem esse teste, "módulo" é só convenção de pasta: o build aceita qualquer `import` entre pacotes internos e a modularidade se dissolve sem sinal nenhum
+- `Documenter` no mesmo teste gera os diagramas em `target/modulith-docs` — documentação que não desatualiza
+- Fronteiras críticas do domínio declaradas explicitamente, principalmente as dependências que **não podem existir** (`containsModuleNamed(...)` com `isFalse()`); alternativa declarativa: `@ApplicationModule(allowedDependencies = ...)` no `package-info.java`
+- `@ApplicationModuleTest` + `Scenario` para integração por módulo e para testar evento sem `Thread.sleep`
+
+Ver [`references/modulith-tests.md`](references/modulith-tests.md) — teste base, fronteiras de domínio, `@ApplicationModuleTest`.
+
+## 12. Interface com `basis-k8s-deploy`
 
 ### Env vars que o app espera
 - `SPRING_PROFILES_ACTIVE=prod` (ativa `application-prod.yml`)
@@ -146,6 +193,10 @@ Ver [`references/actuator.md`](references/actuator.md) — config completa, inte
 - [`references/keycloak-oidc.md`](references/keycloak-oidc.md) — OIDC com registration `keycloak`, client roles, SecurityConfig template
 - [`references/actuator.md`](references/actuator.md) — Health probes (liveness/readiness), integração com K8s, métricas Prometheus
 - [`references/pom-skeleton.md`](references/pom-skeleton.md) — pom multi-módulo + plugins essenciais (jib, frontend-maven-plugin), parent BOM, módulos típicos
-- [`references/frontend-build.md`](references/frontend-build.md) — package.json com output em `target/classes/static/`, `input.css` em `src/frontend/` (fora do classpath), `.gitignore` com exceção `images/`
+- Build de frontend, layout, tabelas, formulários e páginas de erro: skill **`basis-web-frontend`**
 - [`references/flyway-modulith-notes.md`](references/flyway-modulith-notes.md) — gotchas de schema com Modulith JDBC publisher, naming, baseline em legacy
+- [`references/logging-e-banner.md`](references/logging-e-banner.md) — banner de startup, DEBUG em entry points e processamento complexo, níveis por ambiente
+- [`references/local-dev-compose.md`](references/local-dev-compose.md) — `compose.yaml`, Keycloak no Postgres da app, `init.sql`, `application-dev.yml` espelhando o compose, export do realm
+- [`references/basis-realm-dev.json`](references/basis-realm-dev.json) — realm `basis` mínimo para import em dev: client `<app>-admin`, client roles, usuários de teste
+- [`references/modulith-tests.md`](references/modulith-tests.md) — `ApplicationModules.verify()`, `Documenter`, fronteiras de domínio, `@ApplicationModuleTest`
 

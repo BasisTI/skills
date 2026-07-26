@@ -1,0 +1,105 @@
+{
+  "realm": "basis",
+  "displayName": "Basis",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["pt-BR", "en"],
+  "defaultLocale": "pt-BR",
+  "roles": {
+    "client": {
+      "<app>-admin": [
+        {
+          "name": "<APP>_USER",
+          "description": "Usuario da aplicacao",
+          "composite": false,
+          "clientRole": true
+        },
+        {
+          "name": "<APP>_ADMIN",
+          "description": "Administrador da aplicacao",
+          "composite": false,
+          "clientRole": true
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "<app>-admin",
+      "name": "<app>",
+      "description": "Client OIDC da aplicacao <app>",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "dev-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://localhost:8080",
+      "baseUrl": "http://localhost:8080",
+      "adminUrl": "http://localhost:8080",
+      "redirectUris": [
+        "http://localhost:8080/login/oauth2/code/keycloak",
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": ["+"],
+      "attributes": {
+        "post.logout.redirect.uris": "+"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "roles", "profile", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "firstName": "Administrador",
+      "lastName": "Basis",
+      "email": "admin@localhost",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "<app>-admin": ["<APP>_ADMIN", "<APP>_USER"]
+      }
+    },
+    {
+      "username": "user",
+      "firstName": "Usuario",
+      "lastName": "Basis",
+      "email": "user@localhost",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "<app>-admin": ["<APP>_USER"]
+      }
+    }
+  ]
+}

@@ -57,7 +57,7 @@ Apenas `src/main/resources/static/images/` é versionado (assets manuais — log
 Pontos:
 - `mkdir -p` antes do tailwind: garante o destino antes do `generate-resources` (target/classes ainda não existe)
 - Output dos vendored JS direto via `cp` — sem complicar com webpack/esbuild
-- Sem aspas em `JAVA_TOOL_OPTIONS` em outros lugares — JVM trata diferente, evita
+- HTMX e List.js vêm do `node_modules` e são servidos pelo próprio app; o layout referencia `@{/js/htmx.min.js}`, nunca uma URL de CDN
 
 ## `src/frontend/input.css`
 
@@ -159,3 +159,5 @@ E garantir que o Spring Boot serve `target/classes/static` mesmo com hot-reload 
 - **`@source` apontando pra path absoluto** — quebra pra qualquer pessoa que clone em outro local
 - **Usar Webpack/Vite/esbuild só pra copiar 2 JS** — overengineering; `cp` resolve
 - **Esquecer `mkdir -p`** — Tailwind não cria parent dirs, build falha em primeira execução pós-`mvn clean`
+- **HTMX/List.js por CDN** (`unpkg`, `cdnjs`) — app interno costuma rodar em rede fechada, e a tela quebra sem internet; além de colocar um terceiro no caminho de renderização. Vendorizar e versionar junto com o app
+- **Tema fora do `input.css`** — o `caramellatte` precisa estar na lista do `@plugin "daisyui"`, senão o `data-theme` do layout não encontra o tema e a página cai no `light`

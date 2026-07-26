@@ -269,7 +269,7 @@ Stack típico de um app Basis web autenticado:
 </build>
 ```
 
-Ver [`frontend-build.md`](frontend-build.md) pra setup do `package.json`.
+Ver `references/frontend-build.md` na skill `basis-web-frontend` pra setup do `package.json`.
 
 ## Convenções
 

@@ -7,8 +7,10 @@ Agent skills com os padrões de engenharia da [Basis](https://www.basis.com.br) 
 | Skill | Quando ativar |
 |-------|---------------|
 | [`basis-k8s-deploy`](skills/basis-k8s-deploy/SKILL.md) | Deploy/infra: kustomize base+overlays, ArgoCD + Image Updater, Dagger CI no GitLab, secrets de operators (Postgres/RabbitMQ/Minio/MariaDB/Redis), tags CalVer. |
-| [`basis-spring-app`](skills/basis-spring-app/SKILL.md) | Apps Spring: Java LTS + Maven + Spring Modulith, `application.*` em `@ConfigurationProperties`, Postgres + Flyway, Spring Cloud Stream RabbitMQ, Thymeleaf + HTMX + Tailwind + DaisyUI, Keycloak OIDC, Actuator. |
+| [`basis-spring-app`](skills/basis-spring-app/SKILL.md) | Apps Spring: Java LTS + Maven + Spring Modulith, `application.*` em `@ConfigurationProperties`, Postgres + Flyway, Spring Cloud Stream RabbitMQ, Thymeleaf + HTMX + Tailwind + DaisyUI, Keycloak OIDC, Actuator, dev local com Docker Compose, banner de startup + logs de DEBUG, testes de estrutura Modulith. |
 | [`basis-python-app`](skills/basis-python-app/SKILL.md) | Apps Python: 3.13+ com `uv` obrigatório, ruff, pytest, Dockerfile multi-stage, workspace só com 2+ components. |
+| [`basis-web-frontend`](skills/basis-web-frontend/SKILL.md) | UI web: Thymeleaf + HTMX + Tailwind v4 + DaisyUI (tema `caramellatte`), layout com sidebar + header, tabelas com cabeçalho/rodapé fixos, formulários alinhados com utilitários, página de erro padrão (nunca Whitelabel), build de CSS/JS. |
+| [`basis-java-code-standards`](skills/basis-java-code-standards/SKILL.md) | Código Java: formatação e nomes, Java moderno (records, sealed, pattern matching), exceções, nulidade/imutabilidade, coleções, `java.time`/`BigDecimal`, logging, concorrência, segurança, design de API e testes. |
 
 ## Instalação
 
@@ -47,8 +49,12 @@ CalVer (`vYYYY.MM.DD`), alinhado com o resto dos releases da Basis:
 skills/<nome>/
 ├── SKILL.md          # frontmatter (name, description) + corpo
 └── references/       # snippets, exemplos, deep dives
-    └── *.md
+    ├── *.md
+    ├── *.json        # templates prontos pra uso (ex: realm Keycloak de dev)
+    └── assets/       # binários que o padrão exige (ex: logo Basis)
 ```
+
+O `name` do frontmatter deve ser igual ao nome do diretório — é assim que `npx skills add --skill <nome>` resolve.
 
 O `SKILL.md` é o ponto de entrada — descreve quando ativar e link pra referências. As `references/*.md` ficam dentro da pasta da skill, então o install via `npx skills add` leva tudo junto.
 
