@@ -1,0 +1,200 @@
+Nota de Incidente — Fila de e-mail crescente
+
+*Sistema afetado*: Servidor de e-mail (mailcow-dockerized) — Postfix / Rspamd
+*Data do incidente*: 25/07/2026
+*Detecção*: Automática — {{Watchdog ALERT: mail_queue_status}}
+*Severidade*: Média — risco de esgotamento de fila e de lotação de caixas de usuários
+*Status*: Resolvido / em observação
+
+h2. Descrição e causa raiz
+
+h3. Resumo
+
+O Watchdog do mailcow disparou o alerta {{mail_queue_status}} indicando crescimento anormal da fila de e-mails. A investigação apontou o recebimento em massa de mensagens automáticas do remetente {{REDACTED@REDACTED}, que se acumularam na fila (cerca de 500 mensagens em estado _deferred_) e ameaçavam lotar as caixas dos usuários.
+
+A causa raiz foi uma entrada de whitelist ampla ({{\*@REDACTED}}) que liberava todas as mensagens desse domínio, anulando qualquer filtragem antispam — inclusive apesar de o IP de origem constar em listas de reputação (RBLs). A correção consistiu em remover essa whitelist, inserir o remetente na blacklist do domínio e limpar as mensagens já represadas na fila.
+
+Não houve perda de dados nem indisponibilidade do serviço.
+
+h3. Impacto
+
+||Métrica||Valor||
+|Indisponibilidade do serviço|Nenhuma|
+|Usuários afetados|Nenhum de forma efetiva — risco de lotação de caixa não materializado|
+|Perda ou vazamento de dados|Nenhum|
+|Mensagens represadas na fila|~500, em estado _deferred_|
+|Remetentes envolvidos|1 — {{REDACTED@REDACTED}}|
+|Mensagens entregues indevidamente|Não medido|
+|Mensagens removidas da fila|~500|
+
+h3. Cronologia
+
+||Horário (UTC)||Evento||
+|25/07 <preencher>|Disparo do alerta {{Watchdog ALERT: mail_queue_status}}.|
+|25/07 <preencher>|Inspeção da fila do Postfix — identificadas ~500 mensagens em _deferred_, todas do mesmo remetente.|
+|25/07 <preencher>|Identificada a whitelist {{\*@REDACTED}} como causa raiz, via análise do Rspamd History.|
+|25/07 <preencher>|Removida a whitelist; remetente adicionado à blacklist do domínio.|
+|25/07 <preencher>|Removida a regra manual redundante do Rspamd Settings Map.|
+|25/07 <preencher>|Teste sintético via {{rspamc}} confirma rejeição.|
+|25/07 <preencher>|Fila do Postfix limpa das mensagens represadas.|
+
+h3. Descrição do incidente
+
+O alerta {{Watchdog ALERT: mail_queue_status}} sinalizou o aumento contínuo da fila do Postfix. Ao inspecionar a fila, foram identificadas aproximadamente 500 mensagens em _deferred_, todas originadas de {{REDACTED@REDACTED}} — um envio automático em massa do REDACTED.
+
+O volume represado gerava dois riscos simultâneos: o esgotamento da fila, que foi o motivo do alerta, e o preenchimento das caixas dos usuários à medida que as mensagens fossem entregues.
+
+Na inspeção do Rspamd, verificou-se que as mensagens já pontuavam naturalmente como spam, mas apareciam na aba History com {{Action: no action}} — indicando que algum mecanismo estava sobrepondo a decisão do filtro.
+
+h3. Causa raiz
+
+*Causa raiz*: existia uma entrada de whitelist {{\*@REDACTED}} no filtro de spam do domínio {{basisti.com.br}}, criada anteriormente porque usuários reclamavam de não receber e-mails legítimos desse cliente. Essa whitelist aplicava o símbolo {{MAILCOW_WHITE}} com pontuação de −1998, o que forçava a entrega de *qualquer* mensagem do domínio, independentemente da análise antispam.
+
+*Causas contribuintes*:
+
+* Havia *entradas de whitelist duplicadas* para o domínio, o que dobrava a pontuação negativa aplicada e tornava a sobreposição ainda mais difícil de reverter por pontuação.
+* A whitelist com curinga amplo desativava também os sinais de reputação: o IP de origem constava em {{RBL_SPAMHAUS_CSS}}, {{RBL_SPAMHAUS_PBL}} e {{RBL_SENDERSCORE}}, e mesmo assim as mensagens eram entregues.
+* A whitelist foi criada para resolver um falso positivo real, sem escopo restrito ao endereço específico necessário — a solução de um problema legítimo criou a exposição.
+
+h3. Evidências
+
+Na inspeção do Rspamd, a mensagem já pontuava naturalmente como spam — {{HFILTER_HOSTNAME_UNKNOWN (8.5)}}, além de constar nas RBLs citadas acima — mas o {{MAILCOW_WHITE}} sobrepunha esses sinais e liberava a entrega. Por isso, na aba History do Rspamd, essas mensagens apareciam com {{Action: no action}}.
+
+O log do Rspamd registrava as entradas de whitelist duplicadas para o domínio:
+
+{code}
+settings.lua:48: cannot apply settings rule whitelist_mime_basisticombr (id=nil):
+has been already applied by rule whitelist_basisticombr (id=nil)
+{code}
+
+h3. Recorrência
+
+Primeira ocorrência deste vetor. Não há nota de incidente anterior envolvendo sobreposição de filtro antispam por whitelist.
+
+h2. Ações tomadas
+
+h3. Contenção
+
+Removida a entrada de whitelist {{\*@REDACTED}} do filtro de spam do domínio {{basisti.com.br}}, interrompendo imediatamente a liberação indevida de novas mensagens do domínio.
+
+Em seguida, a fila do Postfix foi limpa das mensagens já represadas, eliminando o risco de lotação das caixas dos usuários. O procedimento está detalhado abaixo, em "Limpeza da fila do Postfix".
+
+h3. Correção
+
+||Item||Antes||Depois||
+|Whitelist {{\*@REDACTED}} no domínio {{basisti.com.br}}|Ativa, com {{MAILCOW_WHITE}} de −1998|*Removida*|
+|Remetente {{REDACTED@REDACTED}}|Sem restrição|*Em blacklist do domínio*|
+|Regra manual no Rspamd Settings Map|Criada durante o atendimento|*Removida* — redundante com a blacklist|
+|Mensagens represadas na fila|~500 em _deferred_|*Removidas*|
+
+A blacklist utilizada é a opção nativa do mailcow, ao lado da whitelist no mesmo painel de filtro de spam do domínio. A regra manual criada inicialmente no Rspamd Settings Map foi descartada por ter se tornado redundante — manter as duas duplicaria o mesmo tipo de problema que originou o incidente.
+
+h4. Validação da configuração
+
+Validação da sintaxe da configuração do Rspamd (equivalente ao {{nginx -t}}):
+
+{code}
+cd /opt/mailcow-dockerized
+docker compose exec rspamd-mailcow rspamadm configtest
+{code}
+
+Conferência da configuração já mesclada:
+
+{code}
+docker compose exec rspamd-mailcow rspamadm configdump
+{code}
+
+_Observação_: o conteúdo do Settings Map é carregado como um map dinâmico e não aparece no {{configdump}} (que reflete a configuração estática). Erros nesse mapa aparecem apenas no log: {{docker compose logs rspamd-mailcow}}.
+
+h4. Limpeza da fila do Postfix
+
+As mensagens já represadas (anteriores à correção) foram removidas manualmente. Primeiro a contagem, para conferência antes de apagar:
+
+{code}
+cd /opt/mailcow-dockerized
+docker compose exec postfix-mailcow bash
+
+postqueue -p | tail -n +2 | awk 'BEGIN { RS = "" } /REDACTED@REDACTED/ { print $1 }' | wc -l
+{code}
+
+Em seguida, a remoção das mensagens daquele remetente:
+
+{code}
+postqueue -p | tail -n +2 | awk 'BEGIN { RS = "" } /REDACTED@REDACTED/ { print $1 }' | tr -d '*!' | postsuper -d -
+{code}
+
+E a verificação de que a fila foi esvaziada desse remetente:
+
+{code}
+postqueue -p | grep -c REDACTED
+{code}
+
+O comando remove apenas as mensagens que correspondem ao endereço informado, preservando o restante da fila.
+
+h3. Verificação de eficácia
+
+Como as mensagens originais já haviam sido apagadas, o teste foi feito com um {{.eml}} sintético. Para um bloqueio por remetente, o que importa é o envelope ({{--from}} / {{--rcpt}}) e não o conteúdo — o teste é portanto equivalente à condição original para o mecanismo em questão.
+
+Criação da mensagem de teste:
+
+{code}
+cat > /tmp/teste.eml <<'EOF'
+From: REDACTED@REDACTED
+To: REDACTED@basisti.com.br
+Subject: teste de bloqueio
+Date: Sat, 25 Jul 2026 10:00:00 -0300
+
+Corpo de teste.
+EOF
+{code}
+
+Execução do teste pelo Rspamd:
+
+{code}
+docker compose exec -T rspamd-mailcow rspamc \
+  --from REDACTED@REDACTED \
+  --rcpt REDACTED@basisti.com.br \
+  < /tmp/teste.eml
+{code}
+
+Resultado obtido:
+
+{code}
+Results for file: stdin (0.288 seconds)
+[Metric: default]
+Action: reject
+Spam: true
+Score: 2009.50 / 15.00
+Symbol: HFILTER_HOSTNAME_UNKNOWN (8.50)
+Symbol: MAILCOW_BLACK (1998.00)
+Symbol: MISSING_MID (2.50)
+Symbol: MX_INVALID (0.50)
+Symbol: DMARC_POLICY_SOFTFAIL (0.10)[REDACTED]
+Symbol: RCPT_MAILCOW_DOMAIN (0.00)[basisti.com.br]
+Message-ID: undef
+{code}
+
+A ação final {{reject}}, com pontuação {{2009.50 / 15.00}} e o símbolo {{MAILCOW_BLACK (1998.00)}}, comprova que a blacklist está em vigor. A *ausência* do símbolo {{MAILCOW_WHITE}} comprova que a whitelist não interfere mais.
+
+h2. Ações preventivas e próximos passos
+
+h3. Ações preventivas
+
+* *Evitar whitelists com curinga amplo* ({{\*@dominio}}), que desativam integralmente a proteção antispam para o domínio, incluindo os sinais de reputação (RBLs). Quando um falso positivo precisar ser tratado, o escopo deve ser o endereço específico, não o domínio.
+* *Revisar periodicamente as entradas de whitelist e blacklist* para remover duplicidades como a identificada neste incidente, que amplificava silenciosamente a pontuação aplicada.
+
+h3. Pendências
+
+||#||Ação||Responsável||Prazo||Status||
+|1|Manter o remetente em observação, acompanhando o Rspamd History para confirmar que as mensagens de {{REDACTED@REDACTED}} continuam rejeitadas e que nenhum novo alerta {{mail_queue_status}} é disparado|<preencher>|<preencher>|Em observação|
+|2|Confirmar com o cliente se os e-mails *legítimos* do REDACTED vêm de endereço ou subdomínio distinto do da mala-direta|<preencher>|<preencher>|Pendente|
+|3|Auditar as demais entradas de whitelist de todos os domínios em busca de curingas amplos e duplicidades|<preencher>|<preencher>|Pendente|
+
+Sobre a pendência 2: caso todos os e-mails legítimos cheguem por {{REDACTED}}, o bloqueio deve permanecer restrito ao endereço {{REDACTED@REDACTED}} — e não ao domínio inteiro — para não derrubar comunicações necessárias. Foi justamente essa preocupação que originou a whitelist ampla removida neste incidente, e é o ponto que precisa ser resolvido para que a correção não seja revertida no futuro pelo mesmo motivo.
+
+h3. Lições aprendidas
+
+* Uma whitelist criada para resolver um falso positivo real se tornou o vetor do incidente. *A solução de um problema legítimo, aplicada com escopo maior que o necessário, cria exposição proporcional ao excesso de escopo.*
+* Whitelist não é ajuste de pontuação — é desligamento do filtro. Com {{MAILCOW_WHITE}} em −1998, nenhum sinal legítimo de spam consegue competir, inclusive RBLs. Isso precisa ser entendido como decisão de arquitetura, não como preferência de usuário.
+* Entradas duplicadas de configuração se acumulam sem erro visível ao usuário, aparecendo apenas no log do Rspamd. Revisão periódica é o único mecanismo de detecção disponível hoje.
+* O teste sintético via {{rspamc}} provou-se um método eficaz de verificação sem depender de novo envio real, e deve ser adotado como prática padrão em correções de filtro.

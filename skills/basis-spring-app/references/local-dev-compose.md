@@ -123,6 +123,12 @@ sed -e 's/<app>/meuapp/g' -e 's/<APP>/MEUAPP/g' \
 
 Ajustar `redirectUris`/`rootUrl` se a app não roda em `http://localhost:8080`.
 
+> **O `protocolMapper` de client roles não é opcional.** O mapper default do Keycloak coloca
+> `resource_access.<client>.roles` **só no access token**. O `OidcUserService` do Spring lê os claims
+> do **ID token**, então sem um mapper com `"id.token.claim": "true"` o login funciona, o usuário
+> autentica — e toma **403** em toda rota protegida por role, porque a lista de authorities chega
+> vazia. O template já traz o mapper; ao criar o client pelo console, marcar "Add to ID token".
+
 ### Exportar o realm de volta (depois de mexer no console)
 
 Mudança feita pelo console admin (`http://localhost:9080`, `admin`/`admin`) só vira código depois do export:

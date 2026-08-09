@@ -1,0 +1,142 @@
+Modelo — Nota de Incidente (Jira wiki markup)
+
+Copiar a partir da marca de início abaixo, colando na descrição da ocorrência do Jira.
+
+A chave da ocorrência é a referência da nota e o reporter é quem a registrou — por isso não
+há campo de identificação nem de autoria no corpo.
+
+Blocos marcados (obrigatório) não podem ser omitidos. Blocos (quando aplicável) podem ser
+suprimidos se não houver conteúdo, mas a ausência deve ser justificada em uma linha.
+
+Regras gerais:
+  - Seções não são numeradas.
+  - Todo horário em UTC, com o fuso indicado explicitamente. Horário não comprovado por log
+    recebe a marca {{(estimado)}}.
+  - Toda afirmação de causa ou de resultado vem acompanhada da evidência que a sustenta:
+    log, comando executado, saída obtida.
+  - Métrica zero se escreve 0. Métrica não levantada se escreve "não medido". Nunca em branco.
+
+===============================================================================
+INÍCIO DO MODELO
+===============================================================================
+
+Nota de Incidente — <título curto e descritivo do sintoma>
+
+*Sistema afetado*: <sistema / serviço / host>
+*Data do incidente*: <DD/MM/AAAA — janela, se houver mais de um dia>
+*Detecção*: <automática (qual alerta) | manual (como foi percebido)>
+*Severidade*: <Baixa | Média | Alta | Crítica> — <justificativa em uma linha>
+*Status*: <Em andamento | Resolvido | Resolvido / em observação>
+
+h2. Descrição e causa raiz
+
+h3. Resumo
+
+(obrigatório) Um a dois parágrafos. O que aconteceu, qual foi a causa raiz e o que foi feito
+— nessa ordem. Deve ser legível isoladamente, sem depender do resto do documento. Se houve
+ou não comprometimento/perda de dados, dizer aqui.
+
+h3. Impacto
+
+(obrigatório) Tabela de métricas. É o insumo quantitativo da nota — a base para análise de
+tendência entre incidentes. Adaptar as linhas ao tipo de incidente, mantendo sempre
+indisponibilidade, usuários afetados e perda de dados.
+
+||Métrica||Valor||
+|Indisponibilidade do serviço| |
+|Usuários afetados| |
+|Perda ou vazamento de dados| |
+|<métrica específica do incidente>| |
+
+h3. Cronologia
+
+(obrigatório) Eventos em UTC, do primeiro sinal à conclusão das ações. Deve permitir derivar
+tempo de detecção e tempo de resolução sem cálculo adicional.
+
+||Horário (UTC)||Evento||
+| | |
+
+h3. Descrição do incidente
+
+(obrigatório) O relato técnico. O que foi observado, em que ordem, e o que a investigação
+revelou. Sem conclusões de causa — elas vão na seção seguinte.
+
+h3. Causa raiz
+
+(obrigatório) A causa, não o sintoma. Se a resposta a "por que isso foi possível?" ainda tem
+uma camada abaixo, descer essa camada.
+
+Separar, quando existirem:
+
+*Causa raiz*: o que permitiu o incidente.
+
+*Causas contribuintes*:
+
+* o que ampliou o impacto ou atrasou a detecção.
+
+h3. Evidências
+
+(quando aplicável) Logs, saídas de comando e trechos de configuração que sustentam a seção
+anterior. Usar {code} para saída de máquina e {noformat} para sequências e cronologias em
+texto. Explicar qualquer elemento que possa ser mal interpretado por quem revisa.
+
+h3. Recorrência
+
+(obrigatório) Primeira ocorrência deste vetor, ou referência às notas anteriores. Uma linha
+basta. Se for reincidência, dizer por que a ação anterior não foi suficiente.
+
+h2. Ações tomadas
+
+h3. Contenção
+
+(obrigatório) O que foi feito para parar o efeito em curso, com horário. Se a contenção foi
+automática, registrar assim.
+
+h3. Correção
+
+(obrigatório) O que foi alterado para eliminar a causa raiz. Mudança de parâmetro vai em
+tabela, não em prosa:
+
+||Item||Antes||Depois||
+| | | |
+
+Registrar explicitamente o que foi verificado e *não* precisou mudar. Isso distingue "estava
+correto" de "não foi olhado".
+
+h3. Verificação de eficácia
+
+(obrigatório) A prova de que a correção funciona. Não é a descrição do que foi mudado — é o
+teste executado depois, com o comando e a saída obtida.
+
+Se não foi possível reproduzir a condição original, construir um teste sintético e explicar
+por que ele é equivalente. Apontar na saída o sinal positivo e a ausência do sinal que
+causava o problema.
+
+Se nenhuma verificação foi possível, declarar isso, explicar o motivo e abrir pendência para
+confirmar em condição real.
+
+h2. Ações preventivas e próximos passos
+
+h3. Ações preventivas
+
+(quando aplicável) Mudanças que reduzem a classe do problema, não apenas esta ocorrência.
+Seção separada de "Ações tomadas" para ser auditável em separado: correção tem evidência,
+prevenção tem prazo.
+
+h3. Pendências
+
+(obrigatório) Toda pendência com responsável e prazo. Sem responsável, não é pendência — é
+intenção.
+
+||#||Ação||Responsável||Prazo||Status||
+|1| | | | |
+
+h3. Lições aprendidas
+
+(obrigatório) O que este incidente ensina para além dele mesmo. Vale registrar o que
+funcionou, não só o que falhou. Se a conclusão for "nada a aprender", escrever isso e por quê
+— é uma resposta válida e verificável.
+
+===============================================================================
+FIM DO MODELO
+===============================================================================

@@ -10,9 +10,20 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
 ## 1. Escopo e enforcement
 
 - Vale para todo código Java da Basis — apps Spring, libs, ferramentas.
-- Regra que dá pra automatizar não vive só em documento: formatação e lint entram no build (Spotless/Checkstyle para estilo, SpotBugs ou Error Prone para bugs) e falham o pipeline, não o revisor.
+- Regra que dá pra automatizar não vive só em documento: o que dá pra checar por ferramenta falha o
+  pipeline, não o revisor. A divisão na Basis é:
+  - **SonarQube** é o lint. Roda no `check-quality` do Dagger e cobre as regras (chaves ausentes,
+    `catch` genérico, complexidade, code smell, vulnerabilidade). **Não** adicionar Checkstyle,
+    SpotBugs ou PMD — é a mesma análise duas vezes, com dois conjuntos de regras pra manter.
+  - **Spotless** é o formatter. Sonar aponta formatação, não reescreve arquivo; `spotless:apply`
+    resolve indentação, largura de linha, ordem de import e import não usado de uma vez.
+  - **`-Xlint:all`** no `maven-compiler-plugin`, sem warning novo. Pega o que é do compilador
+    (deprecation, unchecked, this-escape) e que não é papel do Sonar.
+  - **Nulidade** é checada por JSpecify + IDE/Sonar (ver §6); NullAway/Error Prone é opcional e
+    depende do suporte da versão ao JDK em uso.
+- Cobertura do Sonar vale para **todos** os módulos do reactor — módulo fora da lista de análise é
+  código sem lint nenhum, e é sempre o `-domain`/`-commons` que fica de fora por esquecimento.
 - Revisão humana/agente foca no que ferramenta não pega: design, nomes, tratamento de erro, teste.
-- Compilar com `-Xlint:all` e sem warnings novos.
 
 ## 2. Formatação
 
@@ -58,10 +69,35 @@ Usar os recursos da LTS em uso (ver `basis-spring-app` para a versão vigente) e
 
 ## 6. Nulidade e imutabilidade
 
-- Não retornar `null` em métodos que retornam coleções — retornar coleção vazia.
-- `Optional` só como tipo de retorno de método; nunca campo, parâmetro ou dentro de coleção.
+### JSpecify é o padrão
+
+Spring Framework 7 / Spring Boot 4 migraram todo o codebase para **JSpecify**, e é o que a Basis usa.
+As anotações são `org.jspecify.annotations.*` — não `javax.annotation`, não
+`org.springframework.lang.Nullable` (removida no Spring 7), não `jakarta.annotation.Nullable`.
+
+- **`@NullMarked` no `package-info.java` de cada pacote.** Dentro de um pacote marcado, todo tipo
+  não anotado é **não-nulo**; só a exceção leva `@Nullable`. É o inverso do default do Java, e é o
+  que faz a anotação valer a pena: quem lê a assinatura sabe a resposta sem abrir a implementação.
+- Declarar `org.jspecify:jspecify` **explicitamente** no pom de cada módulo que usa as anotações.
+  Ela chega transitivamente pelo Spring, mas depender de transitiva pra algo que se `import` quebra
+  no dia em que a cadeia muda. A versão vem do BOM do Spring Boot.
+- `@Nullable` vai **no tipo**, não no membro (`@Nullable String buscar()`, `List<@Nullable String>`)
+  — JSpecify é anotação de tipo, e a posição importa em genérico e array.
+- Módulo sem Spring (`-domain`, libs) também é `@NullMarked`; ali a dependência é obrigatória.
+- Enforcement: IntelliJ e SonarQube entendem JSpecify direto. NullAway (via Error Prone) leva a
+  checagem pro compilador quando a versão suporta o JDK em uso — desejável, não obrigatório.
+
+### Regras que continuam valendo
+
+- Não retornar `null` em métodos que retornam coleções — retornar coleção vazia. Isso vale mesmo com
+  `@Nullable` disponível: coleção vazia é o contrato, não uma ausência a ser tratada.
+- `Optional` só como tipo de retorno de método; nunca campo, parâmetro ou dentro de coleção. Com
+  JSpecify, campo/parâmetro opcional é `@Nullable`, que não aloca e não vaza `Optional` na API.
 - Não usar `Optional.get()` — usar `orElseThrow()`, `orElse()`, `map()`.
-- `Objects.requireNonNull` nos parâmetros de construtor/método público que não aceitam nulo — falha na fronteira, não três frames depois.
+- `Objects.requireNonNull` fica para as fronteiras que o compilador **não** vê: entrada
+  desserializada (JSON, mensagem, banco), reflexão, e API pública consumida por código não anotado.
+  Dentro de código `@NullMarked`, repetir `requireNonNull` em todo parâmetro é ruído — a anotação já
+  é o contrato.
 - Preferir campos `final` e imutabilidade sempre que possível (records, builders, sem setter desnecessário).
 - Coleção exposta por API é imutável (`List.copyOf`, `Collections.unmodifiableList`) ou cópia defensiva — nunca a referência interna mutável.
 - Sobrescrever `equals()` e `hashCode()` sempre juntos; se a classe entra em coleção ordenada, `compareTo` consistente com `equals`.
@@ -149,9 +185,10 @@ Usar os recursos da LTS em uso (ver `basis-spring-app` para a versão vigente) e
 Ao revisar ou gerar código Java, verificar em ordem:
 
 1. Erro: exceção tratada uma vez, causa aninhada, tipo do projeto, nada engolido.
-2. Nulidade: sem `null` retornado em coleção, `Optional` só em retorno, `requireNonNull` nas fronteiras.
+2. Nulidade: pacote `@NullMarked`, `@Nullable` só onde o nulo é real, sem `null` retornado em
+   coleção, `Optional` só em retorno, `requireNonNull` nas fronteiras não anotadas.
 3. Recurso: try-with-resources em tudo que fecha, charset explícito.
 4. Segurança: query parametrizada, entrada validada, nada sensível em log, sem segredo no código.
 5. Design: dependências por construtor, visibilidade mínima, método curto, sem efeito colateral escondido.
 6. Teste: comportamento coberto, nome descritivo, determinístico.
-7. Estilo: formatter e lint passaram — se não passaram, é build quebrado, não comentário de review.
+7. Estilo: Spotless e SonarQube passaram — se não passaram, é build quebrado, não comentário de review.
