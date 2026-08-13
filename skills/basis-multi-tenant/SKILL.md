@@ -96,6 +96,19 @@ CREATE POLICY usuario_perfil_all ON usuario_perfil USING (true);
 tudo. **Inspecione a expressão, não a quantidade** — o predicado precisa mencionar
 `tenant_id`.
 
+Vale entender por que essa policy nasce, porque a causa costuma ser estrutural: uma tabela de
+ligação que guarda só `usuario_id` **não tem coluna de tenant para o predicado usar**. Quem
+precisa habilitar RLS nela escreve `USING (true)` como paliativo, e fica. A correção não é na
+policy, é no schema — a chave estrangeira precisa carregar o tenant junto:
+
+```sql
+CONSTRAINT fk_usuario_perfil_usuario FOREIGN KEY (usuario_tenant_id, usuario_id)
+    REFERENCES usuario(tenant_id, id) ON DELETE CASCADE
+```
+
+Com a coluna, o predicado existe. É um dos ganhos da chave composta (§6): ela **propaga o
+tenant pelas chaves estrangeiras**, e é isso que torna tabela de ligação isolável.
+
 ### A policy pré-autenticação é um buraco deliberado
 
 O fluxo de login precisa ler `usuario` antes de existir tenant. A saída usual é uma segunda
@@ -266,17 +279,39 @@ própria PK atende o acesso.
 Adotar não é gratuito, e a conta precisa ser feita antes, porque **a parte cara não é a
 entidade, é o contrato do `Persistable`**:
 
-| Frente | Tamanho real |
-|---|---|
-| `Persistable<TenantAwareId>` obriga `getId()` a devolver o composto | **58 chamadas** de `.getId()`/`.getTenantId()` em produção esperando `Long`, mais 14 arquivos de teste |
-| Mappers MapStruct | Cada um precisa de `@Mapping` explícito nos dois sentidos, mais o `partialUpdate` |
-| Consultas derivadas | `findByTenantId(Long)` deixa de resolver — `tenantId` vira `pk.tenantId` |
-| Hierarquia de entidade | Id de coluna única e id composto não convivem na mesma superclasse; entidades globais ficam na antiga |
-| Geração de id | `isNew` decidido por `id == null` para de valer; costuma exigir um `BeforeConvertCallback` que monta o id |
+O custo depende quase inteiramente de **uma decisão de desenho**, e é ela que separa
+"refatoração de uma tarde" de "projeto próprio".
 
-A contagem ingênua olha entidades e repositórios e dá "8 chamadas". A real olha `getId()` e
-dá 58. **Meça pelo `getId()`, não pelo `findById()`** — é onde a estimativa erra por sete
-vezes, e uma decisão aprovada com o número errado é uma decisão não tomada.
+`Persistable<TenantAwareId>` obriga `getId()` a devolver o composto — o nome é do contrato da
+interface, não dá para escolher. O reflexo é propagar o tipo novo para todo chamador. A saída
+é **delegar**: manter na superclasse `getTenantId()`, `setId(Long)` e `setTenantId(Long)` como
+acessores sobre a chave, e dar nome novo só ao que mudou de tipo (`getIdValue()` para o número
+cru). Assim **só `getId()` muda de assinatura**.
+
+| Abordagem | Pontos de código a alterar |
+|---|---|
+| Propagar `TenantAwareId` para todos os acessores | ~117 |
+| **Delegar, renomeando só o getter do id cru** | **~22** |
+
+Medido no `ponto`, depois de feito. O resto da conta:
+
+| Frente | Tamanho |
+|---|---|
+| Entidades, repositórios, `findById` fora deles | 6 · 8 · 8 |
+| Mappers MapStruct | 4, com `@Mapping` explícito nos dois sentidos |
+| Consultas derivadas | `findByTenantId(Long)` deixa de resolver — `tenantId` vira `pk.tenantId` |
+| Hierarquia de entidade | Id simples e id composto não convivem na mesma superclasse; entidades globais ficam na antiga |
+| Geração de id | `isNew` por `id == null` para de valer; exige `BeforeConvertCallback` e marcação explícita |
+| Tabelas de ligação | Ganham a coluna de tenant do lado dono — **e com ela a possibilidade de ter policy** |
+
+Para estimar antes: conte `getId()` **filtrando por entidade multi-tenant**. A conta por
+`findById()` subestima; a conta por `getId()` bruto superestima. Se o número mudar no meio,
+devolva a decisão a quem aprovou — aprovação sobre número errado é decisão não tomada.
+
+As seis armadilhas de execução — validação no record, construtor de persistência, coluna nas
+tabelas de ligação, asserção que compila e falha, compilação incremental que mente, `@Query`
+que fica incompleta em silêncio — estão em
+[`references/chave-composta.md`](references/chave-composta.md).
 
 ### Quando decidir
 
@@ -334,6 +369,29 @@ A prova de comportamento, depois, é manual e vale por si:
 
 Erro em vez de zero linhas na primeira: policy sem `missing_ok`. Linhas de todos os tenants:
 a app está conectando como dona, ou como superuser.
+
+### Separar "a policy filtrou" de "a consulta pediu certo"
+
+Quando um registro não aparece, as duas causas dão o mesmo 404: a RLS barrou, ou a consulta
+pediu o par `(tenant, id)` e ele não existe. São situações opostas — uma é a proteção
+funcionando, a outra é a aplicação buscando o que não é dela.
+
+Ligue o log de SQL e leia o predicado emitido:
+
+```sql
+ALTER SYSTEM SET log_statement = 'all';
+SELECT pg_reload_conf();
+```
+
+```
+WHERE "funcionario"."id" = $1 AND "funcionario"."tenant_id" = $2
+```
+
+Com os dois predicados, **o tenant entrou na consulta, e não só na policy** — que é o alvo do
+§6. Só o primeiro significa que a aplicação continua pedindo por id solto e a segurança
+depende inteiramente da RLS estar correta naquele instante.
+
+Desligue depois: `log_statement = 'all'` registra valor de parâmetro.
 
 ## Assinatura — sintoma e causa
 

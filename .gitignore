@@ -1,0 +1,14 @@
+# Bytecode dos scripts Python das skills. Regerado a cada execução e específico da
+# versão do interpretador, então versionar produz diff em quem só rodou o script.
+__pycache__/
+*.py[cod]
+
+# Artefato de análise de código (graphify). É derivado do repositório, envelhece em
+# silêncio e passa a referenciar arquivo que já mudou de nome ou sumiu.
+graphify-out/
+
+# Ruído de sistema operacional e de editor.
+.DS_Store
+*.swp
+.idea/
+.vscode/

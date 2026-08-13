@@ -61,6 +61,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 
 - Flyway location: `db/migration`
 - Naming: `V<timestamp>__<descricao_snake>.sql` (timestamp `YYYYMMDDHHmm`)
+- **O Flyway compara versão por partes, numericamente — não como texto.** É o que faz o esquema de timestamp conviver com numeração antiga: `V202608131000` vem depois de `V6` porque 202608131000 > 6, e não pela ordem alfabética, que colocaria `V6` por último. Também é por isso que `V1.10` vem depois de `V1.9`, ao contrário do que a ordenação do `ls` sugere
 - **Flyway é a única fonte de verdade do schema.** Nenhum componente cria tabela em runtime — nem framework, nem `ddl-auto`, nem script de inicialização. Não é preferência: schema criado fora do Flyway não tem versão, não aparece em revisão de MR e não passa pelas regras que as migrations aplicam
 - **Modulith + Flyway** — na criação da aplicação, não depois:
   ```yaml

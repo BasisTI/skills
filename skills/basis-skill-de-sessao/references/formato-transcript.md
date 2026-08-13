@@ -53,6 +53,36 @@ Medido em 60 transcripts:
 A proporção é o argumento para não ler transcript a olho: cerca de 92% dos registros `user`
 são saída de ferramenta.
 
+## A segunda armadilha: maquinaria do cliente
+
+A regra acima é necessária e **não é suficiente**. O Claude Code grava, como registros `user`
+sem `toolUseResult`, coisas que a pessoa não digitou:
+
+| Marcador no início do `content` | O que é |
+|---|---|
+| `<command-name>` / `<command-message>` / `<command-args>` | Eco do slash command |
+| `<local-command-caveat>` | Aviso de comando local |
+| `<local-command-stdout>` | Saída do comando |
+| `<system-reminder>` | Contexto injetado pelo runtime |
+| `This session is being continued from a previous conversation` | Sumário de compactação |
+
+O sumário de compactação é o pior dos cinco por dois motivos: traz **centenas de linhas**, o
+que numa sessão longa faz o dossiê ficar mais sumário que sessão; e o texto dele descreve
+becos sem saída em prosa, o que dispara os regex de negativa e **inventa becos que nunca
+existiram**.
+
+Medido numa sessão de planejamento do `ponto`: 12 "prompts" detectados só pela regra do
+`toolUseResult`, dos quais **5 eram maquinaria** — dois blocos de `/compact`, o caveat, o
+stdout e o sumário inteiro. Sobram 7 reais.
+
+O `extrair-sessao.py` filtra pelos marcadores acima nos primeiros 600 caracteres, mais slash
+command puro (`/compact`, `/clear`). Quem for ler transcript a mão precisa fazer o mesmo
+descarte.
+
+**Consequência prática:** sessão que passou por `/compact` tem o começo da história só no
+sumário. Se o dossiê parecer começar no meio, é isso — vale ler o sumário à parte, como
+contexto, sem tratá-lo como fala do relator.
+
 ## Estrutura de `assistant`
 
 `message.content` é lista de blocos:
