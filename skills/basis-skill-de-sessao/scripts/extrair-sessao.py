@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+"""Extrai o dossiê de uma sessão de agente a partir do transcript JSONL.
+
+Somente leitura. Não escreve nada fora do arquivo de saída informado.
+
+    extrair-sessao.py --listar [termo]        lista sessões, filtrando por título/cwd
+    extrair-sessao.py <transcript|sessionId>  imprime o dossiê no stdout
+    extrair-sessao.py <...> -o dossie.md      grava em arquivo
+
+O dossiê separa o que vira skill do que é ruído. Ver references/formato-transcript.md
+para a justificativa de cada regra de leitura.
+"""
+
+import argparse
+import json
+import os
+import re
+import sys
+from glob import glob
+
+RAIZ = os.path.expanduser("~/.claude/projects")
+
+# Frases do relator que sinalizam beco sem fundo: a tentativa anterior não resolveu.
+# É o material mais valioso do transcript e o único que o postmortem não guarda.
+NEGATIVAS = re.compile(
+    r"não (retornou|funciona|resolve|deu|era|foi|adianta|mudou|aparece)"
+    r"|continua (igual|o mesmo|falhando|quebrado)"
+    r"|ainda (está|assim|falha|não)"
+    r"|persiste|sem efeito|nada mudou|voltou a",
+    re.IGNORECASE,
+)
+
+
+def carregar(caminho):
+    for linha in open(caminho, errors="ignore"):
+        try:
+            yield json.loads(linha)
+        except json.JSONDecodeError:
+            continue
+
+
+def eh_prompt_real(reg):
+    """Prompt do relator, e não saída de ferramenta.
+
+    Registros `user` são as duas coisas. O discriminador confiável é a ausência da
+    chave toolUseResult — o formato do content varia (str, lista de text, imagem),
+    a chave não.
+    """
+    return reg.get("type") == "user" and "toolUseResult" not in reg
+
+
+def texto_do_conteudo(conteudo):
+    if isinstance(conteudo, str):
+        return conteudo
+    if isinstance(conteudo, list):
+        partes = [b.get("text", "") for b in conteudo
+                  if isinstance(b, dict) and b.get("type") == "text"]
+        return "\n".join(p for p in partes if p)
+    return ""
+
+
+def listar(termo=None):
+    achados = []
+    for caminho in glob(os.path.join(RAIZ, "*", "*.jsonl")):
+        titulo, cwd, quando, prompts = None, None, None, 0
+        for reg in carregar(caminho):
+            t = reg.get("type")
+            if t == "ai-title" and not titulo:
+                titulo = reg.get("aiTitle")
+            elif t == "assistant":
+                cwd = cwd or reg.get("cwd")
+                quando = quando or reg.get("timestamp", "")[:10]
+            elif eh_prompt_real(reg):
+                prompts += 1
+        rotulo = titulo or "(sem título)"
+        alvo = f"{rotulo} {cwd or ''} {caminho}"
+        if termo and termo.lower() not in alvo.lower():
+            continue
+        achados.append((quando or "?", prompts, rotulo, cwd or "?", caminho))
+
+    for quando, prompts, titulo, cwd, caminho in sorted(achados, reverse=True):
+        print(f"{quando}  {prompts:3} prompts  {titulo[:58]:58}  {cwd}")
+        print(f"{'':14}{caminho}")
+
+
+def resolver(alvo):
+    if os.path.isfile(alvo):
+        return alvo
+    achados = glob(os.path.join(RAIZ, "*", f"{alvo}*.jsonl"))
+    if not achados:
+        sys.exit(f"sessão não encontrada: {alvo}\nuse --listar para procurar")
+    return achados[0]
+
+
+def extrair(caminho):
+    ctx = {"titulo": None, "cwd": None, "branch": None, "versao": None}
+    inicio = fim = None
+    prompts, comandos, conclusoes, arquivos = [], [], [], []
+    pendentes = {}          # tool_use_id -> comando, para casar com o resultado
+    raciocinios = 0
+
+    for reg in carregar(caminho):
+        t = reg.get("type")
+        ts = reg.get("timestamp", "")
+        if ts:
+            inicio = inicio or ts
+            fim = ts
+
+        if t == "ai-title":
+            ctx["titulo"] = ctx["titulo"] or reg.get("aiTitle")
+            continue
+
+        if t == "assistant":
+            ctx["cwd"] = ctx["cwd"] or reg.get("cwd")
+            ctx["branch"] = ctx["branch"] or reg.get("gitBranch")
+            ctx["versao"] = ctx["versao"] or reg.get("version")
+            for b in reg.get("message", {}).get("content", []) or []:
+                if not isinstance(b, dict):
+                    continue
+                if b.get("type") == "thinking":
+                    raciocinios += 1
+                elif b.get("type") == "text" and b.get("text", "").strip():
+                    conclusoes.append((ts, b["text"].strip()))
+                elif b.get("type") == "tool_use":
+                    nome, entrada = b.get("name"), b.get("input", {}) or {}
+                    if nome == "Bash":
+                        pendentes[b.get("id")] = {
+                            "ts": ts,
+                            "cmd": entrada.get("command", ""),
+                            "desc": entrada.get("description", ""),
+                        }
+                    elif nome in ("Write", "Edit", "NotebookEdit"):
+                        arquivos.append((nome, entrada.get("file_path", "")))
+            continue
+
+        if eh_prompt_real(reg):
+            txt = texto_do_conteudo(reg.get("message", {}).get("content"))
+            if txt.strip():
+                prompts.append((ts, txt.strip()))
+            continue
+
+        # resultado de ferramenta: fecha o comando correspondente
+        if t == "user":
+            tur = reg.get("toolUseResult")
+            for b in reg.get("message", {}).get("content", []) or []:
+                if not isinstance(b, dict) or b.get("type") != "tool_result":
+                    continue
+                reg_cmd = pendentes.pop(b.get("tool_use_id"), None)
+                if not reg_cmd:
+                    continue
+                erro = bool(b.get("is_error"))
+                saida = tur.get("stdout", "") if isinstance(tur, dict) else ""
+                stderr = tur.get("stderr", "") if isinstance(tur, dict) else ""
+                reg_cmd.update(erro=erro, vazio=not saida.strip(), stderr=stderr.strip()[:200])
+                comandos.append(reg_cmd)
+
+    for restante in pendentes.values():   # comando sem resultado casado
+        restante.update(erro=False, vazio=False, stderr="")
+        comandos.append(restante)
+    comandos.sort(key=lambda c: c["ts"])
+
+    return dict(ctx=ctx, inicio=inicio, fim=fim, prompts=prompts, comandos=comandos,
+                conclusoes=conclusoes, arquivos=arquivos, raciocinios=raciocinios)
+
+
+def bloco(cmd, limite=None):
+    linhas = cmd.strip().split("\n")
+    if limite and len(linhas) > limite:
+        linhas = linhas[:limite] + [f"... (+{len(cmd.strip().splitlines()) - limite} linhas)"]
+    return "\n".join(linhas)
+
+
+def dossie(d, caminho, saida):
+    p = lambda *a: print(*a, file=saida)
+    ctx = d["ctx"]
+
+    p(f"# Dossiê de sessão — {ctx['titulo'] or '(sem título)'}")
+    p()
+    p(f"**Transcript:** `{caminho}`  ")
+    p(f"**Diretório:** `{ctx['cwd'] or '?'}`  ")
+    p(f"**Branch:** `{ctx['branch'] or '?'}`  ")
+    p(f"**Período:** {(d['inicio'] or '?')[:19]} → {(d['fim'] or '?')[:19]} (UTC)  ")
+    p(f"**Volume:** {len(d['prompts'])} prompts · {len(d['comandos'])} comandos · "
+      f"{d['raciocinios']} blocos de raciocínio")
+    p()
+    p("> Material bruto. **Não publique nada daqui sem rodar `varrer-segredos.sh` e sem "
+      "revisão humana** — saída de comando carrega token, hostname interno e dump.")
+    p()
+
+    p("## 1. Prompts do relator — matéria-prima da `description`")
+    p()
+    p("São as frases que a pessoa realmente usou. A `description` da skill precisa disparar")
+    p("nelas, não em vocabulário de documentação. Copie os termos, não os traduza.")
+    p()
+    for i, (ts, txt) in enumerate(d["prompts"], 1):
+        marca = "  ⚠️ **negativa**" if NEGATIVAS.search(txt) else ""
+        p(f"### {i}. `{ts[:19]}`{marca}")
+        p()
+        p("```")
+        p(bloco(txt, 30))
+        p("```")
+        p()
+
+    negativas = [(i, ts, t) for i, (ts, t) in enumerate(d["prompts"], 1) if NEGATIVAS.search(t)]
+    falhos = [c for c in d["comandos"] if c["erro"]]
+    vazios = [c for c in d["comandos"] if c["vazio"] and not c["erro"]]
+
+    p("## 2. Becos sem saída — o que vira conhecimento negativo")
+    p()
+    p("A parte que o postmortem descarta e a skill precisa guardar: a teoria errada, a")
+    p("ferramenta que mentiu, o comando que não provou nada. Nem todo item aqui é beco —")
+    p("julgue cada um. Saída vazia pode ser o achado (ausência de evidência é evidência).")
+    p()
+    if negativas:
+        p("**Prompts em que o relator diz que não resolveu:**")
+        p()
+        for i, ts, txt in negativas:
+            p(f"- Prompt {i} (`{ts[:19]}`): {txt.splitlines()[0][:150]}")
+        p()
+    if falhos:
+        p(f"**Comandos que falharam ({len(falhos)}):**")
+        p()
+        for c in falhos:
+            p(f"- `{c['cmd'].splitlines()[0][:110]}`")
+            if c["stderr"]:
+                p(f"  - stderr: `{c['stderr'][:110]}`")
+        p()
+    if vazios:
+        p(f"**Comandos com saída vazia ({len(vazios)}):**")
+        p()
+        for c in vazios:
+            p(f"- `{c['cmd'].splitlines()[0][:110]}`")
+        p()
+    if not (negativas or falhos or vazios):
+        p("*Nada detectado automaticamente. Releia os prompts — a heurística é grosseira.*")
+        p()
+
+    p("## 3. Comandos executados, em ordem")
+    p()
+    p("Candidatos ao script de coleta de evidência. Procure o subconjunto que, rodado de")
+    p("uma vez e sem mutação, teria dado o mesmo veredito em um passo.")
+    p()
+    for c in d["comandos"]:
+        marca = " ✗" if c["erro"] else (" ∅" if c["vazio"] else "")
+        cab = f"`{c['ts'][11:19]}`{marca}"
+        p(f"- {cab} {c['desc'] or ''}")
+        p("  ```bash")
+        for linha in bloco(c["cmd"], 12).split("\n"):
+            p(f"  {linha}")
+        p("  ```")
+    p()
+
+    p("## 4. Conclusões do agente")
+    p()
+    p("Onde costuma estar a tabela de assinatura sintoma → significado, já redigida.")
+    p()
+    for ts, txt in d["conclusoes"]:
+        p(f"### `{ts[:19]}`")
+        p()
+        p(bloco(txt, 40))
+        p()
+
+    if d["arquivos"]:
+        p("## 5. Arquivos escritos ou editados")
+        p()
+        for nome, caminho_arq in d["arquivos"]:
+            p(f"- `{nome}` → `{caminho_arq}`")
+        p()
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Extrai dossiê de sessão de agente")
+    ap.add_argument("alvo", nargs="?", help="caminho do .jsonl ou sessionId")
+    ap.add_argument("--listar", nargs="?", const="", metavar="TERMO",
+                    help="lista sessões disponíveis")
+    ap.add_argument("-o", "--saida", help="arquivo de saída (padrão: stdout)")
+    args = ap.parse_args()
+
+    if args.listar is not None:
+        listar(args.listar or None)
+        return
+    if not args.alvo:
+        ap.error("informe o transcript ou use --listar")
+
+    caminho = resolver(args.alvo)
+    d = extrair(caminho)
+    if args.saida:
+        with open(args.saida, "w") as f:
+            dossie(d, caminho, f)
+        print(f"dossiê gravado em {args.saida}", file=sys.stderr)
+        print(f"PRÓXIMO PASSO OBRIGATÓRIO: varrer-segredos.sh {args.saida}", file=sys.stderr)
+    else:
+        dossie(d, caminho, sys.stdout)
+
+
+if __name__ == "__main__":
+    main()

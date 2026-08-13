@@ -11,6 +11,8 @@ Agent skills com os padrões de engenharia da [Basis](https://www.basis.com.br) 
 | [`basis-python-app`](skills/basis-python-app/SKILL.md) | Apps Python: 3.13+ com `uv` obrigatório, ruff, pytest, Dockerfile multi-stage, workspace só com 2+ components. |
 | [`basis-web-frontend`](skills/basis-web-frontend/SKILL.md) | UI web: Thymeleaf + HTMX + Tailwind v4 + DaisyUI (tema `caramellatte`), layout com sidebar + header, tabelas com cabeçalho/rodapé fixos, formulários alinhados com utilitários, página de erro padrão (nunca Whitelabel), build de CSS/JS. |
 | [`basis-java-code-standards`](skills/basis-java-code-standards/SKILL.md) | Código Java: formatação e nomes, Java moderno (records, sealed, pattern matching), exceções, nulidade/imutabilidade, coleções, `java.time`/`BigDecimal`, logging, concorrência, segurança, design de API e testes. |
+| [`basis-relatorio-incidente`](skills/basis-relatorio-incidente/SKILL.md) | Nota de Incidente no padrão da equipe, em Jira wiki markup: estrutura fixa, conteúdo quantitativo, cronologia em UTC e verificação de eficácia. Vale também para incidentes de e-mail, rede e infraestrutura. |
+| [`basis-skill-de-sessao`](skills/basis-skill-de-sessao/SKILL.md) | Extrai skill de diagnóstico do registro de uma sessão de agente: localiza o transcript, monta o dossiê, varre segredo e orienta a redação. Traz scripts. |
 
 ## Instalação
 
@@ -48,11 +50,16 @@ CalVer (`vYYYY.MM.DD`), alinhado com o resto dos releases da Basis:
 ```
 skills/<nome>/
 ├── SKILL.md          # frontmatter (name, description) + corpo
-└── references/       # snippets, exemplos, deep dives
-    ├── *.md
-    ├── *.json        # templates prontos pra uso (ex: realm Keycloak de dev)
-    └── assets/       # binários que o padrão exige (ex: logo Basis)
+├── references/       # snippets, exemplos, deep dives
+│   ├── *.md
+│   ├── *.json        # templates prontos pra uso (ex: realm Keycloak de dev)
+│   └── assets/       # binários que o padrão exige (ex: logo Basis)
+└── scripts/          # opcional: executáveis que a skill invoca
 ```
+
+Skill com `scripts/` é executável, não só instrucional. Nesses casos: read-only por padrão,
+mutação só após aprovação explícita, e uma tabela no fim do `SKILL.md` declarando o que cada
+script muta. Sem caminho absoluto de máquina — a skill roda no ambiente de quem instalou.
 
 O `name` do frontmatter deve ser igual ao nome do diretório — é assim que `npx skills add --skill <nome>` resolve.
 
