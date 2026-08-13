@@ -70,9 +70,11 @@ CREATE INDEX event_publication_by_completion_date_idx
     ON event_publication (completion_date);
 ```
 
-Schema atualizado em cada release Modulith — checar a doc da versão em uso pra confirmar colunas/índices.
+**O DDL acima é de Modulith 1.x — não copie sem conferir.** O schema muda a cada release: no Modulith 2.x a tabela tem também `event_id`, `status`, `completion_attempts` e `last_resubmission_date`, e o publisher depende delas. Tabela incompleta não falha no startup — falha na primeira publicação de evento, em runtime. Confira as colunas na doc da versão em uso antes de escrever a migration.
 
-Por que: `schema-initialization: true` causa conflito em rolling deploy se a tabela já existe; pior, perde controle de versão da estrutura do schema.
+Por que desabilitar: `schema-initialization: true` causa conflito em rolling deploy se a tabela já existe; pior, perde controle de versão da estrutura do schema; e com os dois criando há race na inicialização.
+
+**Desligue na criação da aplicação, não quando der problema.** É uma linha de yaml no primeiro commit. Depois que a tabela já existe criada pelo framework, vira correção de produção — e em app multi-tenant vira também uma tabela com `tenant_id` que nunca passou por revisão de policy (ver `basis-multi-tenant` §4).
 
 ## Republish de eventos pendentes no startup
 

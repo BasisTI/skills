@@ -5,7 +5,7 @@ description: Use when starting, extending, or refactoring a Basis Spring applica
 
 # Basis Spring Application
 
-Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documenta o lado dev; aquela documenta o lado ops/infra) e com `basis-java-code-standards` (como o código Java é escrito dentro dela).
+Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documenta o lado dev; aquela documenta o lado ops/infra), com `basis-java-code-standards` (como o código Java é escrito dentro dela) e, quando a app serve mais de um cliente no mesmo banco, com `basis-multi-tenant` (isolamento por `tenant_id` e Row Level Security).
 
 ## 1. Stack default (sempre, sem exceção)
 
@@ -50,6 +50,8 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 - Redeclarar defaults Spring (ex: `spring.rabbitmq.port: 5672`) — omitir
 - Criar env var custom (`RABBITMQ_HOST`) quando o oficial cobre (`SPRING_RABBITMQ_HOST`)
 - Misturar dev/prod no mesmo arquivo
+- **Chave aninhada sob o pai errado.** O Spring liga por caminho completo: um `spring:` indentado dentro de `server:` vira propriedade desconhecida de `server` e é **ignorado sem aviso** — sem erro, sem log, sem falha de startup. Num app real, `datasource`, `flyway`, `modulith` e `mail` viveram meses sob `server:` e nunca foram aplicados; a app subia com os defaults e ninguém percebia. Config nova se confere pelo efeito (`/actuator/env`, o log do Flyway, a URL que apareceu no banner), nunca pela presença da linha no arquivo
+- **Bloco de config de tecnologia que o projeto não usa** (`spring.jpa` num projeto Data JDBC): não quebra e engana quem lê depois
 
 ### `@ConfigurationProperties`
 - `record` immutable + `@EnableConfigurationProperties(MyProps.class)` no `@Configuration`
@@ -59,9 +61,44 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 
 - Flyway location: `db/migration`
 - Naming: `V<timestamp>__<descricao_snake>.sql` (timestamp `YYYYMMDDHHmm`)
-- **Modulith + Flyway**:
-  - JDBC event publisher cria tabela `events` automaticamente — desabilitar `schema-initialization` se gerenciar via Flyway
+- **Flyway é a única fonte de verdade do schema.** Nenhum componente cria tabela em runtime — nem framework, nem `ddl-auto`, nem script de inicialização. Não é preferência: schema criado fora do Flyway não tem versão, não aparece em revisão de MR e não passa pelas regras que as migrations aplicam
+- **Modulith + Flyway** — na criação da aplicação, não depois:
+  ```yaml
+  spring:
+    modulith:
+      events:
+        jdbc:
+          schema-initialization:
+            enabled: false   # a tabela event_publication vem do Flyway
+  ```
+  O publisher de eventos JDBC cria a tabela `event_publication` sozinho por default. Com os dois criando, há race na inicialização; e a estrutura da tabela fica sem controle de versão, o que dói no rolling deploy e em qualquer release que mude as colunas dela. **Vem desligado desde o primeiro commit** — habilitado, a tabela já existe quando alguém percebe, e passa a ser correção de produção em vez de linha de yaml. O DDL entra na baseline; o schema muda a cada release do Modulith, então confira as colunas na doc da versão em uso
   - Schemas separados por módulo: opcional, depende da estratégia adotada
+- **Declare qual migration serve de modelo.** Quem vai criar tabela abre a mais recente e copia; se a mais recente for a que esqueceu alguma coisa, o esquecimento se propaga. Nomeie o arquivo-modelo no `AGENTS.md` — "a mais recente" não é instrução, é sorte
+- **App multi-tenant tem skill própria.** Isolamento por `tenant_id`, Row Level Security, ordem das migrations de RLS e chave composta `(tenant_id, id)` estão em **`basis-multi-tenant`**. O que é específico daqui: a role do Flyway e a role da aplicação **não são a mesma**, e a tabela `event_publication` do Modulith entra na conta quando carrega `tenant_id`
+
+### Transações — `readOnly` por default na classe
+
+**`@Transactional(readOnly = true)` na classe de serviço, e `@Transactional` explícito só nos métodos que escrevem.** O ganho não é evitar digitação: é inverter o default para o lado seguro. Sem isso, método de leitura sem anotação nenhuma roda fora de transação e ninguém percebe — não dá erro, não aparece em log, e a consequência só existe em cenário que o teste unitário não cobre.
+
+```java
+@Service
+@Transactional(readOnly = true)
+public class FuncionarioService {
+
+    public List<FuncionarioDTO> listar() { ... }          // herda readOnly
+
+    @Transactional
+    public FuncionarioDTO criar(NovoFuncionario cmd) { ... }  // override explícito
+}
+```
+
+O mecanismo que faz disso um guarda-corpo, e não documentação: a anotação mais interna vence, então **esquecer o override num método de escrita produz falha, não corrupção**. Com routing de datasource, a escrita vai parar na réplica e estoura; sem routing, o Spring propaga o flag via `Connection.setReadOnly(true)` e o driver do Postgres marca a transação como read-only, então o `INSERT` falha com `cannot execute INSERT in a read-only transaction`. Nos dois casos o erro aparece no primeiro teste que exercitar o método — que é o momento certo.
+
+- `readOnly = true` é **pré-requisito** para roteamento primário/réplica via `AbstractRoutingDataSource`, que decide pelo `TransactionSynchronizationManager`. Adotar o padrão agora deixa a porta aberta mesmo em app que hoje tem um banco só
+- Em **Spring Data JDBC** não há dirty checking para pular, então o ganho é o guarda-corpo mais o roteamento — o argumento de performance do mundo Hibernate não se aplica aqui
+- **Não anote a classe inteira com `@Transactional` sem `readOnly`** para "resolver o esquecimento": isso não é default seguro, é escrita liberada em todo método
+- Confirme o comportamento no projeto com um teste que tente escrever num método sem override. Se ele passar, o flag não está chegando na conexão e o guarda-corpo não existe
+- Referência: [Read-write and read-only transaction routing with Spring](https://vladmihalcea.com/read-write-read-only-transaction-routing-spring/), Vlad Mihalcea
 
 ## 5. Mensageria assíncrona com SCS
 
@@ -88,6 +125,12 @@ O padrão de UI (layout com sidebar, tabelas com cabeçalho/rodapé fixos, formu
 - `.gitignore`: `src/main/resources/static/*` exceto `static/images/` (assets versionáveis)
 - `templates/error.html` **obrigatório** — sem ele a app cai na Whitelabel Error Page do Spring Boot; `server.error.whitelabel.enabled: false` e `include-stacktrace: never`
 - `@ControllerAdvice` com `@ModelAttribute` para `appVersion` (de `BuildProperties`) e `currentUser` (do `OidcUser`), que o layout consome em toda página
+
+### Tratamento de exceção em app que serve HTML
+
+- **Não use `@RestControllerAdvice` numa app que serve HTML.** Ele é `@ControllerAdvice` + `@ResponseBody`: o retorno do handler é serializado como corpo da resposta, não resolvido como view. Numa app HTMX, uma exceção de negócio passa a **injetar JSON dentro do DOM**, no lugar onde o fragmento deveria entrar — a tela mostra `{"timestamp":...,"message":...}` em vez da mensagem de erro. Em app mista, separe: `@RestControllerAdvice` com `@ControllerAdvice(basePackages = ...)` limitado aos pacotes de API, e um `@ControllerAdvice` de view para o resto
+- **Prefira exceção própria mapeada no handler global a anotação por endpoint com lista de exceções.** Anotação de marcação com opt-out (`@ExigeContexto` em quase tudo, mais uma lista dos que não exigem) cria uma **segunda lista de endpoints especiais ao lado do `permitAll` do `SecurityConfig`** — duas fontes de verdade sobre a mesma pergunta, que divergem na primeira vez que alguém mexe só numa. Uma exceção lançada onde o contexto falta, mapeada uma vez no handler global, cobre todos os casos sem lista nenhuma
+- Se a separação precisar mesmo ser explícita, torne-a estrutural: um prefixo de path (`/api/publico/**`) é visível no `SecurityConfig`, no log e no roteador, em vez de estar espalhado em anotação
 
 ## 7. Autenticação (Keycloak OIDC)
 
@@ -152,10 +195,14 @@ Meta: `git clone` → `docker compose up -d` → `mvn spring-boot:run -Dspring-b
 - **RabbitMQ não aparece no `application-dev.yml`**: os defaults do Spring (`localhost:5672`, `guest`/`guest`, vhost `/`) já batem com o container. Vhost dedicado e credencial real só em prod, via env var
 - Em dev o SCS é dono da topologia (`declare-exchange`/`bind-queue`/`auto-bind-dlq: true`); em prod os CRDs do operator são
 
+- **Credencial de seed documentada no README.** Senha de usuário de teste que só existe como hash na migration é senha que ninguém consegue enunciar — e alguém entrando no projeto vai tentar adivinhá-la. Gere o hash a partir de uma senha declarada (`admin123`, `user123`), com o encoder do próprio projeto, e escreva qual é
+
 ### Anti-padrões
 - `application-dev.yml` apontando para infra compartilhada/remota com credencial real — vira segredo versionado, quebra o "clone e roda" e um dev derruba o ambiente do outro
 - URL/credencial comentada com a alternativa "de verdade" logo abaixo — o profile deixa de ter config válida
 - Senha forte em dev (a porta só escuta em `127.0.0.1`); `<app>`/`<app>`, `guest`/`guest`, `admin`/`admin` são melhores por serem obviamente descartáveis
+- **`spring-boot-docker-compose` no classpath.** O starter publica um `JdbcConnectionDetails` a partir do `compose.yaml`, e esse bean tem **precedência sobre `spring.datasource.*`** — a app conecta onde o starter mandou, não onde o yml diz. Consequências: erro de configuração do datasource fica mascarado (o yml quebrado "funciona"), e não há como apontar a app para uma role diferente da do compose, o que impede o desenho de RLS da `basis-multi-tenant`. O fluxo desta skill (§10) não depende dele — `docker compose up -d` explícito é mais previsível
+- **Deletar migration sem `mvn clean`.** As antigas continuam em `target/classes/db/migration` e o Flyway as aplica de lá. Rebaseline em dev é `./mvnw clean` **junto** com `docker compose down -v`; sem os dois, o banco reconstruído não é o que o repositório descreve
 
 Ver [`references/local-dev-compose.md`](references/local-dev-compose.md) — compose completo, `init.sql`, `application-dev.yml`, comando de export do realm.
 
@@ -164,6 +211,10 @@ Ver [`references/local-dev-compose.md`](references/local-dev-compose.md) — com
 - **Unit**: Mockito quando faz sentido (controllers, services puros)
 - **Integração**: Testcontainers pra Postgres/RabbitMQ — não mockar infra que sobe local em segundos
 - **APIs externas opacas** (AD/LDAP, Mailcow, Secullum, OPNsense): interface + impl real, teste manual contra infra; mocks só pros happy paths em controller tests
+- **Suíte só de unitário com repositório mockado não cobre mapeamento objeto-relacional.** Trezentos testes verdes não dizem nada sobre `@Id` composto, `@Embedded`, conversor custom ou RLS — e é exatamente aí que uma refatoração de persistência quebra. Antes de mexer em id, herança de entidade ou policy de banco, o pré-requisito é ter pelo menos um IT que salve, busque e liste contra Postgres real
+- **Não fixe versão que o parent do Spring Boot já gerencia.** Versão presa envelhece sozinha e o sintoma não aponta para ela: `failsafe` preso em 3.1.2 com o `surefire` em 3.5.6 falha por provider ausente no repositório local; `testcontainers-bom` preso em 1.18.3 (2023) falha contra engine Docker atual com erro de API. Nos dois, a correção é **remover** a versão, não escolher outra
+- **`*IT.java` fora de pacote de produção.** Os testes ArchUnit varrem os pacotes de domínio por reflexão; um IT deixado ali é encontrado e **dispara o container durante a suíte unitária**, que passa a depender de Docker. O IT vai para pacote próprio
+- Antes de escrever o primeiro IT, confira o pom: `failsafe` costuma já estar configurado, incluindo `**/*IT.java`, e nunca ter rodado por não existir nenhum
 
 ### Estrutura (Modulith) — obrigatório quando a app usa Modulith
 - `ApplicationModules.of(<App>Application.class).verify()` num teste — pega acesso a pacote `internal` de outro módulo, ciclo entre módulos e dependência não declarada
