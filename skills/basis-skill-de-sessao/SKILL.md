@@ -26,7 +26,7 @@ Exemplo real, de uma sessão de planejamento no `ponto`:
 | Achado | Destino |
 |---|---|
 | `@RestControllerAdvice` num app que serve HTML faz exceção de negócio injetar JSON no DOM | `basis-spring-app` — vale para qualquer app Spring nosso |
-| Uma exceção própria mapeada no handler global vale mais que anotação por endpoint com lista de opt-out, que duplica o `SecurityConfig` | `basis-spring-app` |
+| Uma exceção própria mapeada no handler global vale mais que anotação por endpoint com lista de opt-out | `basis-spring-app` |
 | RLS é decorativa quando a aplicação conecta como dono da tabela: o Postgres não aplica policy ao dono sem `FORCE ROW LEVEL SECURITY` | Skill nova de multi-tenant — não existe hoje |
 | Migration nova copiada da mais recente reintroduz vazamento, porque a `CREATE TABLE` mais nova era a sem RLS | Skill nova de multi-tenant |
 | Cadastros de referência vão em `modulos.funcionario`, não em `configuracao` | `AGENTS.md` do repositório — decisão deste projeto |

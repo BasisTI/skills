@@ -62,6 +62,33 @@ Skill com `scripts/` é executável, não só instrucional. Nesses casos: read-o
 mutação só após aprovação explícita, e uma tabela no fim do `SKILL.md` declarando o que cada
 script muta. Sem caminho absoluto de máquina — a skill roda no ambiente de quem instalou.
 
+### Caminho que depende do ambiente
+
+Algumas skills precisam de um lugar que só existe na máquina de quem instalou: o clone do
+repo de IaC, uma vault do Obsidian, um diretório de dados. A regra é **declarar o nome da
+variável, nunca o valor**:
+
+```markdown
+Esta skill lê `$REPO_IAC` (clone local do repositório de manifests).
+Se não estiver configurado, pergunte antes de prosseguir.
+```
+
+O valor vem da configuração de ambiente de quem instalou — no Claude Code, uma seção no
+`CLAUDE.md` de usuário; em script, uma variável de ambiente de verdade:
+
+```bash
+: "${REPO_IAC:?REPO_IAC não configurado — defina antes de rodar}"
+```
+
+Duas consequências que valem mais que a convenção em si:
+
+- **Variável guarda ponteiro, não dado.** Se a informação é uma lista que alguém mantém à
+  mão (IDs de projeto, inventário de ambientes), a skill aponta para o arquivo e lê de lá.
+  Copiar a lista para dentro da skill cria uma cópia que envelhece sem avisar.
+- **Faltando, pergunte — não descubra.** Um `find` pela vault acha a errada quando existem
+  duas, e acha com confiança. Melhor uma pergunta ("o caminho não está configurado, quer
+  configurar agora?") do que um acerto silencioso na máquina errada.
+
 O `name` do frontmatter deve ser igual ao nome do diretório — é assim que `npx skills add --skill <nome>` resolve.
 
 O `SKILL.md` é o ponto de entrada — descreve quando ativar e link pra referências. As `references/*.md` ficam dentro da pasta da skill, então o install via `npx skills add` leva tudo junto.
