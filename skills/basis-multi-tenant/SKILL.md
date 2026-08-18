@@ -1,6 +1,13 @@
 ---
 name: basis-multi-tenant
-description: Isolamento multi-tenant em tabela única (single-table, coluna `tenant_id`) com Row Level Security do Postgres. Use quando alguém disser "vazamento cross-tenant", "leak cross-tenant", "RLS bypass", "isolamento multi-tenant", "esqueci de filtrar por tenant", "pk composta", "id composto", "TenantContext"; ao criar tabela nova com `tenant_id`; ao revisar endpoint que recebe `tenantId` do cliente; ou quando um `SELECT` volta vazio e ninguém sabe por quê. Prefira esta à `basis-spring-app` quando o assunto for isolamento entre clientes, porque o sintoma engana: parece bug de datasource, de transação ou de migration, e é de RLS.
+description: >-
+  Isolamento multi-tenant em tabela única (single-table, coluna `tenant_id`) com Row Level
+  Security do Postgres. Use quando alguém disser "vazamento cross-tenant", "leak cross-tenant",
+  "RLS bypass", "isolamento multi-tenant", "esqueci de filtrar por tenant", "pk composta", "id
+  composto", "TenantContext"; ao criar tabela nova com `tenant_id`; ao revisar endpoint que
+  recebe `tenantId` do cliente; ou quando um `SELECT` volta vazio e ninguém sabe por quê. Prefira
+  esta à `basis-spring-app` quando o assunto for isolamento entre clientes, porque o sintoma
+  engana: parece bug de datasource, de transação ou de migration, e é de RLS.
 ---
 
 # Multi-tenant single-table com RLS

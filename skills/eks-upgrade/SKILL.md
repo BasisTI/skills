@@ -1,6 +1,16 @@
 ---
 name: eks-upgrade
-description: Upgrade de versão do Kubernetes num cluster EKS — control plane, nodegroups gerenciados, addons da AWS e os componentes que ficam fora do addon manager. Use quando alguém disser "atualizar o cluster", "subir o EKS para a 1.x", "upgrade do EKS", "qual versão do addon é compatível", "os nodes continuam na versão antiga", "o drain travou", "vou trocar o node group", "registrar o que foi atualizado", "relatório do upgrade"; ao planejar janela de manutenção de cluster; ou quando DNS/CoreDNS quebra logo depois de um upgrade. Precisa de `$EKS_KUBECTL_CONTEXT` e `$CLUSTER_NAME`, que vêm do prompt, do `AGENTS.md`/`CLAUDE.md` do repositório ou do ambiente — nunca adivinhados. Prefira esta à `basis-k8s-deploy` quando o assunto for ciclo de vida do cluster e não deploy de aplicação, porque o sintoma engana: pod que não sobe depois do upgrade parece problema de manifesto e é de node, de addon ou de AZ.
+description: >-
+  Upgrade de versão do Kubernetes num cluster EKS — control plane, nodegroups gerenciados, addons
+  da AWS e os componentes que ficam fora do addon manager. Use quando alguém disser "atualizar o
+  cluster", "subir o EKS para a 1.x", "upgrade do EKS", "qual versão do addon é compatível", "os
+  nodes continuam na versão antiga", "o drain travou", "vou trocar o node group", "registrar o
+  que foi atualizado", "relatório do upgrade"; ao planejar janela de manutenção de cluster; ou
+  quando DNS/CoreDNS quebra logo depois de um upgrade. Precisa de `$EKS_KUBECTL_CONTEXT` e
+  `$CLUSTER_NAME`, que vêm do prompt, do `AGENTS.md`/`CLAUDE.md` do repositório ou do ambiente —
+  nunca adivinhados. Prefira esta à `basis-k8s-deploy` quando o assunto for ciclo de vida do
+  cluster e não deploy de aplicação, porque o sintoma engana: pod que não sobe depois do upgrade
+  parece problema de manifesto e é de node, de addon ou de AZ.
 ---
 
 # Upgrade de cluster EKS
