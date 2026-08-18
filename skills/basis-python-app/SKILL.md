@@ -1,6 +1,14 @@
 ---
 name: basis-python-app
-description: Use when starting, extending, or refactoring a Basis Python application — Python 3.13+ + uv (mandatory) for dependency and project management, ruff for lint/format, pytest for tests, Dockerfile multi-stage for container builds (no equivalent of Jib). Workspace pattern only when there are multiple components (apps/libs/scripts); single-component projects use a flat pyproject. Activate for new modules, dependency upgrades, CI changes, or container build questions.
+description: >-
+  Use when starting, extending, or refactoring a Basis Python application — Python 3.13+ +
+  uv (mandatory) for dependency and project management, ruff for lint/format, pytest for
+  tests, Dockerfile multi-stage for container builds (no equivalent of Jib). Workspace
+  pattern only when there are multiple components (apps/libs/scripts); single-component
+  projects use a flat pyproject. Activate for new modules, dependency upgrades, or
+  container build questions. For the pipeline itself — `ci/pipeline.toml`, the shared CI
+  template, Dagger, Sonar, merge requests — use `basis-ci-gitlab`; this skill only says
+  which target type a Python component declares there.
 ---
 
 # Basis Python Application
@@ -64,17 +72,36 @@ Padrão: `ghcr.io/astral-sh/uv:<ver>-python3.13-trixie-slim` como builder, `pyth
 
 Ver [`references/dockerfile-uv-multistage.md`](references/dockerfile-uv-multistage.md).
 
-## 5. CI: Dagger + uv
+## 5. CI: qual target declarar
 
-Dagger pipeline mistura targets Maven e Python no mesmo `main.go`:
-- `pipeline.VfMaven` pra módulos Maven (versão em `<version>` do pom)
-- `pipeline.VfUv` pra módulos uv (versão em `[project] version = ...` do pyproject)
-- `m.publishMaven(...)` usa `dag.Maven()` + Jib
-- `m.publishDocker(...)` chama `source.DockerBuild()` direto
+A pipeline é declarativa. Um componente Python entra no `ci/pipeline.toml` do repositório
+como um target, e o orchestrator genérico cuida do resto — não existe mais um `main.go` de
+pipeline por projeto.
 
-CalVer + bump-and-commit funciona igual ao Maven — `OrchestratorUtils.BumpAndCommitVersions` com `pipeline.VfUv` cuida dos pyprojects.
+| Situação | `type` |
+|---|---|
+| Projeto Python autocontido, com seu próprio `pyproject.toml` | `uv` |
+| Componente dentro de um **workspace uv** | `dockerfile` com `source-path = "."` |
 
-Ver [`references/dagger-pipeline-python.md`](references/dagger-pipeline-python.md).
+O segundo caso não é preferência: `uv sync --frozen` precisa do lockfile da **raiz do
+workspace**, então a árvore montada tem que ser a raiz do repositório, e não o diretório do
+app.
+
+```toml
+[targets.webhook-hiring-pred]
+type = "dockerfile"
+path = "apps/webhook-hiring-pred"
+source-path = "."
+version-file = "apps/webhook-hiring-pred/pyproject.toml"
+```
+
+`version-file` default de `uv` e `dockerfile` é `pyproject.toml`; num workspace ele precisa
+ser explícito, senão o bump reescreve o arquivo errado.
+
+Para analisar no Sonar, um target `type = "dockerfile"` exige `quality-type = "uv"` — o
+Dockerfile diz como a imagem é construída, não com que build system o código é analisado.
+
+Schema completo, funções do orchestrator e diagnóstico de pipeline: **`basis-ci-gitlab`**.
 
 ## 6. Lint, format, testes
 
@@ -121,7 +148,6 @@ uv run pytest                # testes
 
 - [`references/pyproject-skeleton.md`](references/pyproject-skeleton.md) — root workspace + member pyproject patterns
 - [`references/dockerfile-uv-multistage.md`](references/dockerfile-uv-multistage.md) — Dockerfile com `uv sync --frozen`, multi-stage, non-root
-- [`references/dagger-pipeline-python.md`](references/dagger-pipeline-python.md) — `main.go` com targets Python via `pipeline.VfUv`, mistura com targets Maven
 
 ## Skills upstream
 

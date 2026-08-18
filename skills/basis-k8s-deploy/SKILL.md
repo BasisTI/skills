@@ -1,6 +1,15 @@
 ---
 name: basis-k8s-deploy
-description: Use when deploying or configuring a Basis application on Kubernetes — kustomize base+overlays layout, ArgoCD with Image Updater, CalVer image tags (YYYY.MM.DD.Seq), Dagger CI on GitLab, operator-managed dependencies (Postgres/RabbitMQ/Minio/MariaDB/Redis) and their secret patterns. Activate for any change under iac/argocd-apps/manifests/, ArgoCD app definitions, CI pipeline questions, or when wiring secrets/env vars from K8s into a Spring app.
+description: >-
+  Use when deploying or configuring a Basis application on Kubernetes — kustomize
+  base+overlays layout, ArgoCD with Image Updater, CalVer image tags, operator-managed
+  dependencies (Postgres/RabbitMQ/Minio/MariaDB/Redis) and their secret patterns. Activate
+  for any change under iac/argocd-apps/manifests/, ArgoCD app definitions, or when wiring
+  secrets/env vars from K8s into a Spring app. Prefer `basis-ci-gitlab` for anything on the
+  GitLab side — pipeline, `ci/pipeline.toml`, Dagger, Sonar, merge requests, branch and
+  commit conventions, and how the image gets built and promoted. The boundary is the image
+  in the registry carrying its production tag; before that, `basis-ci-gitlab`, from there
+  on, this skill.
 ---
 
 # Basis Kubernetes Deploy
@@ -10,7 +19,7 @@ Padrões da Basis para infra/deploy de aplicações no K8s. Pareada com `basis-s
 ## 1. Convenções globais
 
 - **Registry**: `basis-registry.basis.com.br/<app>/<componente>`
-- **Tag CalVer**: `YYYY.MM.DD.Seq` — `Seq` é o `CI_PIPELINE_ID` do GitLab (não-contíguo, único globalmente)
+- **Tag CalVer**: `YYYY.MM.DD.Seq` — `Seq` é o `CI_PIPELINE_IID` do GitLab: contador **por projeto**, contíguo. Não é o `CI_PIPELINE_ID`, que é global da instância. A tag de produção leva o prefixo `production-`
 - **Namespace**: um por aplicação (ex: `identity-hub`, `licitacao`)
 - **Vhost RabbitMQ**: um por aplicação, nome curto (ex: `identityhub`)
 
@@ -61,12 +70,18 @@ Quando a app gerencia a topologia via K8s (não via SCS auto-bind):
 
 Espelha o que o SCS faria com `auto-bind-dlq` no default — mas com K8s como source of truth.
 
-## 6. CI: Dagger em Go no GitLab
+## 6. Onde a CI termina e o deploy começa
 
-- Pipelines em Go com Daggerverse modules: `maven` (Java), `uv` (Python), `npm` (Angular)
-- Calcula CalVer no Dagger (`YYYY.MM.DD.${CI_PIPELINE_ID}`)
-- Build → push imagem (Jib) → bump pom version → commit (acionado pelo Image Updater write-back)
-- Gotcha: `BumpAndCommitVersions` não funciona em multi-módulo Maven (filhos herdam versão via `<parent>`); usar `versions:set` direto + `CommitAndPush` separado
+A fronteira é a **imagem no registry com a tag de produção** (`production-<calver>`). Quem a
+coloca lá é o job `promote-production` da pipeline; daí em diante quem age é o Image Updater
+(§3).
+
+Tudo do lado GitLab — `ci/pipeline.toml`, o template compartilhado, as funções do
+orchestrator Dagger, Sonar, MR, convenção de branch e de commit — está em **`basis-ci-gitlab`**.
+
+Sintoma que atravessa a fronteira e engana: *"a versão nova não subiu em produção"*. Antes de
+investigar Application ou sync, confirme que a imagem existe no registry com a tag esperada.
+Quase sempre o `promote` não rodou, ou a tag não casa com o `allow-tags` da Application.
 
 ## 7. Interface com `basis-spring-app`
 
@@ -87,6 +102,5 @@ Regra prática para deployment.yaml:
 - [`references/kustomize-base-example.md`](references/kustomize-base-example.md) — Layout completo de `base/` + overlays, `envs:` em generators, hash suffix vs `disableNameSuffixHash`
 - [`references/operator-secret-cheatsheet.md`](references/operator-secret-cheatsheet.md) — Padrão de Secret para Postgres-Zalando, RabbitMQ topology, Minio, MariaDB, Redis-otk, com snippets de `valueFrom`
 - [`references/argocd-image-updater.md`](references/argocd-image-updater.md) — Application yaml + anotações Image Updater, regex CalVer, fluxo end-to-end e promote
-- [`references/dagger-pipeline-example.md`](references/dagger-pipeline-example.md) — `main.go` comentado, Daggerverse modules, gotchas (multi-módulo Maven, bump-and-commit, OCI labels)
 
 Snippets em `references/` são auto-contidos (cópias, não ponteiros) pra não quebrarem com refactors.

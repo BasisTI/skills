@@ -273,7 +273,8 @@ Ver `references/frontend-build.md` na skill `basis-web-frontend` pra setup do `p
 
 ## Convenções
 
-- Versão CalVer no CI: `mvn versions:set -DnewVersion=YYYY.MM.DD.<pipelineId>` (ver a skill `basis-k8s-deploy`, referência `dagger-pipeline-example.md`, no repo `basis-skills`)
+- Versão CalVer no CI: `YYYY.MM.DD.<CI_PIPELINE_IID>`, reescrita pelo bump da pipeline — ver a skill `basis-ci-gitlab`. Em reactor multi-módulo a `<revision>` fica no pom da **raiz**, e o target declara `root-version-file = true`
+- Cobertura: use `@{jacocoArgLine}` no `argLine` do surefire, nunca `${jacocoArgLine}` — a forma com `${}` é interpolada antes de o `prepare-agent` rodar, o agente não é anexado, e o Sonar reporta 0% com a suíte inteira passando
 - Versão local em desenvolvimento: `0.0.1-SNAPSHOT` no parent, herdado pelos filhos
 - `<app>-domain` sem Spring runtime — força separação domínio/infra
 - Jib é skipado no parent e ativado só nos módulos que viram imagem

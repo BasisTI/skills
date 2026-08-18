@@ -172,7 +172,7 @@ uv run <cmd>                     # roda comando dentro do venv
 ## Convenções Basis
 
 - **Naming**: kebab-case no `name` (`training-hiring`), snake_case no diretório (`training_hiring`) opcional. Padrão atual no kaizenstat: kebab em ambos
-- **Versão local**: `0.1.0` (placeholder) — substituída por CalVer no CI via `pipeline.VfUv`
+- **Versão local**: `0.1.0` (placeholder) — o bump da pipeline reescreve com a CalVer. Em workspace uv, o `version-file` do target precisa apontar para este arquivo explicitamente (ver `basis-ci-gitlab`)
 - **`requires-python`**: `~=3.13.0` (estritamente major.minor) — força reprodutibilidade
 - **Authors**: `Nome <email@basis.com.br>`
 - **`build-backend = "uv_build"`** — backend nativo do uv, evita hatchling/setuptools

@@ -138,7 +138,10 @@ docker build -t <app>:dev .
 docker run --rm -p 8000:8000 <app>:dev
 ```
 
-No Dagger CI, `source.DockerBuild()` faz o equivalente — ver `dagger-pipeline-python.md`.
+Na CI, este Dockerfile é consumido por um target `type = "dockerfile"` no `ci/pipeline.toml`.
+O nome do arquivo é **case-sensitive** (`Dockerfile`, não `dockerfile`), e num workspace uv o
+target precisa de `source-path = "."` para o `uv sync --frozen` alcançar o lockfile da raiz.
+Ver `basis-ci-gitlab`.
 
 ## Anti-padrões
 

@@ -4,7 +4,19 @@ Padrão Basis pra deploy contínuo: ArgoCD sincroniza manifests de Git, Image Up
 
 ## Convenção de versão: CalVer
 
-Formato: `YYYY.MM.DD.<Seq>` onde `Seq` é o `CI_PIPELINE_ID` do GitLab — globalmente único, monotonicamente crescente, não-contíguo.
+Formato: `YYYY.MM.DD.<Seq>` onde `Seq` é o `CI_PIPELINE_IID` do GitLab — o contador **por
+projeto**, contíguo, começando em 1 em cada repositório.
+
+Não confunda com `CI_PIPELINE_ID`, que é global da instância e não-contíguo. A tag é montada
+em bash no `before_script` do template compartilhado, não dentro do Dagger:
+
+```sh
+export APP_VERSION="$(date +%Y.%m.%d).$CI_PIPELINE_IID"
+```
+
+Como o `Seq` é por projeto, duas aplicações podem ter a mesma tag no mesmo dia — a
+unicidade vem do caminho completo no registry (`<registry>/<grupo>/<imagem>:<tag>`), não da
+tag isolada.
 
 Exemplos:
 - `2026.04.23.11`
@@ -71,9 +83,9 @@ spec:
 ```
 [Push código]
     ↓
-[GitLab CI dispara Dagger pipeline]
+[GitLab CI: job `publish-develop` do template compartilhado]
     ↓
-[Dagger build + push imagem para registry com tag CalVer YYYY.MM.DD.<CI_PIPELINE_ID>]
+[orchestrator Dagger builda e publica com tag CalVer YYYY.MM.DD.<CI_PIPELINE_IID>]
     ↓
 [Image Updater (rodando no cluster) detecta nova tag matching regex]
     ↓
@@ -92,7 +104,7 @@ Padrão Basis: Image Updater do staging atualiza com tag mais recente; promote p
 
 Duas opções:
 
-**A) Tag específica em production**: Application de production com `update-strategy: digest` ou tag manual no kustomization. Promote = commit manual ou via Dagger task `Promote` (ver `dagger-pipeline-example.md`).
+**A) Tag específica em production**: Application de production com `update-strategy: digest` ou tag manual no kustomization. O promote é o job `promote-production` do template compartilhado, disparado por push em `main` — ele copia a imagem para `production-<calver>`. Detalhes em `basis-ci-gitlab` §7.
 
 **B) Lag controlado**: Image Updater de production com filtro de tag mais restritivo (ex: só tags com prefix `release-` ou que passaram em staging). Atualização automática mas com delay garantido.
 
