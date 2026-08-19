@@ -96,6 +96,67 @@ Regra prática para deployment.yaml:
 - `envFrom` (ConfigMap/Secret) para o conjunto de chaves `APPLICATION_*` da app
 - `env:` explícito quando precisa `secretKeyRef` de operador (ex: postgres credentials)
 
+## 8. Ingress e DNS
+
+Duas coisas que o Ingress precisa ter e falham em silêncio quando faltam — e uma terceira
+que ele **não** deve ter, porque a plataforma já resolve.
+
+- **`ingressClassName: traefik`.** É a única IngressClass que existe no cluster —
+  `kubectl get ingressclass` devolve uma linha só. Não há alternativa a escolher, e qualquer
+  outro valor é aceito pela API sem reclamar e nunca é atendido: o `kubectl get ingress`
+  mostra o recurso normal, o `ADDRESS` fica vazio e nada roteia. Vale para erro de digitação
+  e para replace que concatenou em vez de substituir: a API aceita qualquer string, e o
+  sintoma chega como "o app está fora", não como manifesto inválido
+- **`create-aws-record: "true"` nas annotations** sempre que o host tiver de resolver de fora.
+  É por essa annotation que o **external-dns** cria o registro na zona da AWS. Sem ela o
+  Ingress está correto e o nome não resolve — o sintoma chega como "o DNS não propagou", que
+  manda investigar o lado errado por um bom tempo
+- **Não declare `tls:` nem annotation de cert-manager.** HTTPS é automático e todos os
+  sistemas rodam nele. O **cert-manager** emite um certificado curinga do ambiente pelo
+  `ClusterIssuer letsencrypt-route53` (desafio DNS-01 na Route53), e um `TLSStore` chamado
+  `default` o registra como certificado padrão do Traefik. O controller termina TLS para
+  qualquer host servido, sem o Ingress pedir nada:
+
+  ```bash
+  kubectl get clusterissuer                                    # letsencrypt-route53
+  kubectl get certificate -A | grep default-certificate        # o curinga, READY=True
+  kubectl get tlsstore -n kube-system default -o jsonpath='{.spec}'
+  ```
+
+  Nada disso mora neste repositório — é plataforma, montada uma vez por cluster. Onde um
+  Ingress de aplicação tem `tls:`, foi decisão pontual daquele serviço (certificado próprio,
+  host fora do curinga); não é o padrão e não é para copiar
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <app>
+  namespace: <app>
+  annotations:
+    create-aws-record: "true"      # o host precisa resolver de fora
+spec:                              # sem bloco tls: — o HTTPS vem do certificado padrão
+  ingressClassName: traefik
+  rules:
+    - host: <app>.basis.com.br     # staging: <app>.stg.basis.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: <app>
+                port:
+                  name: http
+```
+
+**De onde copiar:** `manifests/foundation/overlays/production/apps/editor-bpmn/ingress.yaml`.
+
+Copie o Ingress daí, não do app que você estava usando de modelo para outra coisa.
+Referência boa para uma parte do manifesto não é referência boa para o resto dele — foi
+assim, herdando o Ingress de um app cujo *deployment* servia de exemplo, que nasceram os
+dois erros desta seção.
+
 ## References disponíveis
 
 - [`references/rabbitmq-topology-pattern.md`](references/rabbitmq-topology-pattern.md) — Padrão Exchange/Queue/Binding limpos + Policy pra DLX/routing-key/TTL, DLX único compartilhado, migração de args→Policy
