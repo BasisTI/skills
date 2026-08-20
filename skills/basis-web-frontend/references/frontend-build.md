@@ -70,7 +70,7 @@ Pontos:
 @source "../main/resources/templates/<modulo>/**/*.html";
 
 @theme {
-  --color-basis-blue: #003366;
+  --color-basis-blue: #0A2E5C;   /* azul institucional */
 }
 
 /* Customização HTMX */
@@ -78,6 +78,28 @@ Pontos:
 .htmx-request .htmx-indicator { display: flex; }
 .htmx-request.htmx-indicator { display: flex; }
 ```
+
+### Variante para app pública
+
+App sem login não usa o `caramellatte` — troca o bloco `@plugin "daisyui"` pela definição do
+tema `basis-publico`, e o resto do arquivo fica igual:
+
+```css
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "basis-publico";
+  default: true;
+  color-scheme: light;
+  /* … tokens completos em basis-web-frontend/references/tema-publico.md … */
+}
+
+@source "../main/resources/templates/**/*.html";
+```
+
+Tema definido com `@plugin "daisyui/theme"` **não** entra na lista `themes:` do
+`@plugin "daisyui"` — quem tenta declarar nos dois lugares recebe o tema padrão sem erro
+nenhum, que é o modo de falha mais caro de perceber.
 
 `@source` é relativo ao input.css — de `src/frontend/`, sobe 1 nível e desce até `src/main/resources/templates/`. Tailwind usa esse caminho pra detectar classes utilizadas e tree-shake o CSS final.
 
@@ -160,4 +182,5 @@ E garantir que o Spring Boot serve `target/classes/static` mesmo com hot-reload 
 - **Usar Webpack/Vite/esbuild só pra copiar 2 JS** — overengineering; `cp` resolve
 - **Esquecer `mkdir -p`** — Tailwind não cria parent dirs, build falha em primeira execução pós-`mvn clean`
 - **HTMX/List.js por CDN** (`unpkg`, `cdnjs`) — app interno costuma rodar em rede fechada, e a tela quebra sem internet; além de colocar um terceiro no caminho de renderização. Vendorizar e versionar junto com o app
-- **Tema fora do `input.css`** — o `caramellatte` precisa estar na lista do `@plugin "daisyui"`, senão o `data-theme` do layout não encontra o tema e a página cai no `light`
+- **Tema fora do `input.css`** — o `caramellatte` precisa estar na lista do `@plugin "daisyui"` (e o `basis-publico`, num bloco `@plugin "daisyui/theme"`), senão o `data-theme` do layout não encontra o tema e a página cai no `light` — sem erro de build, só a cor errada
+- **Fonte da marca vinda de CDN em app pública** — requisição a terceiro carregando o IP de quem preenche o formulário; a fonte é servida pelo próprio app, como o resto

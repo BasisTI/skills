@@ -1,6 +1,16 @@
 ---
 name: basis-web-frontend
-description: Use when building or changing the web UI of a Basis application — Thymeleaf + HTMX + Tailwind v4 + DaisyUI with the `caramellatte` theme, standard layout with left sidebar and header, listing tables with pinned header/footer where only the rows scroll, forms aligned with Tailwind utilities, and a custom error page so the user never hits the Whitelabel Error Page. Activate for new screens, templates and fragments, table/listing work, form layout, error pages, theme/branding, or the Tailwind/DaisyUI build.
+description: >-
+  Use when building or changing the web UI of a Basis application — Thymeleaf + HTMX +
+  Tailwind v4 + DaisyUI, listing tables with pinned header/footer where only the rows
+  scroll, forms aligned with Tailwind utilities, and a custom error page so the user never
+  hits the Whitelabel Error Page. Covers both visual identities and which one applies —
+  the `caramellatte` theme with sidebar layout for internal authenticated systems, and the
+  `basis-publico` theme following the institutional site (navy, orange accent, single
+  centred column, measured WCAG contrast) for public login-free applications such as
+  candidacy or citizen-facing forms. Activate for new screens, templates and fragments,
+  table/listing work, form layout, error pages, theme/branding/colour choices, accessibility
+  and contrast questions, or the Tailwind/DaisyUI build.
 ---
 
 # Basis Web Frontend
@@ -16,26 +26,50 @@ Padrões da Basis para a UI de apps web. Pareada com `basis-spring-app` (aquela 
 - **Sem texto hardcoded**: todo rótulo vem de `#{chave}` (`messages.properties`) — é o que permite trocar termo de negócio sem caçar string em template
 - **JS de terceiro é vendored**, servido do próprio app (ver [`references/frontend-build.md`](references/frontend-build.md)) — nunca CDN: app interno roda em rede fechada, e CDN adiciona dependência externa no caminho de renderização
 
-## 2. Tema e identidade
+## 2. Tema e identidade — a primeira decisão da tela
 
-- **Tema DaisyUI: `caramellatte`**, declarado em `data-theme` no `<html>` do layout e habilitado no `input.css`:
+**Antes de escolher qualquer cor, decida se a app é interna ou pública.** As duas seguem
+identidades diferentes, e usar a errada não é questão de gosto: um formulário público com a
+cara de sistema interno parece outro site para quem acabou de clicar no link da Basis.
+
+| | **Interna** — funcionário autenticado | **Pública** — sem login |
+|---|---|---|
+| Tema | `caramellatte` (DaisyUI) | `basis-publico` (site institucional) |
+| Layout | sidebar à esquerda + header (§3) | coluna única centrada, sem sidebar |
+| Destaque | o do tema | laranja `#F68B1F` sobre navy `#071A2E` |
+
+Critério prático: se o host resolve de fora e não exige credencial, é público.
+A paleta pública inteira, com os números de contraste medidos, está em
+[`references/tema-publico.md`](references/tema-publico.md) — **leia antes de escrever a
+primeira tela**, porque o laranja da marca reprova em contraste no uso mais óbvio dele.
+
+- **App interna — tema DaisyUI `caramellatte`**, declarado em `data-theme` no `<html>` do layout e habilitado no `input.css`:
   ```css
   @plugin "daisyui" {
     themes: light --default, dark --prefersdark, caramellatte;
   }
   ```
+- **App pública — tema `basis-publico`**, definido no próprio `input.css` com
+  `@plugin "daisyui/theme"`. As restrições de acessibilidade da marca ficam **dentro do
+  tema** (`--color-primary-content` é navy, não branco), para que `btn-primary` já nasça
+  acessível sem ninguém precisar lembrar da regra
 - **Usar as cores semânticas do tema** (`bg-base-100`, `bg-base-200`, `text-base-content`, `text-primary`, `badge-error`, `alert-warning`), nunca cor crua (`bg-white`, `text-gray-700`, `#cc6d13`) — cor crua quebra ao trocar de tema e destoa do resto do sistema
 - **Hierarquia de superfície**: fundo da página `base-200`, cartões/sidebar/navbar `base-100`, bordas `border-base-300`. Texto secundário por opacidade (`text-base-content/60`), não por cor fixa
-- **Logo Basis** em `src/main/resources/static/images/` (único diretório versionado dentro de `static/`): versão completa na página de erro/login, versão reduzida no topo da sidebar. Cópias em [`references/assets/`](references/assets/)
-- **Favicon + `theme-color`** configurados no `<head>` — `<meta name="theme-color" content="#cc6d13">` alinhado ao `caramellatte`
+- **Logo Basis** em `src/main/resources/static/images/` (único diretório versionado dentro de `static/`): assinatura completa na página de erro/login, reduzida no topo da sidebar, e a **marca quadrada** (`marca-b-500.png`) onde o espaço é redondo ou pequeno — loader, favicon. Assinatura horizontal não cabe em caixa quadrada: encolhe até ficar ilegível. Cópias em [`references/assets/`](references/assets/)
+- **Favicon + `theme-color`** configurados no `<head>`, alinhados ao tema em uso:
+  `#cc6d13` no `caramellatte`, `#071A2E` no `basis-publico`
 - Cor de marca que não existe no tema entra como token, não como valor espalhado:
   ```css
-  @theme { --color-basis-blue: #003366; }
+  @theme { --color-basis-blue: #0A2E5C; }   /* azul institucional */
   ```
 
 ## 3. Layout padrão: sidebar à esquerda + header
 
-Todo app usa o mesmo esqueleto — `templates/layout.html` com `th:fragment="layout(content, activeMenu)"`, e cada página faz `th:replace="~{layout :: layout(~{::section}, 'chave-do-menu')}"`.
+**Este é o esqueleto das apps internas.** App pública não leva sidebar — quem preenche um
+formulário não navega entre cadastros; ver [`references/tema-publico.md`](references/tema-publico.md).
+A cadeia de altura descrita no fim desta seção continua valendo nos dois casos.
+
+Todo app interno usa o mesmo esqueleto — `templates/layout.html` com `th:fragment="layout(content, activeMenu)"`, e cada página faz `th:replace="~{layout :: layout(~{::section}, 'chave-do-menu')}"`.
 
 - **Sidebar à esquerda** (`w-64`, `bg-base-100`, borda à direita): logo no topo, `ul.menu` com `li.menu-title` agrupando por área, item ativo por `th:classappend="${activeMenu == 'x' ? 'active' : ''}"`, ícone SVG inline em cada item
 - **Rodapé da sidebar**: bloco do usuário logado (avatar + nome + papel) e copyright. Logout e ações de perfil ficam aqui ou no canto direito do header — um lugar só, o mesmo em todas as apps
@@ -154,4 +188,5 @@ src/main/resources/templates/
 - [`references/formularios.md`](references/formularios.md) — campo padrão, grid responsivo, erros de validação, upload, formulário em modal
 - [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.html`, `@ExceptionHandler` com traceId, erros de HTMX, chaves i18n
 - [`references/frontend-build.md`](references/frontend-build.md) — `input.css`, `package.json`, `frontend-maven-plugin`, `.gitignore`, watch mode
-- [`references/assets/`](references/assets/) — logo Basis (completa e reduzida) para `static/images/`
+- [`references/tema-publico.md`](references/tema-publico.md) — identidade das apps públicas: tema DaisyUI `basis-publico`, paleta do site institucional, contrastes medidos, layout sem sidebar, indicador de espera
+- [`references/assets/`](references/assets/) — logo Basis para `static/images/`: assinatura completa (`Logo-BASIS-300x130.png`), reduzida (`logo-header.png`) e marca quadrada (`marca-b-500.png`, usada no loader e no favicon)
