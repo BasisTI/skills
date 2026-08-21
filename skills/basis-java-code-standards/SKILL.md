@@ -180,6 +180,62 @@ As anotações são `org.jspecify.annotations.*` — não `javax.annotation`, n�
 - Mockar o que é nosso e o que é lento/externo; não mockar tipo de terceiro que dá pra usar de verdade (`List`, `Optional`, entidade).
 - Teste de exceção verifica tipo **e** causa/mensagem relevante (`assertThatThrownBy(...).isInstanceOf(...).hasCauseInstanceOf(...)`).
 
+### Asserções do mesmo `actual` vão numa cadeia só
+
+**Dois `assertThat` seguidos sobre o mesmo valor reprovam o quality gate.** É a
+`java:S5853` — *Consecutive AssertJ "assertThat" statements should be chained*, code smell de
+severidade MINOR —, e a mensagem que aparece na MR é *"Join these multiple assertions subject to
+one assertion chain."* Já derrubou MR mais de uma vez pelo mesmo caminho: a segunda verificação
+nasce depois da primeira, na revisão ou num ajuste, e entra como statement novo em vez de entrar
+na cadeia que já estava lá.
+
+A regra, no Sonar da Basis:
+<https://codequality.basis.com.br/coding_rules?open=java%3AS5853&rule_key=java%3AS5853>
+
+```java
+// Reprova
+assertThat(pagina).contains("Versão " + versao);
+assertThat(pagina).doesNotContain("href=\"/retomar\"");
+
+// Passa
+assertThat(pagina)
+        .contains("Versão " + versao)
+        .doesNotContain("href=\"/retomar\"");
+```
+
+O que dispara é **adjacência com o mesmo valor testado** — está no nome da regra:
+*Consecutive*. Dois `assertThat` em sequência, sem statement no meio, sobre a mesma expressão.
+`actual` diferente não dispara, e statement entre as duas quebra a sequência.
+
+**`.as(...)` descreve o que vem depois dele na cadeia**, então dar nome a uma asserção
+específica não obriga a quebrá-la em duas:
+
+```java
+assertThat(pagina)
+        .contains("Versão " + versao)
+        .as("prova que a versão está fora do `th:if` do link de retomada")
+        .doesNotContain("href=\"/retomar\"");
+```
+
+**Não saia varrendo a suíte inteira atrás disso.** Numa base com suíte grande há dezenas de
+ocorrências antigas que o Sonar nunca reportou, e o motivo é estrutural: o `check-quality` só
+roda em MR, então o que existe é análise de *pull request* — que olha as linhas da MR — e não
+análise de branch. Num projeto assim a branch principal pode nunca ter sido analisada, e aí
+`api/issues/search` com `branch=` devolve zero enquanto a `pullRequest=<n>` devolve o achado
+(ver `basis-ci-gitlab` §6).
+
+**Mas a linha que você tocar entra na análise da MR.** Editar um teste antigo faz as asserções
+vizinhas serem avaliadas, e o gate reprova por código que "já estava lá". Ao mexer num arquivo de
+teste, encadeie as ocorrências **daquele arquivo** na mesma passada; é mais barato que descobrir
+na pipeline.
+
+Para conferir sem esperar a pipeline, com um token de API:
+
+```bash
+curl -sS -u "$SONAR_TOKEN:" \
+  "https://codequality.basis.com.br/api/issues/search?componentKeys=<chave>&rules=java:S5853&pullRequest=<n>"
+```
+
 ## 15. Checklist de revisão
 
 Ao revisar ou gerar código Java, verificar em ordem:
@@ -190,5 +246,6 @@ Ao revisar ou gerar código Java, verificar em ordem:
 3. Recurso: try-with-resources em tudo que fecha, charset explícito.
 4. Segurança: query parametrizada, entrada validada, nada sensível em log, sem segredo no código.
 5. Design: dependências por construtor, visibilidade mínima, método curto, sem efeito colateral escondido.
-6. Teste: comportamento coberto, nome descritivo, determinístico.
+6. Teste: comportamento coberto, nome descritivo, determinístico, asserções do mesmo `actual`
+   numa cadeia só.
 7. Estilo: Spotless e SonarQube passaram — se não passaram, é build quebrado, não comentário de review.
