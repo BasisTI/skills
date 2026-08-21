@@ -112,6 +112,57 @@ Sempre que a listagem tem valor agregado — soma, média, contagem, quantidade 
 
 O total é calculado **no servidor**, sobre o conjunto completo, e passado no model. Somar no cliente sobre as linhas renderizadas dá número errado assim que houver paginação ou filtro.
 
+## Barra de paginação: irmã da área rolável, não `<tfoot>`
+
+`<tfoot>` é para número que **pertence a uma coluna** e se alinha embaixo dela — soma, média, contagem. A barra de paginação não é isso: é controle. Tem texto de posição de um lado, botões do outro, e não se alinha a coluna nenhuma. Enfiá-la num `<td colspan="7">` mente sobre o que ela é, faz o botão herdar padding e borda de célula, e ainda deixa a barra à mercê do `border-separate` da tabela.
+
+Ela vai como **`div` irmã do contêiner que rola**, com `shrink-0`. Fica presa embaixo pelo mesmo motivo que o `<tfoot>` fica: **não está dentro do que rola.**
+
+```html
+<div class="card … flex-grow min-h-0 overflow-hidden flex flex-col">
+  <div class="card-body p-0 flex-grow min-h-0 flex flex-col">
+
+    <div class="flex-grow min-h-0 overflow-y-auto">     <!-- só ISTO rola -->
+      <table class="table table-pin-rows …">…</table>
+    </div>
+
+    <div class="shrink-0 border-t border-base-300 bg-base-100 p-3 flex items-center justify-between gap-3">
+      <div class="text-xs text-base-content/60">
+        <span th:text="#{paginacao.posicao(${pagina.pagina()}, ${pagina.totalPaginas()})}">Página 1 de 1</span>
+        <span class="mx-2 opacity-30">|</span>
+        <span th:if="${pagina.vazia()}" th:text="#{paginacao.vazio}">nenhum registro</span>
+        <span th:unless="${pagina.vazia()}"
+              th:text="#{paginacao.intervalo(${pagina.primeiroElemento()}, ${pagina.ultimoElemento()}, ${pagina.totalElementos()})}">1–10 de 0 registros</span>
+      </div>
+
+      <div class="join">
+        <button type="button" class="btn btn-xs btn-outline join-item"
+                th:disabled="${!pagina.temAnterior()}"
+                th:hx-get="@{/funcoes/painel(pagina=${pagina.pagina() - 1})}"
+                hx-target="#funcao-painel" hx-swap="outerHTML"
+                th:text="#{paginacao.anterior}">Anterior</button>
+        <button type="button" class="btn btn-xs btn-outline join-item"
+                th:disabled="${!pagina.temProxima()}"
+                th:hx-get="@{/funcoes/painel(pagina=${pagina.pagina() + 1})}"
+                hx-target="#funcao-painel" hx-swap="outerHTML"
+                th:text="#{paginacao.proxima}">Próxima</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+```
+
+As duas coisas convivem: `<tfoot>` com o total das colunas **e** barra embaixo com "Página 2 de 7". Não são alternativas.
+
+### O que costuma dar errado
+
+- **Barra dentro do `div` que rola.** Rola junto e some — é o erro que a regra existe para evitar. Confira a indentação: a barra tem de fechar *depois* do `</div>` do scroll, não antes.
+- **Botão apontando para a rota da página inteira.** Numa tela HTMX, o `hx-get` da paginação tem de ir para o endpoint do **fragmento**. Se for para a rota que devolve a página com `<html>` e as tags de script, o HTMX injeta um documento dentro de uma `div`, os scripts do layout rodam de novo e a aba trava. Nenhum teste de controller pega isso — o método devolve a view certa, o erro está na string do template; vale um teste que leia o arquivo e proíba a rota inteira.
+- **Numeração 0-based vazando para a tela.** O número aparece no rodapé e na URL: se a paginação for 0-based internamente, alguém vai converter na borda da view e é ali que nasce o erro de um a menos. Numere a partir de 1 e faça a conta de `OFFSET` num lugar só, no servidor.
+- **Página fora do intervalo tratada como erro.** Excluir o último registro da última página deixa a tela pedindo uma página que acabou de sumir. Corrija para a última válida em vez de recusar — o usuário não fez nada de errado.
+- **Contagem "de 0".** Lista vazia é "Página 1 de 1", nunca "de 0": com zero, o rodapé mostra um intervalo impossível e o botão "próxima" fica habilitado apontando para o nada.
+
 ## Ordenação e filtro client-side (List.js)
 
 Serve para listas que cabem inteiras no DOM (até ~1.000 linhas). Acima disso, paginação/ordenação no servidor.
@@ -163,3 +214,4 @@ Serve para listas que cabem inteiras no DOM (até ~1.000 linhas). Acima disso, p
 - **Milhares de linhas no DOM** "porque tem scroll" — paginar no servidor
 - **Total somado no cliente** — erra com filtro/paginação
 - **Tabela para layout** (formulário, cartões) — isso é `grid`
+- **Barra de paginação dentro do `<tfoot>`** ou dentro do `div` que rola — no primeiro caso o botão vira conteúdo de célula, no segundo a barra rola junto e some

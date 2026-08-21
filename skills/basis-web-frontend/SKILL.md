@@ -107,13 +107,20 @@ Ver [`references/layout.md`](references/layout.md) — template completo comenta
 ```html
 <div class="card bg-base-100 shadow-xl border border-base-300 flex-grow min-h-0 overflow-hidden flex flex-col">
   <div class="card-body p-0 flex-grow min-h-0 flex flex-col">
-    <div class="flex-grow overflow-y-auto min-h-0">
+
+    <div class="flex-grow overflow-y-auto min-h-0">   <!-- o ÚNICO filho que rola -->
       <table class="table table-zebra table-pin-rows w-full border-separate border-spacing-0">
         <thead>…</thead>   <!-- fixo no topo -->
         <tbody>…</tbody>   <!-- rola -->
-        <tfoot>…</tfoot>   <!-- fixo embaixo: totais, contagem -->
+        <tfoot>…</tfoot>   <!-- fixo embaixo: valor agregado alinhado às colunas -->
       </table>
     </div>
+
+    <!-- barra de paginação: IRMÃ do que rola, nunca dentro dele -->
+    <div class="shrink-0 border-t border-base-300 bg-base-100 p-3 flex items-center justify-between gap-3">
+      …contagem…                          …botões Anterior/Próxima…
+    </div>
+
   </div>
 </div>
 ```
@@ -123,11 +130,12 @@ Ver [`references/layout.md`](references/layout.md) — template completo comenta
 - **Fundo opaco** nas células fixadas (`bg-base-200`) — sem isso o conteúdo rola por baixo e aparece através
 - **Quem rola é o `div` intermediário** (`overflow-y-auto min-h-0`), nunca a página. O `<table>` não recebe `overflow`
 - **`<tfoot>` sempre presente quando há valor agregado** (total, soma, contagem de registros) — é a informação que o usuário mais procura e a que fica mais longe do olho numa lista longa
+- **Barra de paginação não é `<tfoot>`.** `<tfoot>` é para número que pertence a uma coluna e se alinha com ela; barra de paginação é controle — texto de posição e botões, que não se alinham a coluna nenhuma. Espremê-la num `<td colspan>` mente sobre o que ela é, e ainda faz o botão herdar o estilo de célula. Ela vai como **`div` irmã da área rolável, com `shrink-0`**, e fica presa embaixo pelo mesmo motivo que o `<tfoot>`: não está dentro do que rola. As duas podem coexistir — `<tfoot>` com o total das colunas, barra embaixo com "Página 2 de 7"
 - **Ordenação/filtro client-side** com List.js: `data-sort` nas `th`, `valueNames` no init, e `htmx.process(list.list)` no evento `updated` — sem isso os `hx-*` das linhas reordenadas param de funcionar
-- **Volume grande é paginação server-side**, não `overflow` com 10 mil linhas no DOM
+- **Volume grande é paginação server-side**, não `overflow` com 10 mil linhas no DOM. Sob paginação, `ORDER BY` precisa de **ordem total**: ordenar só por um campo que admite empate faz o banco não prometer ordem entre as linhas empatadas, e a mesma linha aparece em duas páginas ou em nenhuma. Desempate pela chave (`ORDER BY nome, id`)
 - **Ação por linha** com ícone `btn-ghost btn-sm btn-square` na última coluna, alinhada à direita, com `th:title` explicando
 
-Ver [`references/tabelas.md`](references/tabelas.md) — tabela completa com `tfoot` fixo, List.js e variantes.
+Ver [`references/tabelas.md`](references/tabelas.md) — tabela completa com `tfoot` fixo, barra de paginação, List.js e variantes.
 
 ## 5. Formulários
 
