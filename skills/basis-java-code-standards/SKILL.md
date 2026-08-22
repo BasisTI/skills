@@ -17,6 +17,23 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     SpotBugs ou PMD — é a mesma análise duas vezes, com dois conjuntos de regras pra manter.
   - **Spotless** é o formatter. Sonar aponta formatação, não reescreve arquivo; `spotless:apply`
     resolve indentação, largura de linha, ordem de import e import não usado de uma vez.
+  - **Antes de empurrar, rode a análise no que está no índice:** `git add` e depois
+    `sonar analyze --staged` (CLI `sonar`, autenticada com `sonar auth login`). São segundos, e
+    devolve os mesmos issues que o `check-quality` devolveria — descobrir por MR reprovada o que
+    um comando responde antes do push é o ciclo mais caro que existe aqui.
+
+    **Ela não mede cobertura.** É a metade do quality gate que continua só aparecendo na
+    pipeline, e é justamente a que reprova em silêncio: código novo bem escrito e sem teste passa
+    no `analyze` e derruba o gate. Depois de a análise da MR rodar, a conta sai por API:
+
+    ```bash
+    curl -sS -u "$SONAR_TOKEN:" "https://codequality.basis.com.br/api/measures/component_tree\
+?component=<chave>&pullRequest=<n>&qualifiers=FIL&metricKeys=new_uncovered_lines,new_uncovered_conditions"
+    ```
+
+    Ela aponta **arquivo e contagem**; `api/sources/lines?key=<chave>:<caminho>&pullRequest=<n>`
+    desce à linha, com `isNew`, `lineHits` e `coveredConditions` — que é o que diz qual `if`
+    ficou sem teste, em vez de mandar procurar.
   - **`-Xlint:all`** no `maven-compiler-plugin`, sem warning novo. Pega o que é do compilador
     (deprecation, unchecked, this-escape) e que não é papel do Sonar.
   - **Nulidade** é checada por JSpecify + IDE/Sonar (ver §6); NullAway/Error Prone é opcional e
