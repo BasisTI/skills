@@ -19,12 +19,37 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     resolve indentação, largura de linha, ordem de import e import não usado de uma vez.
   - **Antes de empurrar, rode a análise no que está no índice:** `git add` e depois
     `sonar analyze --staged` (CLI `sonar`, autenticada com `sonar auth login`). São segundos, e
-    devolve os mesmos issues que o `check-quality` devolveria — descobrir por MR reprovada o que
-    um comando responde antes do push é o ciclo mais caro que existe aqui.
+    pega de graça o que seria uma MR reprovada.
 
-    **Ela não mede cobertura.** É a metade do quality gate que continua só aparecendo na
-    pipeline, e é justamente a que reprova em silêncio: código novo bem escrito e sem teste passa
-    no `analyze` e derruba o gate. Depois de a análise da MR rodar, a conta sai por API:
+    **Mas "No issues found" ali não é o gate.** A análise local roda sem compilar e sem
+    classpath — é a diferença entre 200 ms e o `check-quality` inteiro —, e sem bytecode as
+    regras que dependem de fluxo de dados não têm como rodar. Medido neste projeto: um arquivo
+    que o CLI declarou limpo chegou à MR com dois `java:S2259` ("A NullPointerException could be
+    thrown") e um `java:S7467`. Use-a como filtro, nunca como aval.
+
+    **E ela não mede cobertura**, que é a outra metade do gate e a que reprova em silêncio:
+    código novo bem escrito e sem teste passa no `analyze` e derruba a MR.
+
+  - **Para ter o que o `check-quality` teria, rode a análise de verdade na sua branch.** É o
+    mesmo scanner da pipeline, com bytecode, classpath e o `jacoco.xml` que o `verify` acabou de
+    escrever — e por isso pega as regras de fluxo de dados que a análise local não alcança:
+
+    ```bash
+    ./mvnw clean verify
+    ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+      -Dsonar.host.url=https://codequality.basis.com.br -Dsonar.token="$SONAR_TOKEN" \
+      -Dsonar.projectKey=<chave> -Dsonar.branch.name=$(git branch --show-current)
+    ```
+
+    Duas coisas a não errar. O plugin **não** está declarado no pom (nem precisa: quem invoca na
+    pipeline é o orchestrator), então vai pelo nome completo — `sonar:sonar` por prefixo falha com
+    `No plugin found for prefix 'sonar'`. E **`-Dsonar.branch.name` não é opcional**: sem ele a
+    análise entra como a branch principal do projeto e passa a valer como o retrato oficial dele.
+
+    Isso **escreve no servidor compartilhado** — cria (ou atualiza) a branch no Sonar. Numa branch
+    de feature é barato e some com ela; combine antes de fazer em `develop` ou `main`.
+
+    Depois da análise, a conta sai por API:
 
     ```bash
     curl -sS -u "$SONAR_TOKEN:" "https://codequality.basis.com.br/api/measures/component_tree\

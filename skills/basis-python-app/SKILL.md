@@ -13,7 +13,7 @@ description: >-
 
 # Basis Python Application
 
-Padrões da Basis pra apps Python. Pareada com `basis-k8s-deploy` (lado ops) e `basis-spring-app` (Spring/Java analog).
+Padrões da Basis pra apps Python. Pareada com `basis-k8s-deploy` (lado ops) e `basis-spring-app` (Spring/Java analog). Integração com o **SGO** (`ks-jira`, biblioteca `jira`, webhooks, outbox): `basis-sgo-jira`.
 
 ## 1. Stack default (sempre, sem exceção)
 

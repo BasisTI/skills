@@ -1,6 +1,6 @@
 ---
 name: basis-skill-de-sessao
-description: Converte o registro de uma sessão de agente em atualização de skill — seja skill nova, seja acréscimo a uma skill que já existe. Serve para sessão de incidente, de revisão de código, de planejamento e de debug. Use quando o usuário disser "vamos virar skill", "aproveitar aquela sessão", "documentar como a gente resolveu", "isso aqui devia estar na skill"; depois de uma revisão de MR que apontou padrão repetível; ou logo após fechar nota de incidente, quando o diagnóstico ainda está fresco. Também para revisar skill já escrita, conferindo se ela guarda os becos sem saída e não só o caminho feliz.
+description: Converte o registro de uma sessão de agente em atualização de skill — seja skill nova, seja acréscimo a uma skill que já existe. Serve para sessão de incidente, de revisão de código, de planejamento e de debug. Use quando o usuário disser "vamos virar skill", "aproveitar aquela sessão", "documentar como a gente resolveu", "isso aqui devia estar na skill"; depois de uma revisão de MR que apontou padrão repetível; ou logo após fechar nota de incidente, quando o diagnóstico ainda está fresco. Também para revisar skill já escrita, conferindo se ela guarda os becos sem saída e não só o caminho feliz. E, quando não se sabe qual sessão rendeu — "o que eu vivo tendo que repetir para o agente", "onde estou perdendo tempo", "o que falta nas skills" —, traz um modo de triagem que procura a mesma correção reaparecendo em sessões diferentes. Lê transcript de Claude Code e de Codex.
 ---
 
 # Skill a partir de sessão
@@ -39,11 +39,17 @@ lixo em escala e vazar segredo junto.
 ## Fluxo
 
 ```
-localizar → extrair dossiê → LIMPAR SEGREDO → rotear achados → generalizar → redigir → validar
-                                    ↑                ↑
-                          revisão humana        um destino por achado,
-                            obrigatória         não um destino por sessão
+ sei qual sessão  ─┐
+                   ├─→ extrair dossiê → LIMPAR SEGREDO → rotear → PORTÃO → generalizar → redigir → validar
+ não sei onde     ─┘                          ↑             ↑        ↑
+ estou perdendo →                       revisão humana   um destino  "com a instrução atual,
+ triagem (§0)                            obrigatória     por achado   um agente competente
+                                                                      ainda erraria assim?"
 ```
+
+Os dois pontos em que se perde mais: **rotear** (uma sessão rende achados de naturezas
+diferentes, e forçá-los numa skill só produz skill que não serve para ninguém) e o
+**portão** (recorrência é motivo para olhar, nunca motivo para escrever).
 
 ## Tipos de sessão e o que cada um rende
 
@@ -60,24 +66,76 @@ skills basis"* — cada achado já nasce endereçado: ou o código violou uma re
 tem, e não há o que fazer; ou violou uma regra que a skill **deveria** ter, e isso é a
 lacuna. Revisão desse tipo é o jeito mais barato de descobrir o que falta nas skills.
 
-## 1. Localizar a sessão
+## 0. Quando você não sabe qual sessão — triagem
 
-Os transcripts ficam em `~/.claude/projects/<slug-do-cwd>/<sessionId>.jsonl`, um arquivo
-JSONL por sessão. O `slug` é o caminho absoluto com `/` trocado por `-`. Para o Codex os transcripts ficam em
-`~/.codex/sessions/<ano>/<mes>/<dia?/rollout-<timestamp>-<sessionId>.jsonl` para relacionar com o projeto pode
-usar o cwd no `jsonl`.
+Todo o resto desta skill pressupõe que você já sabe qual sessão rendeu. **A lacuna mais
+cara não é assim.** Ela não está em nenhuma sessão memorável: o sinal é a mesma correção
+reaparecendo em conversas diferentes, semanas separadas, cada uma esquecível sozinha.
 
 ```bash
-scripts/extrair-sessao.py --listar               # tudo, mais recente primeiro
+scripts/triagem-correcoes.py --dias 60                 # tudo
+scripts/triagem-correcoes.py --dias 90 --projeto ponto # um repositório
+```
+
+Somente leitura. O script coleta os prompts que têm **forma** de correção, e conta em
+quantas **sessões distintas** cada termo de conteúdo aparece dentro delas.
+
+A contagem bruta não serve — `usar` e `arquivo` aparecem em quase toda sessão e lideram
+qualquer ranking. O relatório ordena por `peso = sessões × especificidade`, onde a
+especificidade é a fração das sessões que citam o termo em que ele aparece **numa
+correção**. Termo perto de 1,0 é dito quase só quando você está corrigindo, e é esse o
+sinal. Termo específico — nome de arquivo, de chave de configuração, de comando — quase
+sempre aponta instrução faltando numa skill.
+
+**O que o relatório não é.** Não é nota, não é diagnóstico e não é lista de tarefas. A
+regex reconhece a forma de uma correção, não o assunto: elogio com "na verdade" entra,
+correção educada sem marcador escapa, e um termo em oito sessões tanto pode ser oito
+instâncias do mesmo defeito quanto oito assuntos que dividem a palavra. É índice para
+leitura, e a leitura é obrigatória.
+
+Da triagem sai um candidato; dele sai uma sessão para extrair (§1) ou, quando o padrão já
+está claro nas próprias linhas, direto para o portão.
+
+Caso real: "os pods de staging e produção usam o profile `prod`, não existe
+`application-staging.yml`" nunca teve uma sessão em que isso fosse o assunto. Foi dito de
+passagem, várias vezes, sempre corrigindo outra coisa.
+
+## 1. Localizar a sessão
+
+Dois harnesses, dois lugares e dois formatos:
+
+| Harness | Onde | Uma sessão é |
+|---|---|---|
+| Claude Code | `~/.claude/projects/<slug-do-cwd>/<sessionId>.jsonl` | um arquivo; `slug` é o caminho absoluto com `/` trocado por `-` |
+| Codex | `~/.codex/sessions/<ano>/<mês>/<dia>/rollout-<ts>-<sessionId>.jsonl` | um arquivo; o projeto vem do `cwd` no registro `session_meta` |
+
+```bash
+scripts/extrair-sessao.py --listar               # os dois, mais recente primeiro
 scripts/extrair-sessao.py --listar mailcow       # filtra por título ou diretório
 ```
 
-A listagem usa o registro `ai-title`, que é o resumo que o próprio agente deu à sessão —
-costuma ser o jeito mais rápido de achar a investigação certa. Confirme pelo diretório e
-pela contagem de prompts antes de seguir.
+A listagem marca o harness de cada linha. No Claude o rótulo vem do registro `ai-title`,
+o resumo que o próprio agente deu à sessão. **O Codex não grava título nenhum**, então o
+rótulo é a primeira linha do primeiro prompt — costuma servir igualmente bem, porque é
+literalmente o pedido. Confirme pelo diretório e pela contagem de prompts antes de seguir.
+
+Três coisas que a listagem já resolve e que valem saber:
+
+- **Sessão de subagente fica de fora por padrão.** Ela não é conversa com pessoa e não tem
+  prompt do relator; contá-la só infla a amostra. No Claude são 116 dos 204 arquivos, em
+  `<sessão>/subagents/agent-*.jsonl`; no Codex elas se identificam pelo `parent_thread_id`.
+- **Há uma terceira geração de rollout do Codex** — registros planos, sem `payload` e sem
+  `user_message` —, e ela é **reconhecida e recusada**, não parseada. Nela o prompt da
+  pessoa e a injeção de `<environment_context>` são os dois `{"type":"message","role":"user"}`,
+  indistinguíveis. São 5 arquivos de 652, todos de 2025-09. Recusar é mais honesto que
+  parsear errado: lidos como Claude, saem com 0 prompts e sem título — o que parece sessão
+  vazia, e não formato não suportado.
+- **O formato é detectado pelo conteúdo, não pelo caminho**, então transcript copiado para
+  outro lugar continua legível.
 
 Se o usuário não souber qual sessão foi, pergunte pelo sintoma e filtre por ele. Não
-adivinhe: extrair a sessão errada custa uma rodada inteira de revisão.
+adivinhe: extrair a sessão errada custa uma rodada inteira de revisão. Se ele não souber
+nem o sintoma, o começo é a triagem (§0), não a listagem.
 
 ## 2. Extrair o dossiê
 
@@ -162,6 +220,47 @@ misturar as duas coisas é como a skill começa a mentir para os outros projetos
 pessoas diferentes e mergeáveis em ritmos diferentes. Juntar tudo num MR só obriga quem
 revisa a opinar sobre Spring, sobre multi-tenant e sobre organização de módulo ao mesmo
 tempo — e é assim que revisão vira carimbo.
+
+## O portão — quando **não** escrever nada
+
+Roteado o achado, ele ainda precisa passar por aqui. Este é o passo que falta na maioria
+das tentativas de virar sessão em skill, e a falta dele tem sintoma conhecido: skill que
+cresce todo mês, ninguém lê inteira, e a regra que importa fica soterrada em parágrafo
+acrescentado no fim.
+
+**A pergunta única:** um agente competente, com as instruções que a skill já tem hoje,
+ainda seria esperado errar desse jeito?
+
+Se sim, existe lacuna. Se não, não escreva — e diga por que não, que é resultado tão
+legítimo quanto uma edição.
+
+Escreva só quando **todas** forem verdade:
+
+- A falha veio de instrução **faltando, errada ou vaga** numa superfície concreta: uma
+  skill, o `AGENTS.md` do repositório, a configuração do agente.
+- Você consegue **nomear essa superfície** e a **única regra reaproveitável** que ela
+  deveria ter dito.
+- Se a regra estivesse escrita e fosse seguida, a falha não teria acontecido.
+- O mesmo buraco aparece em **mais de uma sessão** — ou é grave o bastante para que uma
+  ocorrência só já prove que falta um contrato.
+
+**Não escreva quando:**
+
+- A instrução **já exigia** o comportamento certo e o agente a ignorou. Repetir a regra
+  mais alto não é edição, é ruído.
+- É variância do modelo: mesmo prompt, mesmas ferramentas, escolha diferente.
+- A única edição possível é reformular, hesitar, ou colar exemplos daquela sessão.
+- O conserto de verdade é de produto, de infraestrutura ou de código — não de instrução.
+
+E, quando a edição passar: **substitua a orientação existente em vez de acrescentar mais
+um parágrafo.** Antes de editar, diga em uma frase qual regra de comportamento você
+pretende gravar e de quem é a superfície; depois faça a menor mudança que expresse isso.
+Você está editando as instruções de outro agente, não escrevendo um relato.
+
+O caso do profile é o exemplo bom: a skill dizia `application-{profile}.yml` — só os
+deltas do profile (`dev`, `prod`, **etc.**). O `etc.` era a lacuna, a superfície era a
+`basis-spring-app`, e a edição foi trocar o `etc.` por "são dois, e staging usa `prod`" —
+não um parágrafo novo sobre ambientes.
 
 ## 5. Generalizar — a passada de domínio
 
@@ -325,13 +424,22 @@ fantasiado de procedimento.
 
 **Achar que a varredura basta.** Ela pega forma, não sentido.
 
+**Escrever porque encontrou, não porque falta.** Recorrência na triagem é motivo para
+olhar; o portão é que decide. Skill que cresce todo mês é skill que ninguém lê inteira, e
+a regra que importa fica soterrada.
+
 ## Scripts
 
 | Script | Muta? | Uso |
 |---|---|---|
-| `scripts/extrair-sessao.py --listar [termo]` | Não | Encontra a sessão pelo título ou diretório |
+| `scripts/triagem-correcoes.py [--dias N] [--projeto P]` | Grava só o `-o` | Acha o que se repete entre sessões, quando você não sabe onde está perdendo (§0) |
+| `scripts/extrair-sessao.py --listar [termo]` | Não | Encontra a sessão pelo título ou diretório, nos dois harnesses |
 | `scripts/extrair-sessao.py <sessão> -o dossie.md` | Grava só o `-o` | Extrai o dossiê |
 | `scripts/varrer-segredos.sh <arquivo>` | Não | Varre segredo; sai 1 se houver bloqueio |
+
+`scripts/transcripts.py` não tem linha de comando: é a camada de leitura que normaliza
+Claude e Codex num dicionário só, usada pelos dois scripts acima. Mexer no formato de um
+harness é mexer ali, e em nenhum outro lugar.
 
 `references/formato-transcript.md` — o esquema do JSONL, medido e não suposto: tipos de
 registro, a armadilha do `user` duplo, onde ficam comando, resultado e erro.

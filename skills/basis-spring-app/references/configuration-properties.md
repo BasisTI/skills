@@ -16,7 +16,7 @@ Vantagem: carga cognitiva zero ao trocar de projeto, env vars têm formato previ
 ## Hierarquia de fontes
 
 1. `application.yml` — defaults env-agnostic, válidos em qualquer ambiente
-2. `application-{profile}.yml` — só os DELTAS do profile (`dev`, `prod`)
+2. `application-{profile}.yml` — só os DELTAS do profile (`dev`, `prod` — ver anti-padrão 5)
 3. Env vars — sobrepõem qualquer yml via Spring relaxed binding
 4. `@ConfigurationProperties` — tipa e valida no código
 
@@ -82,6 +82,80 @@ spring:
 ❌ Errado: `application.yml` com `if profile == prod` via @Conditional, ou ifs em código.
 
 ✅ Certo: dois arquivos, `application-dev.yml` e `application-prod.yml`, com APENAS os deltas. Default do `application.yml` vale pra tudo.
+
+### 5. Inventar um profile `staging`
+
+❌ Errado: ver `overlays/staging` e `overlays/production` no kustomize e concluir que a aplicação
+precisa de `application-staging.yml` ao lado do `application-prod.yml`.
+
+**Staging e produção rodam o mesmo profile `prod`.** O overlay do kustomize é que os separa, e ele
+separa o que é de ambiente: env var, secret, número de réplicas, host do ingress, tamanho de
+volume. Nada disso é arquivo de configuração da aplicação — todos já entram por env var, via
+relaxed binding, sem `${VAR}` no yaml (anti-padrão 1).
+
+Estado medido no `iac/argocd-apps`: os 8 deployments Spring declaram `SPRING_PROFILES_ACTIVE` em
+`base/`, com `prod`, `prod,kubernetes` ou `prod,api-docs,kubernetes` — e **nenhum overlay
+sobrepõe esse valor**. Em 5 repositórios de aplicação não existe nenhum `application-staging.*`.
+
+Um profile a mais custa mais do que parece: ele cria um caminho de configuração que **só existe
+em staging**, então o artefato que passou no teste não é o artefato que vai para produção. O erro
+aparece no deploy de produção, que é o pior lugar para descobri-lo.
+
+✅ Certo: dois profiles de ambiente (`dev` para a máquina do desenvolvedor, `prod` para tudo que
+roda no cluster) e, ao lado deles, profiles **de recurso** — `test`, `tls`, `sgo`, `spike`. O
+critério que separa os dois grupos: profile de recurso *liga um pedaço*; profile de ambiente
+*descreve onde a aplicação está*. Só o segundo grupo é fechado.
+
+**Variante legítima: nenhum profile.** Há app em que o `application.yml` já é a configuração de
+produção e os profiles são todos desvios dela. Aí o deployment não declara
+`SPRING_PROFILES_ACTIVE` nenhum — e isso precisa estar escrito no manifesto, senão o próximo
+leitor "conserta" a ausência:
+
+```yaml
+# Sem SPRING_PROFILES_ACTIVE: o `application.yml` do repositório JÁ É a configuração de
+# produção. Os profiles que existem são desvios dela -- `dev` (compose local), `sgo`
+# (credencial), `spike` (escrita manual), `test`. Ativar qualquer um aqui trocaria
+# produção por um deles.
+```
+
+### 6. `@ConditionalOnProperty` como chave de segurança em app que compila nativa
+
+❌ Errado: proteger uma rotina perigosa — a que escreve num sistema externo compartilhado, a que
+manda e-mail, a que roda expurgo — com `@ConditionalOnProperty` e achar que a variável de
+ambiente decide em runtime.
+
+A condição do Spring é avaliada **uma vez só**. Numa imagem nativa, essa vez é o **build**: o
+`process-aot` roda sem perfil e sem variável de ambiente, o `matchIfMissing` vale, o bean entra
+congelado na imagem — e a chave deixa de ter qualquer efeito depois. Medido em 2026-08-21 numa
+imagem nativa de um app da Basis: com a chave em `false`, o agendador protegido rodou assim
+mesmo; na JVM, não rodava.
+
+✅ Certo: o bean sempre sobe, e **quem decide é o método**.
+
+```java
+@Component
+class AgendamentoEnvio {
+
+    private final boolean ligado;
+
+    AgendamentoEnvio(Envios envios, AppProperties props) {
+        this.envios = envios;
+        this.ligado = props.agendamento();
+        if (!ligado) log.info("Consumidor da fila: DESLIGADO por configuração");
+    }
+
+    @Scheduled(fixedDelayString = "${application.intervalo-da-fila:30s}")
+    void processarFila() {
+        if (!ligado) return;
+        envios.processarFila();
+    }
+}
+```
+
+`@ConditionalOnProperty` continua certo para **montagem** — qual implementação entra, qual
+integração existe. O que ele não pode ser é a trava que separa staging de produção: uma proteção
+que some conforme o formato do artefato é pior que proteção nenhuma, porque ninguém desconfia
+dela.
 
 ## @ConfigurationProperties — pattern
 

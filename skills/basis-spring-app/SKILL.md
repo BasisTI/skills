@@ -5,7 +5,7 @@ description: Use when starting, extending, or refactoring a Basis Spring applica
 
 # Basis Spring Application
 
-Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documenta o lado dev; aquela documenta o lado ops/infra), com `basis-java-code-standards` (como o código Java é escrito dentro dela) e, quando a app serve mais de um cliente no mesmo banco, com `basis-multi-tenant` (isolamento por `tenant_id` e Row Level Security).
+Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documenta o lado dev; aquela documenta o lado ops/infra), com `basis-java-code-standards` (como o código Java é escrito dentro dela) e, quando a app serve mais de um cliente no mesmo banco, com `basis-multi-tenant` (isolamento por `tenant_id` e Row Level Security). Quando a app fala com o **SGO** — criar ocorrência, ler `createmeta`, escrever TableGrid, subir anexo —, o cliente e as armadilhas do Jira 6.3.13 estão em `basis-sgo-jira`.
 
 ## 1. Stack default (sempre, sem exceção)
 
@@ -35,7 +35,15 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 
 ### Hierarquia
 - `application.yml`: defaults env-agnostic, conteúdo válido pra qualquer ambiente
-- `application-{profile}.yml`: SÓ os deltas do profile (`dev`, `prod`, etc.)
+- `application-{profile}.yml`: SÓ os deltas do profile
+- **Os profiles de ambiente são dois: `dev` e `prod`. Não existe `staging`.** Staging e produção
+  rodam o **mesmo** profile `prod`; o que difere entre os dois é o overlay do kustomize — env
+  vars, secrets, réplicas, host do ingress —, nunca um arquivo de configuração da aplicação.
+  Medido nos 8 deployments Spring do `iac/argocd-apps`: todos declaram `SPRING_PROFILES_ACTIVE`
+  em `base/` com `prod` (às vezes `prod,kubernetes` ou `prod,api-docs,kubernetes`), e nenhum
+  overlay o sobrepõe. Em 5 repositórios de aplicação não existe um único `application-staging.*`
+- Além desses, só profiles **de recurso**, não de ambiente: `test`, `tls`, `sgo`, `spike`. O
+  critério é "liga um pedaço", não "é um ambiente"
 - Env vars: sobrepõem qualquer yml via Spring relaxed binding
 - `@ConfigurationProperties`: tipa e valida o config no código
 
