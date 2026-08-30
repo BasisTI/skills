@@ -15,8 +15,11 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
   - **SonarQube** é o lint. Roda no `check-quality` do Dagger e cobre as regras (chaves ausentes,
     `catch` genérico, complexidade, code smell, vulnerabilidade). **Não** adicionar Checkstyle,
     SpotBugs ou PMD — é a mesma análise duas vezes, com dois conjuntos de regras pra manter.
-  - **Spotless** é o formatter. Sonar aponta formatação, não reescreve arquivo; `spotless:apply`
-    resolve indentação, largura de linha, ordem de import e import não usado de uma vez.
+  - **Spotless** é o formatter, com **palantir-java-format** como engine. Sonar aponta
+    formatação, não reescreve arquivo; `spotless:apply` resolve indentação, largura de linha,
+    ordem de import e import não usado de uma vez. A configuração completa, os erros que o
+    rascunho óbvio comete e como implantar num projeto que ainda não tem estão em **§2.1 e
+    §2.2** — não improvise um `<plugin>` novo.
   - **Antes de empurrar, rode a análise no que está no índice:** `git add` e depois
     `sonar analyze --staged` (CLI `sonar`, autenticada com `sonar auth login`). São segundos, e
     pega de graça o que seria uma MR reprovada.
@@ -75,6 +78,122 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
 - Uma instrução por linha.
 - Sem `import *` (nem estático).
 - Indentação e espaçamento são responsabilidade do formatter — não gastar review com isso.
+
+### 2.1 Spotless: a configuração
+
+O formatter é **palantir-java-format**, não google-java-format. O motivo está na
+regra acima: o google-java-format fixa **100 colunas e não permite alterar**, então
+ele é incapaz de implementar o limite de 120 exigido aqui. O Palantir se descreve como
+*"a modern, lambda-friendly, 120 character Java formatter"* — 120 fixo, que é
+exatamente o número exigido aqui.
+
+**Surpresa do Palantir que ninguém antecipa:** além das 120 colunas, ele aplica
+**80 colunas para cadeias de método** — o último ponto da cadeia tem que vir antes
+da coluna 80, senão a cadeia não é inlinada e quebra em várias linhas. É
+deliberado (legibilidade em review) e não é configurável. Cadeia que hoje cabe em
+120 vai quebrar.
+
+```xml
+<properties>
+  <spotless.version>3.10.1</spotless.version>
+  <palantir.version>2.97.0</palantir.version>
+</properties>
+
+<plugin>
+  <groupId>com.diffplug.spotless</groupId>
+  <artifactId>spotless-maven-plugin</artifactId>
+  <version>${spotless.version}</version>
+  <configuration>
+    <formats>
+      <!-- Só o que nenhum bloco de linguagem cobre. NÃO incluir .java aqui. -->
+      <format>
+        <includes>
+          <include>src/main/resources/templates/**/*.html</include>
+          <include>*.md</include>
+        </includes>
+        <trimTrailingWhitespace/>
+        <endWithNewline/>
+      </format>
+    </formats>
+
+    <java>
+      <!-- <includes> omitido de propósito: o default do bloco <java> já é
+           src/main/java/**/*.java + src/test/java/**/*.java -->
+      <importOrder/>
+      <removeUnusedImports/>
+      <expandWildcardImports/>
+      <!-- trocar por <forbidWildcardImports/> quando a base estiver estável:
+           aí o wildcard passa a reprovar o build em vez de ser expandido -->
+      <shortenFullyQualifiedTypes/>
+
+      <!-- <style> importa: GOOGLE ou AOSP aqui voltariam para 100 colunas -->
+      <palantirJavaFormat>
+        <version>${palantir.version}</version>
+        <style>PALANTIR</style>
+      </palantirJavaFormat>
+
+      <!-- DEPOIS do formatter, sempre: ele conserta quebras de linha que o
+           formatter introduziu em anotações. Antes dele não há o que consertar. -->
+      <formatAnnotations/>
+    </java>
+  </configuration>
+
+  <executions>
+    <execution>
+      <goals><goal>check</goal></goals>
+      <phase>verify</phase>
+    </execution>
+  </executions>
+</plugin>
+```
+
+**Três erros que o rascunho óbvio comete:**
+
+| Erro | Por quê |
+|---|---|
+| `<include>.java</include>` | Casa um arquivo *literalmente chamado* `.java`. Precisa de glob — ou, melhor, omitir `<includes>` e usar o default do bloco `<java>` |
+| `<format>` genérico cobrindo `.java` | O bloco `<java>` já trata esses arquivos; dois blocos sobre o mesmo alvo uma hora conflitam |
+| `<formatAnnotations/>` antes do formatter | O README é explícito: *"add the `formatAnnotations` rule **after** a Java formatter"* |
+
+### 2.2 Implantar Spotless num projeto que ainda não tem
+
+**Palantir e google-java-format são formatters totais**: reescrevem o arquivo
+inteiro, não apenas as linhas longas. Escolher 120 em vez de 100 **não diminui o
+primeiro `spotless:apply`** — ele reformata tudo de qualquer jeito.
+
+A decisão da equipe é **commit isolado por projeto**, com todos atualizando o
+repositório local em seguida. Nessa ordem:
+
+1. **Fechar ou mergear as MRs abertas antes.** Reformatação global conflita com
+   toda MR viva. Rebasear depois é pior do que esperar.
+2. Aplicar e commitar **só a formatação**, sem nenhuma mudança de lógica junto —
+   é o que torna o commit revisável sem lê-lo linha a linha.
+3. Registrar o hash em `.git-blame-ignore-revs` na raiz do repositório. Sem isso,
+   `git blame` de todo o projeto passa a apontar para esse commit.
+4. Cada pessoa habilita o arquivo localmente — **não é automático**:
+   `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+5. Avisar a equipe para atualizar antes de começar qualquer trabalho novo.
+
+**O beco sem saída: o commit de reformatação move a linha de corte do Sonar.**
+O SCM Publisher usa `git blame` para decidir o que é código novo (ver
+`basis-ci-gitlab/references/sonar-analise-e-quality-gate.md`). Depois da
+reformatação em massa, **toda linha reformatada passa a ter a data do commit de
+formatação** — e cai dentro do período de *new code*. O gate, que cobra cobertura
+e zero issues em código novo, passa a julgar a base legada inteira. A primeira MR
+depois disso reprova por código que ninguém tocou.
+
+`.git-blame-ignore-revs` resolve o `git blame` humano; **não há garantia de que o
+SCM Publisher do Sonar o respeite** — confirme na instância antes de contar com
+isso. O caminho seguro é **redefinir a baseline de new code no Sonar logo após
+mergear a reformatação**, para que o commit fique fora da janela.
+
+**A alternativa que foi considerada e não escolhida** — registrada para não ser
+re-litigada às cegas: `<ratchetFrom>origin/develop</ratchetFrom>` faz o Spotless
+formatar e cobrar **apenas os arquivos tocados desde a `develop`**. A base
+converge branch a branch, sem commit global, sem conflito em MR aberta e sem
+mexer na baseline do Sonar — é o mesmo modelo *Clean as You Code* que o Sonar já
+aplica. O custo é conviver com formatação heterogênea durante a transição. Se um
+projeto novo entrar depois, ou se o big-bang doer num repo grande, é esta a saída.
 
 ## 3. Nomes
 
