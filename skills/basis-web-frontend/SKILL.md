@@ -23,7 +23,7 @@ Padrões da Basis para a UI de apps web. Pareada com `basis-spring-app` (aquela 
 - **HTML é gerado no servidor.** Fragmento Thymeleaf trocado por HTMX é o default; JS solto só quando não há alternativa
 - **Nada de framework SPA** nesta stack (Angular é a alternativa quando o caso pede, e aí é outra decisão de projeto — ver `basis-spring-app`)
 - **Componente DaisyUI antes de utilitário Tailwind, utilitário antes de CSS próprio.** `<style>` no template é última instância e precisa de motivo
-- **Sem texto hardcoded**: todo rótulo vem de `#{chave}` (`messages.properties`) — é o que permite trocar termo de negócio sem caçar string em template
+- **Sem texto hardcoded**: todo rótulo vem de `#{chave}` (`messages.properties`), inclusive o que vive em atributo e dentro de `<script>` — convenção de nome e armadilhas em §6
 - **JS de terceiro é vendored**, servido do próprio app (ver [`references/frontend-build.md`](references/frontend-build.md)) — nunca CDN: app interno roda em rede fechada, e CDN adiciona dependência externa no caminho de renderização
 
 ## 2. Tema e identidade — a primeira decisão da tela
@@ -70,6 +70,13 @@ formulário não navega entre cadastros; ver [`references/tema-publico.md`](refe
 A cadeia de altura descrita no fim desta seção continua valendo nos dois casos.
 
 Todo app interno usa o mesmo esqueleto — `templates/layout.html` com `th:fragment="layout(content, activeMenu)"`, e cada página faz `th:replace="~{layout :: layout(~{::section}, 'chave-do-menu')}"`.
+
+**O que estiver fora do `<section>` da página não é renderizado, e nada avisa.** O layout
+recebe `~{::section}` e insere só isso: qualquer irmão da `<section>` — tipicamente o
+`<script>` que o hábito de HTML manda pôr no fim do arquivo — é descartado em silêncio, sem
+erro, sem log e sem marca no HTML. `<script>` de página vai **dentro** da `<section>`, ou o
+layout precisa de um segundo parâmetro de fragmento para recebê-lo. Já custou duas telas num
+projeto nosso, com o gráfico e o relógio simplesmente não aparecendo.
 
 - **Sidebar à esquerda** (`w-64`, `bg-base-100`, borda à direita): logo no topo, `ul.menu` com `li.menu-title` agrupando por área, item ativo por `th:classappend="${activeMenu == 'x' ? 'active' : ''}"`, ícone SVG inline em cada item
 - **Rodapé da sidebar**: bloco do usuário logado (avatar + nome + papel) e copyright. Logout e ações de perfil ficam aqui ou no canto direito do header — um lugar só, o mesmo em todas as apps
@@ -152,7 +159,97 @@ Ver [`references/tabelas.md`](references/tabelas.md) — tabela completa com `tf
 
 Ver [`references/formularios.md`](references/formularios.md) — campo padrão, grid, validação, upload, formulário em modal com HTMX.
 
-## 6. Página de erro padrão — obrigatória
+## 6. Textos e i18n
+
+**Todo texto que o usuário lê é chave em `messages.properties`.** Não é preparação para um
+dia traduzir — é o que permite trocar termo de negócio (de "Função" para "Cargo") sem caçar
+string em template.
+
+### Convenção de nome de chave
+
+`<entidade>.<elemento>.<propriedade>`:
+
+| Prefixo | Quando | Exemplo |
+|---|---|---|
+| `<entidade>.*` | rótulo que pertence a uma tela ou entidade | `funcao.campo.descricao`, `funcao.tabela.descricao` |
+| `comum.*` | rótulo que repete **idêntico** entre entidades, confirmado no código e não suposto | `comum.acao.editar`, `comum.paginacao.registros` |
+| `app.*` | rótulo sem entidade: menu, rodapé, banner global | `app.menu.funcionario`, `app.rodape.copyright` |
+
+- **Cada elemento tem chave própria, mesmo com o texto igual hoje.** `funcao.campo.descricao`
+  e `funcao.tabela.descricao` valem "Descrição" os dois; separadas, o label do formulário pode
+  virar "Descrição do cargo" sem arrastar o cabeçalho da tabela junto.
+- **Nunca o idioma no nome da chave** — `funcao.botao.criar.pt` não. É o que permite
+  acrescentar `messages_en.properties` depois sem renomear nada.
+- **Ficam fora do arquivo, de propósito**: nome do produto e marca ("Basis Ponto"), que não se
+  traduzem; e mensagem vinda do Java (`${erro}`, `${sucesso}`, exceção de negócio), que é outra
+  camada e não se resolve em template.
+
+### Texto em atributo também é texto
+
+`th:title`, `th:placeholder`, `th:alt`, `th:hx-confirm`. É onde mais escapa, porque a tela
+fica visualmente correta com o texto ainda cravado no HTML.
+
+```html
+<button th:hx-confirm="#{funcao.excluir.confirmacao}"
+        th:text="#{comum.acao.excluir}">Excluir</button>
+```
+
+### Dentro de `<script>`: `th:inline="javascript"` é obrigatório
+
+O que muda com o atributo é o **modo**, não o fato de substituir. Sem ele o valor é injetado
+assim mesmo — com escape de HTML e sem aspas, que é o pior dos dois mundos:
+
+| No template | `<script>` | `<script th:inline="javascript">` |
+|---|---|---|
+| `var x = [[${v}]];` | `var x = a &quot;b&quot; &lt;c&gt;` — entidade HTML dentro do JS, e a linha nem fecha | `var x = "a \"b\" <c>";` — literal JS válido e escapado |
+| `/*[[#{k}]]*/ 'padrão'` | `/*Excluir*/ 'padrão'` — **o código continua usando `'padrão'`** | `"Excluir"` — comentário e literal substituídos de uma vez |
+
+A segunda linha é a que engana: a tela continua funcionando, em português, e o defeito só
+apareceria no dia em que existisse `messages_en.properties` e nada fosse traduzido. Não
+aparece em teste de navegador nem em revisão apressada — já passou pelas duas num projeto
+nosso, em três templates de uma vez.
+
+```html
+<script th:inline="javascript">
+    const msgSemPermissao = /*[[#{app.erro.semPermissao}]]*/ 'Você não tem permissão para esta ação.';
+</script>
+```
+
+O literal depois do comentário é o fallback e documenta o texto esperado. Use `[( )]` no
+lugar de `[[ ]]` quando o valor cai dentro de uma string (crase inclusive): `[[ ]]` devolve o
+literal já entre aspas, e as aspas apareceriam na tela.
+
+E lembre do §3: `<script>` fora do `<section>` não renderiza. `th:inline` correto num bloco
+descartado não adianta nada.
+
+### Configuração
+
+```yaml
+spring:
+  messages:
+    basename: messages
+    encoding: UTF-8              # sem isto, acento vira caractere estranho na tela
+    fallback-to-system-locale: false
+```
+
+`fallback-to-system-locale: false` é o que impede que, no dia em que existir
+`messages_en.properties`, um pod com locale inglês passe a responder em inglês para todo
+mundo — o locale do contêiner é o que o cluster deu, não uma decisão da aplicação.
+
+### Mensagem com parâmetro passa por `MessageFormat`
+
+`#{comum.paginacao.registros(${a}, ${b}, ${total})}` para `{0}–{1} de {2} registros`. Duas
+consequências que só aparecem nas mensagens **com** parâmetro:
+
+- **Número é formatado no locale**: `1234` sai `1.234`. Bom para contagem, errado para ano ou
+  identificador — passe esses já como texto (`#calendars.format(..., 'yyyy')`).
+- **Aspa simples é caractere de escape.** `'` solto some ou muda o sentido; para uma aspa
+  literal, dobre (`''`). Mensagem sem parâmetro não passa por `MessageFormat` e não sofre isso.
+
+Ver [`references/i18n.md`](references/i18n.md) — convenção completa, os quatro comportamentos
+de inlining medidos e o checklist de revisão.
+
+## 7. Página de erro padrão — obrigatória
 
 **Nenhuma app da Basis pode mostrar a Whitelabel Error Page.** É o default do Spring Boot quando não existe `error.html`: tela branca, stack trace ou "There was an unexpected error", sem identidade, sem caminho de volta e sem nada que o suporte possa usar.
 
@@ -165,7 +262,7 @@ Ver [`references/formularios.md`](references/formularios.md) — campo padrão, 
 
 Ver [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.html`, handler com traceId, chaves de mensagem, tratamento HTMX.
 
-## 7. HTMX
+## 8. HTMX
 
 - Fragmento Thymeleaf servido por Controller dedicado, retornando **só o pedaço** (`~{::fragmento}`), com `hx-target` apontando para o id do contêiner
 - `hx-target="#modal-root"` para modal; o fragmento traz o `<dialog>`/`modal` inteiro
@@ -173,7 +270,7 @@ Ver [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.
 - Depois de qualquer manipulação de DOM feita por JS (List.js, por exemplo), chamar `htmx.process(elemento)`
 - Com Spring Security, o token CSRF precisa acompanhar as requisições HTMX (meta tag + `hx-headers`, ou `hx-vals`) — POST de HTMX falhando com 403 é quase sempre isso
 
-## 8. Estrutura de arquivos
+## 9. Estrutura de arquivos
 
 ```
 src/main/resources/templates/
@@ -194,7 +291,8 @@ src/main/resources/templates/
 - [`references/layout.md`](references/layout.md) — `layout.html` completo: sidebar, navbar, cadeia de altura, `@ControllerAdvice` de `appVersion`/`currentUser`, sidebar retrátil
 - [`references/tabelas.md`](references/tabelas.md) — listagem com `thead`/`tfoot` fixos, List.js, ações por linha, paginação
 - [`references/formularios.md`](references/formularios.md) — campo padrão, grid responsivo, erros de validação, upload, formulário em modal
-- [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.html`, `@ExceptionHandler` com traceId, erros de HTMX, chaves i18n
+- [`references/i18n.md`](references/i18n.md) — convenção de nome de chave, texto em atributo, os quatro comportamentos de inlining em `<script>` medidos, `spring.messages`, `MessageFormat`, checklist
+- [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.html`, `@ExceptionHandler` com traceId, erros de HTMX
 - [`references/frontend-build.md`](references/frontend-build.md) — `input.css`, `package.json`, `frontend-maven-plugin`, `.gitignore`, watch mode
 - [`references/tema-publico.md`](references/tema-publico.md) — identidade das apps públicas: tema DaisyUI `basis-publico`, paleta do site institucional, contrastes medidos, layout sem sidebar, indicador de espera
 - [`references/assets/`](references/assets/) — logo Basis para `static/images/`: assinatura completa (`Logo-BASIS-300x130.png`), reduzida (`logo-header.png`) e marca quadrada (`marca-b-500.png`, usada no loader e no favicon)

@@ -29,7 +29,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="_csrf" th:content="${_csrf?.token}">
     <meta name="_csrf_header" th:content="${_csrf?.headerName}">
-    <title th:text="#{app.name}">&lt;app&gt; - Basis</title>
+    <title>&lt;Nome do app&gt; - Basis</title>   <!-- nome do produto nao e chave: nao se traduz -->
 
     <!-- Tailwind v4 + DaisyUI 5, gerado pelo build em target/classes/static -->
     <link rel="stylesheet" th:href="@{/css/style.css(v=${appVersion})}">
@@ -57,11 +57,11 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
         <div class="p-6 pb-2 shrink-0">
             <img th:src="@{/images/logo-header.png}" alt="Basis Tecnologia" class="h-8 w-auto" />
             <div class="text-[10px] uppercase tracking-widest text-base-content/50 mt-2"
-                 th:text="#{app.subtitle}">Subtitulo</div>
+                 th:text="#{app.sidebar.subtitulo}">Subtitulo</div>
         </div>
 
         <ul class="menu menu-md flex-grow p-4 pt-2 overflow-y-auto">
-            <li class="menu-title" th:text="#{menu.group.cadastros}">Cadastros</li>
+            <li class="menu-title" th:text="#{app.grupo.cadastros}">Cadastros</li>
             <li>
                 <a th:href="@{/configs/allocations}"
                    th:classappend="${activeMenu == 'allocations' ? 'active' : ''}">
@@ -69,7 +69,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18" />
                     </svg>
-                    <span th:text="#{menu.allocations}">Alocacoes</span>
+                    <span th:text="#{app.menu.alocacao}">Alocacoes</span>
                 </a>
             </li>
             <!-- demais itens/grupos -->
@@ -84,10 +84,10 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
                 </div>
                 <div class="flex-grow overflow-hidden">
                     <div class="text-sm font-bold truncate" th:text="${currentUser}">Usuario</div>
-                    <div class="text-xs opacity-50 font-mono" th:text="#{app.user.role}">papel</div>
+                    <div class="text-xs opacity-50 font-mono" th:text="#{app.usuario.papel}">papel</div>
                 </div>
             </div>
-            <div class="text-[10px] text-center opacity-30 px-4" th:text="#{app.copyright}">
+            <div class="text-[10px] text-center opacity-30 px-4" th:text="#{app.rodape.copyright}">
                 Copyright © Basis Tecnologia
             </div>
         </div>
@@ -99,7 +99,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
         <header class="navbar bg-base-100 shadow-sm shrink-0 border-b border-base-300">
             <div class="flex-none">
                 <button type="button" class="btn btn-square btn-ghost" onclick="toggleSidebar()"
-                        th:title="#{menu.toggle}">
+                        th:title="#{app.botao.recolherMenu}">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                          class="w-5 h-5 stroke-current">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -109,7 +109,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
             </div>
 
             <div class="flex-1 px-2 mx-2 font-bold text-primary flex items-baseline gap-2">
-                <span th:text="#{app.name}">Nome da aplicacao</span>
+                <span>&lt;Nome do app&gt;</span>
                 <span class="text-[10px] font-mono opacity-40" th:text="'v' + ${appVersion}">v0.0.1</span>
             </div>
 
@@ -123,11 +123,11 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
                     <ul tabindex="0" class="menu dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
                         <li class="menu-title text-xs" th:text="${currentUser}">Usuario</li>
                         <li sec:authorize="hasRole('<APP>_ADMIN')">
-                            <a th:href="@{/admin}" th:text="#{menu.admin}">Administracao</a>
+                            <a th:href="@{/admin}" th:text="#{app.menu.administracao}">Administracao</a>
                         </li>
                         <li>
                             <form th:action="@{/logout}" method="post">
-                                <button type="submit" class="w-full text-left" th:text="#{menu.logout}">Sair</button>
+                                <button type="submit" class="w-full text-left" th:text="#{app.botao.sair}">Sair</button>
                             </form>
                         </li>
                     </ul>

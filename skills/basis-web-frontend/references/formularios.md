@@ -8,13 +8,13 @@ Cada campo é um bloco: rótulo, controle, e mensagem de ajuda/erro quando houve
 
 ```html
 <fieldset class="fieldset">
-    <legend class="fieldset-legend font-bold" th:text="#{provider.contract.label}">Numero do contrato</legend>
+    <legend class="fieldset-legend font-bold" th:text="#{fornecedor.campo.contrato}">Numero do contrato</legend>
     <input type="text" id="contractNumber" name="contractNumber"
            class="input w-full font-mono"
            th:field="*{contractNumber}"
            th:errorclass="input-error"
            placeholder="000157" required />
-    <p class="label text-base-content/60" th:text="#{provider.contract.help}">Formato: 6 digitos.</p>
+    <p class="label text-base-content/60" th:text="#{fornecedor.campo.contratoAjuda}">Formato: 6 digitos.</p>
     <p class="text-error text-sm" th:if="${#fields.hasErrors('contractNumber')}"
        th:errors="*{contractNumber}">Erro</p>
 </fieldset>
@@ -43,19 +43,19 @@ Espaçamento vive no contêiner (`gap-*`), não em `margin` por campo — assim 
 
         <!-- Campo largo ocupa a linha inteira -->
         <fieldset class="fieldset md:col-span-2">
-            <legend class="fieldset-legend font-bold" th:text="#{provider.obs.label}">Observacao</legend>
+            <legend class="fieldset-legend font-bold" th:text="#{fornecedor.campo.observacao}">Observacao</legend>
             <textarea class="textarea w-full" rows="3" th:field="*{observacao}"></textarea>
         </fieldset>
     </div>
 
     <div class="card-actions justify-end mt-4 pt-4 border-t border-base-200">
-        <a th:href="@{/configs/provider}" class="btn btn-ghost" th:text="#{btn.cancel}">Cancelar</a>
+        <a th:href="@{/configs/provider}" class="btn btn-ghost" th:text="#{comum.acao.cancelar}">Cancelar</a>
         <button type="submit" class="btn btn-primary gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                  stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
-            <span th:text="#{btn.save}">Salvar</span>
+            <span th:text="#{comum.botao.salvar}">Salvar</span>
         </button>
     </div>
 </form>
@@ -73,12 +73,12 @@ Formulário longo se divide em seções com título, não em uma pilha de 20 cam
 ```html
 <div class="flex flex-col gap-6">
     <div>
-        <h2 class="card-title text-primary" th:text="#{form.section.identificacao}">Identificacao</h2>
+        <h2 class="card-title text-primary" th:text="#{fornecedor.legenda.identificacao}">Identificacao</h2>
         <div class="divider my-2"></div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">…</div>
     </div>
     <div>
-        <h2 class="card-title text-primary" th:text="#{form.section.contato}">Contato</h2>
+        <h2 class="card-title text-primary" th:text="#{fornecedor.legenda.contato}">Contato</h2>
         <div class="divider my-2"></div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">…</div>
     </div>
@@ -90,24 +90,24 @@ Formulário longo se divide em seções com título, não em uma pilha de 20 cam
 ```html
 <!-- Select -->
 <fieldset class="fieldset">
-    <legend class="fieldset-legend font-bold" th:text="#{alloc.label.ruleType}">Tipo de regra</legend>
+    <legend class="fieldset-legend font-bold" th:text="#{alocacao.campo.tipoRegra}">Tipo de regra</legend>
     <select class="select w-full" th:field="*{ruleType}">
         <option th:each="tipo : ${T(br.com.basis.app.RuleType).values()}"
-                th:value="${tipo}" th:text="#{'RuleType.' + ${tipo.name()}}">Tipo</option>
+                th:value="${tipo}" th:text="#{'alocacao.tipoRegra.' + ${tipo.name()}}">Tipo</option>
     </select>
 </fieldset>
 
 <!-- Checkbox / toggle: rótulo à esquerda, controle à direita, com gap -->
 <label class="label cursor-pointer justify-start gap-3">
     <input type="checkbox" class="toggle toggle-primary" th:field="*{deduzirFerias}" />
-    <span class="label-text font-bold" th:text="#{alloc.deduct.vacation}">Deduzir ferias</span>
+    <span class="label-text font-bold" th:text="#{alocacao.campo.deduzirFerias}">Deduzir ferias</span>
 </label>
 
 <!-- Upload -->
 <fieldset class="fieldset">
-    <legend class="fieldset-legend font-bold" th:text="#{upload.file.label}">Arquivo</legend>
+    <legend class="fieldset-legend font-bold" th:text="#{importacao.campo.arquivo}">Arquivo</legend>
     <input type="file" name="file" class="file-input w-full" accept=".csv,.xlsx" required />
-    <p class="label text-base-content/60" th:text="#{upload.file.help}">CSV ou XLSX, ate 10 MB.</p>
+    <p class="label text-base-content/60" th:text="#{importacao.campo.arquivoAjuda}">CSV ou XLSX, ate 10 MB.</p>
 </fieldset>
 ```
 
@@ -139,7 +139,7 @@ public String salvar(@Valid @ModelAttribute("config") ProviderForm form,
 <!-- fragmento devolvido pelo Controller, alvo #modal-root -->
 <dialog id="edit-modal" class="modal modal-open">
     <div class="modal-box max-w-2xl">
-        <h3 class="text-lg font-bold" th:text="#{alloc.edit.title}">Editar</h3>
+        <h3 class="text-lg font-bold" th:text="#{alocacao.titulo.editar}">Editar</h3>
         <form th:action="@{/configs/allocations/save}" th:object="${form}" method="post"
               hx-post="/configs/allocations/save"
               hx-target="#allocation-list-container"
@@ -149,8 +149,8 @@ public String salvar(@Valid @ModelAttribute("config") ProviderForm form,
             <div class="modal-action">
                 <button type="button" class="btn btn-ghost"
                         onclick="document.getElementById('edit-modal').remove()"
-                        th:text="#{btn.cancel}">Cancelar</button>
-                <button type="submit" class="btn btn-primary" th:text="#{btn.save}">Salvar</button>
+                        th:text="#{comum.acao.cancelar}">Cancelar</button>
+                <button type="submit" class="btn btn-primary" th:text="#{comum.botao.salvar}">Salvar</button>
             </div>
         </form>
     </div>

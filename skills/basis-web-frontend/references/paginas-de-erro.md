@@ -18,7 +18,7 @@ Resolvido automaticamente pelo `BasicErrorController` para qualquer status não 
             <img th:src="@{/images/Logo-BASIS-300x130.png}" alt="Basis Tecnologia" class="h-20 w-auto mb-2" />
 
             <div class="badge badge-error badge-lg gap-2 py-3 px-4 text-base font-bold">
-                <span th:text="#{error.status}">Status</span>
+                <span th:text="#{erro.status.rotulo}">Status</span>
                 <span th:text="${status}">500</span>
             </div>
 
@@ -28,8 +28,8 @@ Resolvido automaticamente pelo `BasicErrorController` para qualquer status não 
                       d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
 
-            <h2 class="card-title text-2xl font-black text-error" th:text="#{error.generic.title}">Erro</h2>
-            <p class="text-base-content/70 mt-2" th:text="#{error.generic.message}">
+            <h2 class="card-title text-2xl font-black text-error" th:text="#{erro.titulo.generico}">Erro</h2>
+            <p class="text-base-content/70 mt-2" th:text="#{erro.mensagem.generico}">
                 A operacao falhou. Tente novamente.
             </p>
 
@@ -39,17 +39,17 @@ Resolvido automaticamente pelo `BasicErrorController` para qualquer status não 
                     <path stroke-linecap="round" stroke-linejoin="round"
                           d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12" />
                 </svg>
-                <span th:text="#{error.generic.return}">Voltar ao inicio</span>
+                <span th:text="#{erro.botao.voltarInicio}">Voltar ao inicio</span>
             </a>
 
             <div class="divider my-4"></div>
 
             <div class="text-[10px] font-mono opacity-50 bg-base-200 p-2 rounded-lg w-full break-all text-left">
                 <div th:if="${traceId != null and !#strings.isEmpty(traceId)}">
-                    <span th:text="#{error.trace}">Trace ID</span>: <span th:text="${traceId}">N/A</span>
+                    <span th:text="#{erro.trace.rotulo}">Trace ID</span>: <span th:text="${traceId}">N/A</span>
                 </div>
                 <div th:if="${path != null and !#strings.isEmpty(path)}">
-                    <span th:text="#{error.path}">Caminho</span>: <span th:text="${path}">/path</span>
+                    <span th:text="#{erro.caminho.rotulo}">Caminho</span>: <span th:text="${path}">/path</span>
                 </div>
             </div>
         </div>
@@ -134,7 +134,7 @@ Handler de fronteira é o caso em que capturar `Exception` é intencional — ve
 Uma resposta de erro para `hx-get`/`hx-post` **não pode** substituir um pedaço da tela pela página de erro inteira — o resultado é uma UI com sidebar dentro de um card. O layout intercepta e mostra um alerta:
 
 ```html
-<script>
+<script th:inline="javascript">
     document.body.addEventListener('htmx:responseError', function (evt) {
         const container = document.getElementById('error-alert');
         if (!container) {
@@ -148,29 +148,37 @@ Uma resposta de erro para `hx-get`/`hx-post` **não pode** substituir um pedaço
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>[[#{error.generic.title}]] (${status})</span>
+                <span>[(#{erro.titulo.generico})] (${status})</span>
                 <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
             </div>`;
     });
 </script>
 ```
 
+Dois detalhes deste bloco que não são estilo, e que quebram calado se trocados —
+ver [`references/i18n.md`](i18n.md):
+
+- **`th:inline="javascript"` na tag.** Sem ele, `[[#{...}]]` até é substituído, mas com
+  escape de HTML e sem aspas: `Ação` vira `A&ccedil;&atilde;o` dentro do script.
+- **`[( )]` e não `[[ ]]` aqui**, porque o valor está dentro de uma crase. `[[ ]]` devolve o
+  literal JavaScript já entre aspas, e as aspas apareceriam na tela: `"Ocorreu um erro" (500)`.
+
 Alternativa quando o erro é de negócio e pertence a um trecho específico da tela: o Controller devolve **200 com o fragmento em estado de erro** (alerta dentro do próprio card), em vez de status 4xx/5xx. Erro esperado de negócio não é falha HTTP.
 
 ## Chaves de mensagem
 
 ```properties
-# messages_pt_BR.properties
-error.status=Status
-error.trace=Trace ID
-error.path=Caminho
-error.generic.title=Ocorreu um erro
-error.generic.message=A operação não pôde ser concluída. Tente novamente ou informe o Trace ID ao suporte.
-error.generic.return=Voltar ao início
-error.notfound.title=Registro não encontrado
-error.notfound.return=Voltar para
-error.forbidden.title=Acesso negado
-error.forbidden.message=Seu usuário não tem permissão para esta funcionalidade.
+# messages.properties
+erro.status.rotulo=Status
+erro.trace.rotulo=Trace ID
+erro.caminho.rotulo=Caminho
+erro.titulo.generico=Ocorreu um erro
+erro.mensagem.generico=A operação não pôde ser concluída. Tente novamente ou informe o Trace ID ao suporte.
+erro.botao.voltarInicio=Voltar ao início
+erro.titulo.naoEncontrado=Registro não encontrado
+erro.botao.voltarPara=Voltar para
+erro.titulo.acessoNegado=Acesso negado
+erro.mensagem.acessoNegado=Seu usuário não tem permissão para esta funcionalidade.
 ```
 
 Mensagem de usuário diz **o que aconteceu e o que fazer**. Nada de "NullPointerException", nome de tabela, SQL ou classe Java na tela.

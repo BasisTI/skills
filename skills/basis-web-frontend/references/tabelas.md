@@ -12,14 +12,14 @@ Motivo: a listagem é a primeira tela de praticamente todo cadastro. Tabela cujo
     <!-- Cabeçalho da página: não rola -->
     <div class="shrink-0 flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-black" th:text="#{alloc.title}">Alocacoes</h1>
-            <p class="text-base-content/60" th:text="#{alloc.subtitle}">Descricao curta da tela.</p>
+            <h1 class="text-3xl font-black" th:text="#{alocacao.titulo}">Alocacoes</h1>
+            <p class="text-base-content/60" th:text="#{alocacao.subtitulo}">Descricao curta da tela.</p>
         </div>
         <div class="flex items-center gap-2">
             <input type="search" class="input input-bordered input-sm search"
-                   th:placeholder="#{table.search}" />
+                   th:placeholder="#{comum.tabela.busca}" />
             <a th:href="@{/configs/allocations/new}" class="btn btn-primary btn-sm"
-               th:text="#{btn.new}">Novo</a>
+               th:text="#{alocacao.botao.criar}">Novo</a>
         </div>
     </div>
 
@@ -35,11 +35,11 @@ Motivo: a listagem é a primeira tela de praticamente todo cadastro. Tabela cujo
                     <thead>
                         <tr class="text-[10px] uppercase opacity-70">
                             <th class="sort cursor-pointer hover:bg-base-300 bg-base-200 py-3 px-4 border-b border-base-300"
-                                data-sort="name" th:text="#{alloc.label.contract}">Contrato</th>
+                                data-sort="name" th:text="#{alocacao.tabela.contrato}">Contrato</th>
                             <th class="sort cursor-pointer hover:bg-base-300 bg-base-200 py-3 px-4 border-b border-base-300 text-right"
-                                data-sort="value" th:text="#{alloc.label.dailyValue}">Valor diario</th>
+                                data-sort="value" th:text="#{alocacao.tabela.valorDiario}">Valor diario</th>
                             <th class="bg-base-200 py-3 px-4 border-b border-base-300 text-right"
-                                th:text="#{alloc.label.actions}">Acoes</th>
+                                th:text="#{comum.tabela.acoes}">Acoes</th>
                         </tr>
                     </thead>
 
@@ -53,7 +53,7 @@ Motivo: a listagem é a primeira tela de praticamente todo cadastro. Tabela cujo
                                 th:text="${#numbers.formatDecimal(alloc.dailyValue, 1, 'POINT', 2, 'COMMA')}">0,00</td>
                             <td class="py-2 px-4 text-right">
                                 <button class="btn btn-ghost btn-sm btn-square"
-                                        th:title="#{btn.edit}"
+                                        th:title="#{comum.acao.editar}"
                                         th:hx-get="|/configs/allocations/edit/${alloc.contractId}|"
                                         hx-target="#modal-root">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -66,7 +66,7 @@ Motivo: a listagem é a primeira tela de praticamente todo cadastro. Tabela cujo
                         </tr>
 
                         <tr th:if="${#lists.isEmpty(allocations)}">
-                            <td colspan="3" class="py-12 text-center opacity-50" th:text="#{table.empty}">
+                            <td colspan="3" class="py-12 text-center opacity-50" th:text="#{alocacao.lista.vazia}">
                                 Nenhum registro encontrado.
                             </td>
                         </tr>
@@ -75,7 +75,7 @@ Motivo: a listagem é a primeira tela de praticamente todo cadastro. Tabela cujo
                     <tfoot>
                         <tr class="font-bold">
                             <td class="bg-base-200 py-3 px-4 border-t border-base-300"
-                                th:text="#{table.total.records(${#lists.size(allocations)})}">3 registros</td>
+                                th:text="#{alocacao.tabela.contagem(${#lists.size(allocations)})}">3 registros</td>
                             <td class="bg-base-200 py-3 px-4 border-t border-base-300 text-right font-mono"
                                 th:text="${#numbers.formatDecimal(totalDiario, 1, 'POINT', 2, 'COMMA')}">0,00</td>
                             <td class="bg-base-200 py-3 px-4 border-t border-base-300"></td>
@@ -108,7 +108,7 @@ Equivalente explícito ao `table-pin-rows`, quando precisar de `z-index`/offset 
 
 ## `<tfoot>`: quando e o quê
 
-Sempre que a listagem tem valor agregado — soma, média, contagem, quantidade selecionada. Se não houver agregado, ao menos a contagem de registros (`table.total.records`), que também confirma para o usuário que ele chegou ao fim da lista.
+Sempre que a listagem tem valor agregado — soma, média, contagem, quantidade selecionada. Se não houver agregado, ao menos a contagem de registros (`alocacao.tabela.contagem`), que também confirma para o usuário que ele chegou ao fim da lista.
 
 O total é calculado **no servidor**, sobre o conjunto completo, e passado no model. Somar no cliente sobre as linhas renderizadas dá número errado assim que houver paginação ou filtro.
 
@@ -128,11 +128,11 @@ Ela vai como **`div` irmã do contêiner que rola**, com `shrink-0`. Fica presa 
 
     <div class="shrink-0 border-t border-base-300 bg-base-100 p-3 flex items-center justify-between gap-3">
       <div class="text-xs text-base-content/60">
-        <span th:text="#{paginacao.posicao(${pagina.pagina()}, ${pagina.totalPaginas()})}">Página 1 de 1</span>
+        <span th:text="#{comum.paginacao.posicao(${pagina.pagina()}, ${pagina.totalPaginas()})}">Página 1 de 1</span>
         <span class="mx-2 opacity-30">|</span>
-        <span th:if="${pagina.vazia()}" th:text="#{paginacao.vazio}">nenhum registro</span>
+        <span th:if="${pagina.vazia()}" th:text="#{comum.paginacao.vazio}">nenhum registro</span>
         <span th:unless="${pagina.vazia()}"
-              th:text="#{paginacao.intervalo(${pagina.primeiroElemento()}, ${pagina.ultimoElemento()}, ${pagina.totalElementos()})}">1–10 de 0 registros</span>
+              th:text="#{comum.paginacao.registros(${pagina.primeiroElemento()}, ${pagina.ultimoElemento()}, ${pagina.totalElementos()})}">1–10 de 0 registros</span>
       </div>
 
       <div class="join">
@@ -140,12 +140,12 @@ Ela vai como **`div` irmã do contêiner que rola**, com `shrink-0`. Fica presa 
                 th:disabled="${!pagina.temAnterior()}"
                 th:hx-get="@{/funcoes/painel(pagina=${pagina.pagina() - 1})}"
                 hx-target="#funcao-painel" hx-swap="outerHTML"
-                th:text="#{paginacao.anterior}">Anterior</button>
+                th:text="#{comum.paginacao.anterior}">Anterior</button>
         <button type="button" class="btn btn-xs btn-outline join-item"
                 th:disabled="${!pagina.temProxima()}"
                 th:hx-get="@{/funcoes/painel(pagina=${pagina.pagina() + 1})}"
                 hx-target="#funcao-painel" hx-swap="outerHTML"
-                th:text="#{paginacao.proxima}">Próxima</button>
+                th:text="#{comum.paginacao.proxima}">Próxima</button>
       </div>
     </div>
 

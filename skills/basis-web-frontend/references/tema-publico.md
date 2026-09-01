@@ -160,7 +160,7 @@ dele **uma imagem de 80 px de largura** — o "b" da marca.
 <div class="basis-loader" role="status">
   <div class="basis-loader__anel"></div>
   <img th:src="@{/images/marca-b.png}" alt="" width="80" height="80">
-  <span th:text="#{espera.enviando}">Enviando sua candidatura…</span>
+  <span th:text="#{app.espera.enviando}">Enviando sua candidatura…</span>
 </div>
 ```
 
