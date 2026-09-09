@@ -215,9 +215,14 @@ nosso, em três templates de uma vez.
 </script>
 ```
 
-O literal depois do comentário é o fallback e documenta o texto esperado. Use `[( )]` no
-lugar de `[[ ]]` quando o valor cai dentro de uma string (crase inclusive): `[[ ]]` devolve o
-literal já entre aspas, e as aspas apareceriam na tela.
+O literal depois do comentário é o fallback e documenta o texto esperado.
+
+`[[ ]]` sozinho, ocupando o valor inteiro, é a forma segura — e a única que escapa de verdade.
+Dentro de uma string (crase inclusive) ele devolve o literal já entre aspas, e as aspas
+aparecem na tela; ali vale `[( )]`, **mas só para `#{chave}`**. Para `${dado}` nenhuma das duas
+protege dentro de crase, e `[[ ]]` ali é XSS: o escape do modo JavaScript não neutraliza crase.
+Interpole para uma `const` e monte a tela com `textContent` — detalhe medido em
+[`references/i18n.md`](references/i18n.md).
 
 E lembre do §3: `<script>` fora do `<section>` não renderiza. `th:inline` correto num bloco
 descartado não adianta nada.

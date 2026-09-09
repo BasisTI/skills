@@ -162,6 +162,10 @@ ver [`references/i18n.md`](i18n.md):
   escape de HTML e sem aspas: `Ação` vira `A&ccedil;&atilde;o` dentro do script.
 - **`[( )]` e não `[[ ]]` aqui**, porque o valor está dentro de uma crase. `[[ ]]` devolve o
   literal JavaScript já entre aspas, e as aspas apareceriam na tela: `"Ocorreu um erro" (500)`.
+  `[( )]` é seguro **neste caso** porque o valor é `#{chave}`, texto que nós escrevemos em
+  `messages.properties`. Com `${dado}` de banco a conta muda: dentro de crase nenhuma das duas
+  formas protege, e a saída é montar com `textContent` em vez de `innerHTML` — ver
+  [`references/i18n.md`](i18n.md).
 
 Alternativa quando o erro é de negócio e pertence a um trecho específico da tela: o Controller devolve **200 com o fragmento em estado de erro** (alerta dentro do próprio card), em vez de status 4xx/5xx. Erro esperado de negócio não é falha HTTP.
 
