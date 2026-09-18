@@ -67,10 +67,11 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
   - **Nulidade** é checada por JSpecify + IDE/Sonar (ver §6); NullAway/Error Prone é opcional e
     depende do suporte da versão ao JDK em uso.
   - **OWASP Dependency-Check** é a varredura de dependência: cruza a árvore resolvida com o NVD
-    e reporta CVE conhecida. O goal `check` liga na fase `verify`, então roda junto do resto.
-    **Exige chave da API do NVD desde o 13.0.0** — sem ela aborta o goal e derruba o build, e
-    não é aviso. A configuração, a armadilha da chave e como ler o relatório estão em **§1.1**;
-    não improvise o `<plugin>`.
+    e reporta CVE conhecida. Ao contrário dos anteriores, **não roda junto do build**: vive no
+    perfil `security-check` e é disparado por agendamento, porque CVE nova aparece sem ninguém
+    commitar e não teria MR para pegá-la. **Exige chave da API do NVD desde o 13.0.0** — sem ela
+    aborta o goal, e não é aviso. O perfil, a armadilha da chave e como ler o relatório estão em
+    **§1.1**; não improvise o `<plugin>`.
 - Cobertura do Sonar vale para **todos** os módulos do reactor — módulo fora da lista de análise é
   código sem lint nenhum, e é sempre o `-domain`/`-commons` que fica de fora por esquecimento.
 - Revisão humana/agente foca no que ferramenta não pega: design, nomes, tratamento de erro, teste.
@@ -82,27 +83,51 @@ O plugin cruza a árvore de dependências resolvida com o NVD e escreve
 também `XML`, `JSON`, `SARIF` e `GITLAB` (esse último vira artefato de *Dependency Scanning* e
 aparece na aba de segurança da MR, em vez de ficar só no log).
 
+**O plugin vai num perfil `security-check`, nunca solto no `<build>`.** O goal `check` liga na
+fase `verify`: declarado no `<build>`, ele roda em toda compilação — cada MR, cada push — e
+cada uma paga a consulta ao NVD. Pior que o custo é a pergunta estar errada: o que o scan
+procura **não está no diff**. A base de CVE muda sozinha, então o MR que não toca dependência
+nenhuma paga o scan para não revelar nada, e a dependência que apodrece sem ninguém commitar
+não é vista por MR nenhum. Contraexemplo medido no `judge-admin`: o mesmo pom passou limpo e,
+quatro dias depois **sem um único commit**, o delta do NVD trouxe CVE-2026-89044 contra o
+netty que o parent gerencia. É controle de cadência, não de commit — por isso quem ativa o
+perfil é um job agendado (`basis-ci-gitlab` §4).
+
 ```xml
-<plugin>
-    <groupId>org.owasp</groupId>
-    <artifactId>dependency-check-maven</artifactId>
-    <version>${dependency-check-maven.version}</version>
-    <configuration>
-        <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
-        <!-- O analisador .NET vê os .dll/.exe que o npm desempacota em node_modules (o oxide
-             do Tailwind e companhia), não acha `dotnet` no PATH e cospe um banner de ERROR a
-             cada build. Não há código .NET nos nossos projetos. -->
-        <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-    </configuration>
-    <executions>
-        <execution>
-            <goals>
-                <goal>check</goal>
-            </goals>
-        </execution>
-    </executions>
-</plugin>
+<profiles>
+    <profile>
+        <id>security-check</id>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>${dependency-check-maven.version}</version>
+                    <configuration>
+                        <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                        <!-- O analisador .NET vê os .dll/.exe que o npm desempacota em
+                             node_modules (o oxide do Tailwind e companhia), não acha `dotnet`
+                             no PATH e cospe um banner de ERROR a cada build. Não há código
+                             .NET nos nossos projetos. -->
+                        <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </build>
+    </profile>
+</profiles>
 ```
+
+Na mão: `mvn verify -Psecurity-check`. O id é genérico de propósito — as próximas verificações
+de segurança entram no mesmo perfil, sem outro job. Projeto sem o perfil não quebra: o Maven
+avisa que ele não existe e roda um `verify` comum.
 
 **A chave da API do NVD não é opcional a partir do 13.0.0.** O cliente recusa a requisição
 antes de sair e o goal aborta:
@@ -111,8 +136,9 @@ antes de sair e o goal aborta:
 Caused by: NvdApiException: Invalid API Key, length of 0 too short to provided a masked partial key
 ```
 
-Como `check` liga na fase `verify`, isso **derruba o build inteiro** — não é aviso, e não
-existe mais o acesso anônimo lento das versões antigas. Chave gratuita em
+Não é aviso: aborta o goal e, com ele, o `verify` que o invocou — e não existe mais o acesso
+anônimo lento das versões antigas. Com o plugin no perfil o estrago fica contido ao job de
+segurança; solto no `<build>`, derruba toda pipeline que roda `mvn verify`. Chave gratuita em
 <https://nvd.nist.gov/developers/request-an-api-key>. Sem chave, a única alternativa é
 `<nvdDatafeedUrl>` apontando para os datafeeds públicos do NIST, que baixa o feed inteiro em
 vez de paginar a API.
@@ -124,8 +150,11 @@ GHSA-qqhq-8r2c-c3f5. Para desenvolvimento local, `<nvdApiKey>` nas properties do
 formas convivem sem conflito.
 
 **No CI, a variável do GitLab não chega sozinha no build**: o container do Dagger é hermético.
-Exige `ci-templates` ≥ `v1.13.0` e a variável `NVD_API_KEY` no projeto — o mecanismo está em
-`basis-ci-gitlab`.
+Exige `ci-templates` ≥ `v1.14.0` (o job agendado `security-check` e a função de mesmo nome no
+orchestrator `3.13.0`) e a variável `NVD_API_KEY` visível ao projeto — o mecanismo está em
+`basis-ci-gitlab` §4 e §5. A `v1.13.0` também entrega a chave, mas aos quatro jobs que rodam
+`mvn verify`, que é o arranjo antigo: serve a quem ainda tem o plugin no `<build>` e deixa de
+importar assim que ele for para o perfil.
 
 **`failBuildOnCVSS` no default (11) só relata.** O `verify` passa **verde** com CVE crítica na
 tela: o plugin informa, não bloqueia. Para reprovar MR a partir de um limiar, é preciso baixar
@@ -135,8 +164,13 @@ checagem avaliou.
 **O primeiro update baixa a base inteira.** Medido no `triagem.ai`: 394.865 registros, ~23
 minutos, ~250 MB em `~/.m2/repository/org/owasp/dependency-check-data`. As execuções seguintes
 fazem só o delta (`Skipping the NVD API Update as it was completed within the last 240
-minutes`). No CI isso sobrevive porque o `/root/.m2` é cache volume do Dagger — se a duração
-não cair na segunda pipeline, o cache não está persistindo e a conta muda.
+minutes`). No CI a base fica dentro do `/root/.m2`, que é cache volume do Dagger, e
+sobrevive — **mas o volume é local a cada engine, ou seja, a cada runner.** Não conclua que o
+cache quebrou só porque a segunda pipeline demorou igual: no `triagem.ai`, a segunda pagou os
+23 minutos de novo porque caiu num runner diferente, com o cache do primeiro intacto. A conta
+certa é uma vez por runner, não uma vez por projeto — e o jeito de confirmar é comparar o
+runner dos dois jobs (`glab api projects/:id/jobs/<id>` traz `runner.description`), não a
+duração.
 
 #### Ler o relatório
 
