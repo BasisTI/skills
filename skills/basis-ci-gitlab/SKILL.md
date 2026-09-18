@@ -274,10 +274,15 @@ Variáveis que o projeto precisa ter em Settings → CI/CD: `EXTERNAL_REGISTRY_U
 `EXTERNAL_REGISTRY_USER`, `EXTERNAL_REGISTRY_PASSWORD`, `SONAR_HOST`, `SONAR_TOKEN`,
 `GITLAB_STATUS_TOKEN`. O runner precisa da tag `dagger`.
 
-Opcional, e só para projeto Java cujo build roda o OWASP Dependency-Check: `NVD_API_KEY`
-(mascarada), a partir do template `v1.13.0`. Quem não define a variável não ganha a flag e
-nada muda. O plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é
-por que criar a variável no GitLab não basta — ver §5.
+Opcional, e só para projeto Java que roda o OWASP Dependency-Check: `NVD_API_KEY` (mascarada),
+a partir do template `v1.13.0`. Opcional **para o projeto**, não para o job: nos jobs de `mvn
+verify` a flag é condicional e quem não define a variável simplesmente não a recebe, mas o
+`security-check` falha com `exit 1` e mensagem explícita quando ela falta — varredura de
+segurança que não consegue consultar a base não tem por que rodar em silêncio. Projeto sem o
+agendamento nunca chega nesse job e nunca precisa da variável.
+
+O plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é por que criar
+a variável no GitLab não basta — ver §5.
 
 Template anotado em [`references/template-gitlab-ci.md`](references/template-gitlab-ci.md).
 
