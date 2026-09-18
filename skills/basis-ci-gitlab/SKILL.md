@@ -230,8 +230,8 @@ Repare que `check-quality` só roda com destino `develop`. Uma MR de feature abe
 direto para `main` não passa por análise nenhuma.
 
 **Pin o `ref`, e confira qual está em uso.** Os projetos hoje divergem — há repositórios em
-`v1.11.0` e em `v1.11.1`. Herdar de `main` faria uma mudança no template quebrar todos os
-projetos ao mesmo tempo.
+`v1.11.0`, `v1.11.1` e `v1.13.0`. Herdar de `main` faria uma mudança no template quebrar todos
+os projetos ao mesmo tempo.
 
 **Todo mundo que abre MR precisa de leitura em `basis/iac/ci-templates`.** O GitLab resolve
 `include: project:` com a permissão do **usuário que disparou a pipeline** — não do runner,
@@ -247,6 +247,11 @@ digitação no caminho. É permissão.
 Variáveis que o projeto precisa ter em Settings → CI/CD: `EXTERNAL_REGISTRY_URL`,
 `EXTERNAL_REGISTRY_USER`, `EXTERNAL_REGISTRY_PASSWORD`, `SONAR_HOST`, `SONAR_TOKEN`,
 `GITLAB_STATUS_TOKEN`. O runner precisa da tag `dagger`.
+
+Opcional, e só para projeto Java cujo build roda o OWASP Dependency-Check: `NVD_API_KEY`
+(mascarada), a partir do template `v1.13.0`. Quem não define a variável não ganha a flag e
+nada muda. O plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é
+por que criar a variável no GitLab não basta — ver §5.
 
 Template anotado em [`references/template-gitlab-ci.md`](references/template-gitlab-ci.md).
 
@@ -277,6 +282,32 @@ Failed to query server version: ... (certificate_unknown) The certificate chain 
 e a causa é DNS. Não troque certificado nem CA — verifique para qual IP o nome resolve
 dentro do contêiner versus no host. **Consequência prática:** o que depende de serviço
 interno (a análise do Sonar) só roda no runner. `validate` e o build em si rodam local.
+
+**O segundo limite, e o que mais engana: o container do Dagger é hermético.** Variável
+definida em Settings → CI/CD existe no shell do job e **não existe dentro do build**. Não há
+passthrough de ambiente: o que chega ao container é só o que o orchestrator recebe por flag e
+repassa explicitamente. Hoje são quatro segredos — `--sonar-token`, `--gitlab-token`,
+`--registry-password` e `--nvd-api-key` —, todos na forma `env:NOME`, que faz o Dagger ler a
+variável sem o valor aparecer no log do comando.
+
+O modo de falha é cruel porque a variável **está** lá, certa, mascarada, e o erro fala de
+credencial. Assinatura real, com a `NVD_API_KEY` já criada no projeto:
+
+```
+[ERROR] Error updating the NVD Data
+Caused by: NvdApiException: Invalid API Key, length of 0 too short to provided a masked partial key
+```
+
+Zero caracteres — não é chave errada, é chave ausente. Quem lê isso vai conferir a variável no
+GitLab, achá-la correta e procurar no lugar errado por um bom tempo.
+
+**Consequência para quem for adicionar ferramenta que precisa de segredo:** não dá para
+resolver dentro do repositório do projeto. `extra-options` do `pipeline.toml` até chega ao
+Maven, mas o TOML é versionado e segredo não mora lá. O caminho é acrescentar o parâmetro
+`*dagger.Secret` no orchestrator, exportá-lo no container do módulo da tecnologia
+(`WithSecretVariable`, nunca `WithEnvVariable`), passar a flag no template e subir as duas
+tags — `daggerverse` primeiro, porque o template referencia a versão do orchestrator, e
+mergear o template antes da tag existir quebra toda pipeline que o use.
 
 Mais em [`references/dagger-local.md`](references/dagger-local.md).
 
@@ -379,6 +410,7 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 | `promote` subiu versão velha, pipeline verde | Versão resolvida só pelo caminho primário, ignorando `extra-trigger-paths` |
 | `Job failed` no promote com a imagem publicada | Timeout de shutdown do engine **depois** do trabalho pronto |
 | Erro de certificado ao chamar serviço interno do `dagger call` local | DNS: o engine não usa o resolvedor da VPN |
+| Erro de credencial num build, com a variável criada e correta no GitLab | Container hermético: o segredo só entra por flag `env:NOME` do orchestrator (§5) |
 | Target `dockerfile` não encontra o arquivo | O nome é `Dockerfile`, case-sensitive |
 
 ## O que engana
