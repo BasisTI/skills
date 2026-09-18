@@ -196,6 +196,13 @@ apareceu em dois projetos independentes: o Spring Boot 4.0.8 e o 4.1.1 gerenciam
 `<tomcat.version>11.0.25</tomcat.version>` as críticas continuam de pé **depois** de subir o
 parent, com o relatório parecendo resolvido.
 
+E não é uma idiossincrasia do Tomcat: as mesmas duas linhas do Boot entregam netty
+4.2.17.Final, que é a faixa afetada por CVE-2026-89044. Dois artefatos, dois contraexemplos —
+trate "subir o parent resolve" como hipótese a conferir artefato a artefato, não como
+conclusão. Na prática significa reler o relatório **depois** do bump, e não deduzir o resultado
+do BOM novo: foi assim que o netty passou despercebido num relatório que apontava o próprio
+bump do parent como a correção dele.
+
 **Duas lacunas de cobertura que o relatório não anuncia.** O Sonatype OSS Index fica
 desabilitado por falta de credencial (hoje exige token), então os achados vêm do NVD, da KEV da
 CISA e do RetireJS. E o `package-lock.json` só é analisado por inteiro com `node_modules`
