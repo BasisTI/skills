@@ -1,6 +1,6 @@
 ---
 name: basis-java-code-standards
-description: Use when writing, reviewing, or refactoring Java code in a Basis project — formatting and naming, modern Java (records, sealed types, pattern matching, text blocks), exception handling, nullability and immutability, collections and streams, date/time and money, logging, concurrency, resources/IO, security, API design, and tests (JUnit 5 + AssertJ + Mockito). Activate on any change to `.java` files, on code review, or when the user asks to check conformance with the code standards.
+description: Use when writing, reviewing, or refactoring Java code in a Basis project — formatting and naming, modern Java (records, sealed types, pattern matching, text blocks), exception handling, nullability and immutability, collections and streams, date/time and money, logging, concurrency, resources/IO, security, dependency scanning (OWASP Dependency-Check), API design, and tests (JUnit 5 + AssertJ + Mockito). Activate on any change to `.java` files, on code review, when the build fails on a CVE in a dependency, or when the user asks to check conformance with the code standards.
 ---
 
 # Padrões de Código Java
@@ -66,9 +66,108 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     (deprecation, unchecked, this-escape) e que não é papel do Sonar.
   - **Nulidade** é checada por JSpecify + IDE/Sonar (ver §6); NullAway/Error Prone é opcional e
     depende do suporte da versão ao JDK em uso.
+  - **OWASP Dependency-Check** é a varredura de dependência: cruza a árvore resolvida com o NVD
+    e reporta CVE conhecida. O goal `check` liga na fase `verify`, então roda junto do resto.
+    **Exige chave da API do NVD desde o 13.0.0** — sem ela aborta o goal e derruba o build, e
+    não é aviso. A configuração, a armadilha da chave e como ler o relatório estão em **§1.1**;
+    não improvise o `<plugin>`.
 - Cobertura do Sonar vale para **todos** os módulos do reactor — módulo fora da lista de análise é
   código sem lint nenhum, e é sempre o `-domain`/`-commons` que fica de fora por esquecimento.
 - Revisão humana/agente foca no que ferramenta não pega: design, nomes, tratamento de erro, teste.
+
+### 1.1 OWASP Dependency-Check: a chave e a leitura do relatório
+
+O plugin cruza a árvore de dependências resolvida com o NVD e escreve
+`target/dependency-check-report.html` — HTML é o formato padrão do goal, e `<formats>` aceita
+também `XML`, `JSON`, `SARIF` e `GITLAB` (esse último vira artefato de *Dependency Scanning* e
+aparece na aba de segurança da MR, em vez de ficar só no log).
+
+```xml
+<plugin>
+    <groupId>org.owasp</groupId>
+    <artifactId>dependency-check-maven</artifactId>
+    <version>${dependency-check-maven.version}</version>
+    <configuration>
+        <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+        <!-- O analisador .NET vê os .dll/.exe que o npm desempacota em node_modules (o oxide
+             do Tailwind e companhia), não acha `dotnet` no PATH e cospe um banner de ERROR a
+             cada build. Não há código .NET nos nossos projetos. -->
+        <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+    </configuration>
+    <executions>
+        <execution>
+            <goals>
+                <goal>check</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+**A chave da API do NVD não é opcional a partir do 13.0.0.** O cliente recusa a requisição
+antes de sair e o goal aborta:
+
+```
+Caused by: NvdApiException: Invalid API Key, length of 0 too short to provided a masked partial key
+```
+
+Como `check` liga na fase `verify`, isso **derruba o build inteiro** — não é aviso, e não
+existe mais o acesso anônimo lento das versões antigas. Chave gratuita em
+<https://nvd.nist.gov/developers/request-an-api-key>. Sem chave, a única alternativa é
+`<nvdDatafeedUrl>` apontando para os datafeeds públicos do NIST, que baixa o feed inteiro em
+vez de paginar a API.
+
+**A chave entra por variável de ambiente, nunca pela property.** `<nvdApiKey>` com o valor
+direto é ecoado pelo debug logging do Maven — é exatamente o vazamento de
+GHSA-qqhq-8r2c-c3f5. Para desenvolvimento local, `<nvdApiKey>` nas properties do
+`settings.xml` funciona e **tem precedência** sobre a variável de ambiente, então as duas
+formas convivem sem conflito.
+
+**No CI, a variável do GitLab não chega sozinha no build**: o container do Dagger é hermético.
+Exige `ci-templates` ≥ `v1.13.0` e a variável `NVD_API_KEY` no projeto — o mecanismo está em
+`basis-ci-gitlab`.
+
+**`failBuildOnCVSS` no default (11) só relata.** O `verify` passa **verde** com CVE crítica na
+tela: o plugin informa, não bloqueia. Para reprovar MR a partir de um limiar, é preciso baixar
+esse valor de propósito. Vale o hábito de sempre — verde não é prova; pergunte o que a
+checagem avaliou.
+
+**O primeiro update baixa a base inteira.** Medido no `triagem.ai`: 394.865 registros, ~23
+minutos, ~250 MB em `~/.m2/repository/org/owasp/dependency-check-data`. As execuções seguintes
+fazem só o delta (`Skipping the NVD API Update as it was completed within the last 240
+minutes`). No CI isso sobrevive porque o `/root/.m2` é cache volume do Dagger — se a duração
+não cair na segunda pipeline, o cache não está persistindo e a conta muda.
+
+#### Ler o relatório
+
+**O casamento é por CPE, e CPE erra.** Antes de agir num achado, confira a faixa de versão que
+o NVD publica para ele. Dois falsos positivos reais:
+
+- `kotlin-stdlib` / `kotlin-stdlib-common`: CVE-2026-53914 (9.8) é desserialização insegura no
+  metadado do **build cache** do Kotlin — atinge quem compila Kotlin, não quem tem a stdlib no
+  classpath por causa do okhttp.
+- `jbig2-imageio` 3.0.4: casou com o CPE `apache:pdfbox` e o NVD situa a correção em 3.0.8,
+  versão que nunca existiu para esse artefato — o último release é 3.0.5.
+
+**Agrupe os achados pela alavanca que os corrige, não por artefato.** Quase tudo é transitivo,
+e um bump de BOM limpa dezenas de CVEs de uma vez. No `triagem.ai`, 111 CVEs em 27 artefatos
+saíam com quatro bumps de BOM — e o Tika arrastava junto pdfbox, junrar e jackson-databind,
+que não precisavam de bump próprio. Relatório organizado por artefato produz 27 tarefas onde
+havia quatro.
+
+**Bump do parent não garante que a dependência gerenciada esteja corrigida.** Confira a versão
+efetiva contra a faixa do CVE e sobrescreva a property quando ela ficar aquém. O contraexemplo
+apareceu em dois projetos independentes: o Spring Boot 4.0.8 e o 4.1.1 gerenciam Tomcat
+11.0.24, e CVE-2026-65637 e CVE-2026-65905 (ambas 9.8) só terminam em 11.0.25 — sem
+`<tomcat.version>11.0.25</tomcat.version>` as críticas continuam de pé **depois** de subir o
+parent, com o relatório parecendo resolvido.
+
+**Duas lacunas de cobertura que o relatório não anuncia.** O Sonatype OSS Index fica
+desabilitado por falta de credencial (hoje exige token), então os achados vêm do NVD, da KEV da
+CISA e do RetireJS. E o `package-lock.json` só é analisado por inteiro com `node_modules`
+presente — no CI existe, porque o `frontend-maven-plugin` roda `npm install` durante o build;
+numa execução local sem `npm ci` a árvore JS é avaliada só pelo lockfile.
+
 
 ## 2. Formatação
 
