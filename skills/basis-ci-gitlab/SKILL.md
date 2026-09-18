@@ -209,7 +209,7 @@ Schema completo — cada chave, default, e as validações cruzadas — em
 ```yaml
 include:
   - project: 'basis/iac/ci-templates'
-    ref: v1.11.1
+    ref: v1.14.0
     file: 'templates/dagger-orchestrator.gitlab-ci.yml'
 ```
 
@@ -223,15 +223,41 @@ include:
 | `validate-pipeline-config` | check | MR que toca `ci/pipeline.toml` |
 | `check-quality` | check | MR com destino `develop` |
 | `publish-develop` | build | push em `develop` |
+| `sonar-branch-develop` | pre-prod | push em `develop`, depois do publish |
+| `sonar-branch-full` | check | agendamento com `SONAR_FULL_SCAN=true` |
+| `security-check` | check | agendamento com `SECURITY_SCAN=true` |
 | `check-images-ready` | pre-prod | MR develop→main **e** push em `main` |
 | `promote-production` | promote | push em `main` |
 
 Repare que `check-quality` só roda com destino `develop`. Uma MR de feature aberta
 direto para `main` não passa por análise nenhuma.
 
+**Os três últimos a entrar são os dois de branch do Sonar e o de segurança**, e os três só
+existem a partir da `v1.12.1`/`v1.14.0`. Projeto pinado abaixo disso não os tem — e a pergunta
+"por que esse job não rodou" tem, nesses casos, a resposta mais boba de todas: o `ref`.
+
+**`security-check` é a varredura de dependências, e só roda por agendamento.** O que ela
+procura não está no diff — a base de CVE do NVD muda sozinha, então prendê-la a merge request
+faz todo MR pagar um scan que quase sempre não revela nada, enquanto a dependência que apodrece
+sem ninguém commitar não é vista por MR nenhum. Ela não tem `allow_failure`, ao contrário do
+`sonar-branch-full`: lá o vermelho chega depois do deploy e não bloqueia nada; aqui o job **é**
+o controle, e a notificação ao dono do agendamento é o que faz a varredura existir.
+
+Sem agendamento o job nunca dispara. Criar com o script do próprio ci-templates:
+
+```bash
+scripts/create-security-schedules.sh ~/Projetos/Basis/meu_projeto
+```
+
+Semanal na `develop`, com `SECURITY_SCAN=true` — a guarda que impede um agendamento criado
+com outra finalidade de disparar a varredura sem querer. O lado Maven é o perfil
+`security-check` do pom, em `basis-java-code-standards` §1.1; sem ele o job roda um `verify`
+comum e passa sem varrer nada.
+
 **Pin o `ref`, e confira qual está em uso.** Os projetos hoje divergem — há repositórios em
-`v1.11.0`, `v1.11.1` e `v1.13.0`. Herdar de `main` faria uma mudança no template quebrar todos
-os projetos ao mesmo tempo.
+`v1.11.0`, `v1.11.1`, `v1.13.0` e `v1.14.0`. Herdar de `main` faria uma mudança no template
+quebrar todos os projetos ao mesmo tempo. Como cada `ref` traz um conjunto diferente de jobs,
+confira o do projeto antes de concluir que um job sumiu.
 
 **Todo mundo que abre MR precisa de leitura em `basis/iac/ci-templates`.** O GitLab resolve
 `include: project:` com a permissão do **usuário que disparou a pipeline** — não do runner,
@@ -248,16 +274,21 @@ Variáveis que o projeto precisa ter em Settings → CI/CD: `EXTERNAL_REGISTRY_U
 `EXTERNAL_REGISTRY_USER`, `EXTERNAL_REGISTRY_PASSWORD`, `SONAR_HOST`, `SONAR_TOKEN`,
 `GITLAB_STATUS_TOKEN`. O runner precisa da tag `dagger`.
 
-Opcional, e só para projeto Java cujo build roda o OWASP Dependency-Check: `NVD_API_KEY`
-(mascarada), a partir do template `v1.13.0`. Quem não define a variável não ganha a flag e
-nada muda. O plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é
-por que criar a variável no GitLab não basta — ver §5.
+Opcional, e só para projeto Java que roda o OWASP Dependency-Check: `NVD_API_KEY` (mascarada),
+a partir do template `v1.13.0`. Opcional **para o projeto**, não para o job: nos jobs de `mvn
+verify` a flag é condicional e quem não define a variável simplesmente não a recebe, mas o
+`security-check` falha com `exit 1` e mensagem explícita quando ela falta — varredura de
+segurança que não consegue consultar a base não tem por que rodar em silêncio. Projeto sem o
+agendamento nunca chega nesse job e nunca precisa da variável.
+
+O plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é por que criar
+a variável no GitLab não basta — ver §5.
 
 Template anotado em [`references/template-gitlab-ci.md`](references/template-gitlab-ci.md).
 
 ## 5. Rodar a pipeline na sua máquina
 
-A pipeline é um programa, e é por isso que se escolheu Dagger. As seis funções do
+A pipeline é um programa, e é por isso que se escolheu Dagger. As sete funções do
 orchestrator:
 
 ```bash
@@ -265,8 +296,12 @@ dagger call -m github.com/BasisTI/daggerverse/orchestrator@<versão> \
   --source . --config-path ci/pipeline.toml <função>
 ```
 
-`validate` · `sonar-project-keys` · `check-quality` · `publish-all` · `check-images` ·
-`promote`
+`validate` · `sonar-project-keys` · `check-quality` · `security-check` · `publish-all` ·
+`check-images` · `promote`
+
+`security-check` entrou no `3.13.0` e é irmã de `check-quality`, sem Sonar e sem detecção de
+mudanças: varre **todos** os targets Maven, porque o target parado há meses é o mais provável
+de ter apodrecido e o diff o deixaria de fora. A chave do NVD nela é obrigatória, não opcional.
 
 Na prática, `validate` é a que se usa toda hora e a que mais economiza ciclo.
 
@@ -400,7 +435,7 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 |---|---|
 | `Project ... not found or access denied` no include | Quem abriu a MR não tem leitura em `basis/iac/ci-templates` |
 | Erro de parse citando uma chave do TOML | Parse estrito — chave desconhecida, provavelmente nome errado |
-| Job esperado não aparece na pipeline | `rules` do job — quase sempre destino da MR ou branch errada |
+| Job esperado não aparece na pipeline | `rules` do job — destino da MR, branch errada, ou `ref` do template antigo demais para ter o job |
 | Pipeline da MR develop→main `skipped`, merge liberado | `git push -o ci.skip` do bump de versão suprimiu |
 | Quality gate `PASSED` num projeto recém-integrado | Sem análise anterior não há new code — nada foi avaliado |
 | Análise roda e o Sonar não comenta na MR | Faltam os três parâmetros de PR — virou análise de branch |
