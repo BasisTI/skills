@@ -41,6 +41,24 @@ npx skills add https://github.com/BasisTI/skills/tree/v2026.04.26/skills/basis-s
 
 Em projetos que usam Claude Code também é possível clonar o repo e referenciar via plugin/skills locais.
 
+## Atualização
+
+Instalar não assina atualização: a cópia instalada fica onde está até alguém atualizá-la.
+
+```bash
+npx skills update --global --yes     # as skills globais
+npx skills update --project --yes    # as do projeto atual
+```
+
+O `update` acompanha o `main` — mudança que está só em PR aberto não chega por ele. Skill
+instalada por URL com tag continua pinada naquela tag.
+
+**Vale checar de vez em quando, porque a deriva é silenciosa.** Nada avisa que a cópia local
+está atrás: a skill carregada na sessão simplesmente afirma o que o `main` já corrigiu, com
+a mesma confiança. Em 2026-09-20 encontramos uma instalação 47 linhas atrás do `main`, e o
+sintoma foi um agente seguindo instrução obsoleta. Ao suspeitar, compare com o `main` deste
+repositório antes de tratar o conteúdo instalado como atual.
+
 ## Versionamento
 
 CalVer (`vYYYY.MM.DD`), alinhado com o resto dos releases da Basis:
