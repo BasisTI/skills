@@ -142,7 +142,7 @@ está com o card aberto.
 | Ler a story que vai virar branch | `taiga_stories_get` |
 | Listar o que está em aberto | `taiga_stories_list`, `taiga_tasks_list` |
 | Criar ou atualizar | `taiga_stories_create`, `taiga_stories_update` |
-| Fechar | `taiga_stories_archive_or_close` |
+| Arquivar/fechar, quando solicitado | `taiga_stories_archive_or_close` |
 | Conferir a conexão | `taiga_diagnostics` |
 
 **As três ferramentas de `delete` estão em `permissions.deny`.** Os boards são compartilhados
@@ -156,7 +156,11 @@ skill não estiver configurada com o servidor, pergunte — não tente adivinhar
 do nome do repositório, porque eles divergem (`triagem.ai` no GitLab é `triagemai` no
 Taiga; `contavinculada` é `conta-vinculada`).
 
-Detalhes de cada ferramenta em [`references/taiga-mcp.md`](references/taiga-mcp.md).
+Os critérios para mover a story entre `New`, `Ready`, `In Progress`, `Ready For Test` e
+`Done`, e o uso de `taiga_stories_update`, estão em
+[`references/taiga-mcp.md`](references/taiga-mcp.md). `Done` é status de conclusão da
+story; não arquive nem remova a story do board automaticamente. Confirme mudanças visíveis
+no board antes de executá-las.
 
 ## 3. `ci/pipeline.toml` é a fonte de verdade
 
