@@ -8,7 +8,7 @@ Um template único, em `basis/iac/ci-templates`, arquivo
 ```yaml
 include:
   - project: 'basis/iac/ci-templates'
-    ref: v1.11.1
+    ref: <versão>
     file: 'templates/dagger-orchestrator.gitlab-ci.yml'
 ```
 
@@ -21,8 +21,8 @@ variables:
 ```
 
 **Pin o `ref`.** Herdar de `main` faz uma mudança no template atingir todos os projetos ao
-mesmo tempo, sem janela. Os projetos hoje divergem entre `v1.11.0` e `v1.11.1` — a deriva é
-esperada e gerenciável; o que não é gerenciável é não ter versão.
+mesmo tempo, sem janela. Os projetos divergem entre si — a deriva é esperada e gerenciável;
+o que não é gerenciável é não ter versão.
 
 ## Variáveis do template
 

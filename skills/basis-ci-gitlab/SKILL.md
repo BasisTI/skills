@@ -209,7 +209,7 @@ Schema completo — cada chave, default, e as validações cruzadas — em
 ```yaml
 include:
   - project: 'basis/iac/ci-templates'
-    ref: v1.11.1
+    ref: <versão>
     file: 'templates/dagger-orchestrator.gitlab-ci.yml'
 ```
 
@@ -229,9 +229,10 @@ include:
 Repare que `check-quality` só roda com destino `develop`. Uma MR de feature aberta
 direto para `main` não passa por análise nenhuma.
 
-**Pin o `ref`, e confira qual está em uso.** Os projetos hoje divergem — há repositórios em
-`v1.11.0`, `v1.11.1` e `v1.13.0`. Herdar de `main` faria uma mudança no template quebrar todos
-os projetos ao mesmo tempo.
+**Pin o `ref`, e confira qual está em uso.** Os projetos divergem entre si, e a versão de
+cada um só se sabe lendo o `.gitlab-ci.yml` dele; as tags disponíveis saem de
+`git tag` no `ci-templates`. Herdar de `main` faria uma mudança no template quebrar todos os
+projetos ao mesmo tempo.
 
 **Todo mundo que abre MR precisa de leitura em `basis/iac/ci-templates`.** O GitLab resolve
 `include: project:` com a permissão do **usuário que disparou a pipeline** — não do runner,
@@ -249,9 +250,9 @@ Variáveis que o projeto precisa ter em Settings → CI/CD: `EXTERNAL_REGISTRY_U
 `GITLAB_STATUS_TOKEN`. O runner precisa da tag `dagger`.
 
 Opcional, e só para projeto Java cujo build roda o OWASP Dependency-Check: `NVD_API_KEY`
-(mascarada), a partir do template `v1.13.0`. Quem não define a variável não ganha a flag e
-nada muda. O plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é
-por que criar a variável no GitLab não basta — ver §5.
+(mascarada), nas versões do template que passam a flag ao orchestrator. Quem não define a
+variável não ganha a flag e nada muda. O plugin em si está em `basis-java-code-standards`
+§1.1; o que importa **aqui** é por que criar a variável no GitLab não basta — ver §5.
 
 Template anotado em [`references/template-gitlab-ci.md`](references/template-gitlab-ci.md).
 
