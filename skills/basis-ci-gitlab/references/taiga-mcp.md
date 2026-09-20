@@ -8,6 +8,42 @@ As ferramentas aparecem como `mcp__taiga__*`. Se não estiverem disponíveis, o 
 está configurado nesta máquina: **pergunte, não contorne**. Não invente id de story nem de
 projeto.
 
+## Estados da User Story
+
+Use estes estados como critérios operacionais do fluxo da story:
+
+| Estado | Quando usar |
+|---|---|
+| `New` | A ideia existe, mas a especificação ainda precisa ser fechada. |
+| `Ready` | A especificação está pronta e a story pode ser implementada. |
+| `In Progress` | A implementação está em andamento. |
+| `Ready For Test` | O deploy da implementação foi confirmado em staging. |
+| `Done` | A User Story foi testada e concluída. |
+
+O fluxo de trabalho esperado é `New` → `Ready` → `In Progress` → `Ready For Test` →
+`Done`. A tabela define o critério de uso de cada estado; não presume que a API imponha
+somente a transição imediatamente seguinte.
+
+### Atualizar o status
+
+Para mudar o estado de uma story, use `taiga_stories_update` e selecione o estado que
+corresponde ao critério acima. Consulte o schema que o servidor MCP expõe no momento da
+chamada para saber como informar a story e o status. Esta referência não fixa nome de
+parâmetro, ID numérico, payload ou capacidade que não estejam comprovados pelo servidor —
+**não adivinhe esses valores**.
+
+Antes de atualizar, confirme o projeto e a story corretos. A mudança é visível no board
+compartilhado; confirme a ação com quem pediu e, depois, confira o resultado no board ou
+na leitura da story. Em particular:
+
+- só mova para `Ready` quando a especificação estiver fechada;
+- só mova para `In Progress` quando a implementação começar;
+- só mova para `Ready For Test` depois de confirmar o deploy em staging;
+- só mova para `Done` depois de testar e concluir a story.
+
+`Done` é uma mudança de status. Não significa, por si só, arquivar, fechar ou remover a
+story do board.
+
 ## O que existe
 
 ### Projetos
@@ -87,14 +123,15 @@ identidade do projeto — assim a próxima sessão não precisa consultar de nov
 2. branch TG-<id>              → criada a partir de develop
 3. commit "<Verbo> ... - TG-<id>"
 4. MR com Delete Branch + Squash
-5. taiga_stories_archive_or_close(<id>)   ← depois do merge, se for o fim da story
+5. taiga_stories_archive_or_close(<id>)   ← somente se arquivamento/fechamento for pedido
 ```
 
 O passo 1 é o que muda a qualidade do resto: com o título da story em mãos, a mensagem de
 commit sai no verbo certo e descreve o efeito, não o esforço.
 
-**Cuidado com o passo 5.** Fechar a story é uma ação visível para o time. Confirme antes —
-merge em `develop` significa que chegou a staging, não que a entrega foi aceita.
+**Cuidado com o passo 5.** Fechar a story é uma ação visível para o time e é diferente de
+marcá-la como `Done`. Confirme antes — merge em `develop` significa que chegou a staging,
+não que a entrega foi aceita nem que a story deve sair do board.
 
 ## Escrita em board compartilhado
 
