@@ -249,14 +249,31 @@ Project `basis/iac/ci-templates` not found or access denied!
 A mensagem é deliberadamente ambígua (não revela se o projeto existe), então parece erro de
 digitação no caminho. É permissão.
 
-Variáveis que o projeto precisa ter em Settings → CI/CD: `EXTERNAL_REGISTRY_URL`,
-`EXTERNAL_REGISTRY_USER`, `EXTERNAL_REGISTRY_PASSWORD`, `SONAR_HOST`, `SONAR_TOKEN`,
-`GITLAB_STATUS_TOKEN`. O runner precisa da tag `dagger`.
+**As credenciais compartilhadas não são do projeto: são de escopo global.** No GitLab da
+Basis estas variáveis estão declaradas globalmente, e um projeto novo as herda sem
+redeclarar nada em Settings → CI/CD: `EXTERNAL_REGISTRY_URL`, `EXTERNAL_REGISTRY_USER`,
+`EXTERNAL_REGISTRY_PASSWORD`, `SONAR_HOST`, `SONAR_TOKEN`, `SONAR_STG_HOST`,
+`SONAR_STG_TOKEN`, `GITLAB_STATUS_TOKEN`, `NEXUS_USER`, `NEXUS_PASSWORD` e `NVD_API_KEY`. O
+runner precisa da tag `dagger`.
 
-Opcional, e só para projeto Java cujo build roda o OWASP Dependency-Check: `NVD_API_KEY`
-(mascarada), nas versões do template que passam a flag ao orchestrator. Quem não define a
-variável não ganha a flag e nada muda. O plugin em si está em `basis-java-code-standards`
-§1.1; o que importa **aqui** é por que criar a variável no GitLab não basta — ver §5.
+**Listagem vazia não prova ausência.** `glab api "projects/:id/variables"` devolve **apenas**
+as variáveis do próprio projeto: uma variável herdada do escopo global não aparece ali, e a
+resposta vem `[]` com tudo funcionando. Concluir "a variável está ausente" a partir dessa
+listagem é erro de leitura — já aconteceu ao conferir a `NVD_API_KEY` de projetos Java que
+rodavam a varredura de dependências normalmente. Para confirmar de fato, liste no escopo em
+que a variável vive (o que exige permissão lá) ou observe o comportamento do job. Registre
+só o nome e onde está declarada; nunca copie o valor para nota, documentação ou repositório.
+
+**Consequência de a `NVD_API_KEY` ser global.** A partir da v1.13.0 o template monta a flag
+condicionalmente (`if [ -n "$NVD_API_KEY" ]; then export NVD_KEY_ARG="--nvd-api-key
+env:NVD_API_KEY"; fi`). Como a variável está sempre preenchida, a condição é sempre
+verdadeira e `--nvd-api-key` é **sempre** passada — não existe o caso "quem não define não
+ganha a flag". O orchestrator genérico conhece o parâmetro; um projeto com módulo Dagger
+próprio (`DAGGER_MODULE: "."`) só o conhece se a sua função `CheckQuality` declarar
+`nvdApiKey *dagger.Secret`, e sem isso o `check-quality` morre com `unknown flag:
+--nvd-api-key` assim que o `ref` sobe para v1.13.0 ou mais. A v1.12.1 não passa a flag. O
+plugin em si está em `basis-java-code-standards` §1.1; o que importa **aqui** é por que
+criar a variável no GitLab não basta — ver §5.
 
 Template anotado em [`references/template-gitlab-ci.md`](references/template-gitlab-ci.md).
 

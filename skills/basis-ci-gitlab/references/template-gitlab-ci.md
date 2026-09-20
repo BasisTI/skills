@@ -88,9 +88,10 @@ O ciclo completo de tags:
 | `<calver>` | na publicação em `develop` |
 | `production-<calver>` | na promoção para `main` |
 
-## Variáveis que o projeto precisa ter
+## Variáveis que a pipeline consome
 
-Em Settings → CI/CD → Variables do repositório:
+**Não declare estas no projeto.** No GitLab da Basis elas vivem em escopo global, e todo
+projeto as herda:
 
 | Variável | Para |
 |---|---|
@@ -99,16 +100,27 @@ Em Settings → CI/CD → Variables do repositório:
 | `EXTERNAL_REGISTRY_PASSWORD` | " (mascarada) |
 | `SONAR_HOST` | servidor do SonarQube |
 | `SONAR_TOKEN` | token de **análise** (`sqa_`) |
+| `SONAR_STG_HOST` | servidor do SonarQube de staging |
+| `SONAR_STG_TOKEN` | token de análise de staging |
 | `GITLAB_STATUS_TOKEN` | commit status e push do bump de versão |
+| `NEXUS_USER` | dependências |
+| `NEXUS_PASSWORD` | " |
+| `NVD_API_KEY` | chave da API do NVD, usada pelo Dependency-Check (mascarada) |
 
 O runner precisa da tag `dagger` — é onde o binário está pré-instalado.
 
 Conferir presença sem revelar valor:
 
 ```bash
-glab variable list        # do projeto
-glab variable list -g     # do grupo
+glab variable list        # SÓ as do projeto
+glab variable list -g     # SÓ as do grupo
 ```
+
+**Nenhum dos dois enxerga variável de escopo global**, então uma saída vazia não significa
+que a variável falta. Se a pipeline autentica no registry e fala com o Sonar, elas existem.
+Para confirmar de verdade é preciso permissão no escopo onde estão declaradas, ou observar o
+comportamento do job. O `scripts/estado-pipeline.sh` já trata a listagem vazia dessa forma e
+não a reporta como ausência.
 
 ## A permissão do `include: project:`
 
