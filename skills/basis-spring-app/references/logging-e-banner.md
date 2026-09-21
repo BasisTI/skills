@@ -23,7 +23,6 @@ import org.springframework.modulith.Modulithic;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Optional;
 
 @SpringBootApplication
 @EnableConfigurationProperties(ApplicationProperties.class)
@@ -33,6 +32,8 @@ public class <App>Application {
     public static final Marker CRLF_SAFE_MARKER = MarkerFactory.getMarker("CRLF_SAFE");
     private static final Logger LOG = LoggerFactory.getLogger(<App>Application.class);
 
+    <App>Application() {}
+
     static void main(String[] args) {
         SpringApplication app = new SpringApplication(<App>Application.class);
         Environment env = app.run(args).getEnvironment();
@@ -40,19 +41,16 @@ public class <App>Application {
     }
 
     private static void logApplicationStartup(Environment env) {
-        String protocol = Optional.ofNullable(env.getProperty("server.ssl.key-store"))
-                .map(_ -> "https")
-                .orElse("http");
+        String protocol = env.containsProperty("server.ssl.key-store") ? "https" : "http";
         String applicationName = env.getProperty("spring.application.name");
-        String serverPort = env.getProperty("server.port");
-        String contextPath = Optional.ofNullable(env.getProperty("server.servlet.context-path"))
-                .filter(path -> !path.isBlank())
-                .orElse("/");
+        String serverPort = env.getProperty("local.server.port");
+        String configuredContextPath = env.getProperty("server.servlet.context-path", "");
+        String contextPath = configuredContextPath.isBlank() ? "/" : configuredContextPath;
         String hostAddress = "localhost";
         try {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         } catch (UnknownHostException _) {
-            LOG.warn("Nao foi possivel determinar o host, usando `localhost` como fallback");
+            LOG.warn("Não foi possível determinar o host, usando `localhost` como fallback");
         }
         LOG.info(
                 CRLF_SAFE_MARKER,
@@ -81,10 +79,12 @@ public class <App>Application {
 Detalhes que importam:
 
 - **Loga depois de `app.run(...)`**, com o `Environment` do contexto pronto — antes disso os profiles e a porta efetiva ainda não estão resolvidos.
-- **`server.port` resolvido pelo `Environment`**, não a constante do yml — com `server.port: 0` (porta aleatória em teste) o valor real aparece.
+- **`local.server.port`, e não `server.port`.** O Boot publica `local.server.port` no `Environment` quando o servidor web sobe, com a porta efetiva — o default 8080, a porta aleatória de teste, a que vier por env var. `server.port` é só o configurado: sai `0` com porta aleatória e `null` quando o yml não o declara, e aí o banner imprime `localhost:null`.
+- **Construtor de pacote** (`<App>Application() {}`). Com só membros estáticos, o Sonar trata a classe como utilitária e cobra construtor escondido (`java:S1118`). Privado derruba o boot: `@SpringBootApplication` é `@Configuration`, que o Spring subclassa por CGLIB, e a subclasse precisa chamar `super()`. Sem modificador satisfaz a regra e o Spring, porque a subclasse nasce no mesmo pacote.
+- **Checagem direta do `Environment`** — `containsProperty` e `getProperty(chave, default)` — em vez de `Optional.ofNullable(...)` para desviar de null. Sob `@NullMarked`, o Sonar acusa `java:S2259` no padrão com `Optional`, e o gate de violações novas é zero.
 - **Marker `CRLF_SAFE`**: analisadores estáticos (Sonar, Fortify) marcam log com dado dinâmico como possível log injection/CRLF. O marker documenta que o conteúdo vem do `Environment`, não de entrada de usuário, e permite excluir a ocorrência pela regra em vez de por `//NOSONAR` espalhado.
 - **Text block com `\t`** em vez de concatenação — o bloco sai formatado no console e num agregador de log continua sendo um evento só.
-- **`_` como parâmetro não usado** (unnamed variable, Java 21+) no lambda e no `catch`.
+- **`_` como parâmetro não usado** (unnamed variable, Java 21+) no `catch`.
 - Nada de segredo no banner. Se for útil listar dependências (URL do banco, issuer do Keycloak), só host/porta — nunca usuário e senha.
 
 Amplia bem quando a app tem mais contexto relevante: adicionar linha com versão da aplicação (`build.version` via `build-info` do `spring-boot-maven-plugin`) e com o issuer OIDC ativo.
