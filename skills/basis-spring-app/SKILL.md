@@ -172,7 +172,7 @@ Convenções gerais de log (SLF4J, `{}`, níveis, nada sensível) estão em `bas
 ### Banner de startup — obrigatório
 - Após `app.run(...)`, logar bloco com nome da aplicação, URL local, URL externa, context path e **profiles ativos**
 - Responde na hora "qual app, em que porta, com que profile" sem acesso ao pod
-- Ler `server.port` e profiles do `Environment` (não do yml) — reflete a porta efetiva e o profile realmente ativo
+- Ler a porta de `local.server.port` e os profiles do `Environment` — é a porta efetiva e o profile realmente ativo; `server.port` é só o configurado, e sai `null` quando o yml não o declara
 - Nada de segredo no banner
 
 ### DEBUG nos pontos de entrada — obrigatório
