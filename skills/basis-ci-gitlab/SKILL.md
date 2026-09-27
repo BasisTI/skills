@@ -105,14 +105,21 @@ momento de precisar dele já é o handoff para `basis-k8s-deploy`.
 ## 1. O caminho de uma mudança
 
 ```
-card no Taiga  →  branch TG-xxx (de develop)  →  commits  →  MR para develop
-    →  check-quality  →  merge (squash)  →  publish-develop  →  staging
+card no Taiga  →  worktree + branch TG-xxx (de origin/develop)  →  commits  →  MR para develop
+    →  check-quality (ciclo até devolver)  →  merge (squash)  →  publish-develop  →  staging
         →  MR develop→main (sem squash)  →  promote  →  produção
 ```
 
 **Branch:** criada a partir de `develop`, nomeada `TG-xxx` onde `xxx` é o número da user
 story no Taiga. Não é estética: existe integração GitLab↔Taiga, e é o nome que costura o
 código ao card.
+
+**Worktree:** um por story, irmão do repositório principal, em `../<repo>.TG-xxx`. É o que
+deixa vários agentes trabalharem no mesmo repositório sem um trocar a branch do outro.
+Começar é `git fetch origin` e `wt switch --create TG-xxx --base origin/develop`; retomar
+uma story que já tem branch, worktree ou MR é `wt switch TG-xxx`, sem `--create`, e continuar
+na MR existente. Por que irmão, o que copiar, upstream e remoção em
+[`references/worktree.md`](references/worktree.md).
 
 **Commit:** verbo no infinitivo, e ` - TG-xxx` no fim.
 
