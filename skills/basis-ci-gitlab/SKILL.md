@@ -40,7 +40,9 @@ produção"*. Ou vai integrar um projeto novo na CI e pergunta o que precisa exi
 
 **Esta skill não cobre** manifesto, kustomize, ArgoCD, Image Updater ou operadores — isso é
 `basis-k8s-deploy`. A fronteira é a imagem no registry com a tag de produção: até lá, aqui;
-dali em diante, lá.
+dali em diante, lá. A exceção é **ler**: para dizer se uma story está em `Ready for test` ou
+`Done`, a auditoria atravessa a fronteira e confere overlay, ArgoCD e digest dos pods, sem
+mudar nada ([`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md)).
 
 ## Os três hábitos que resolvem
 
@@ -171,12 +173,12 @@ Taiga; `contavinculada` é `conta-vinculada`).
 **Status: critério para mover e regra para auditar.** Os nomes vêm do board
 (`taiga_projects_get` → `us_statuses`), não da memória: o Ponto grafa `In progress` e
 `Ready for test`. Cada status tem um critério verificável: `In progress` exige o **registro
-de início** (campos customizados ou, enquanto o MCP não os grava, tags), não commits;
-`Ready for test` exige staging rodando a versão; `Done` exige o **registro de teste** e
-produção rodando a versão — a cadeia completa até os pods, não a tag no registry.
+de início** (campos customizados, gravados pela API do Taiga enquanto o MCP não os cobre),
+não commits; `Ready for test` exige staging rodando a versão; `Done` exige o **registro de
+teste** e produção rodando a versão — a cadeia completa até os pods, não a tag no registry.
 `In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
-status existentes. `Done` não é arquivar nem fechar. A auditoria compara o status com as
-evidências e reporta; transição se confirma com quem pediu antes de executar.
+status existentes. Arquivar é só a pedido. A auditoria compara o status com as evidências e
+reporta; transição se confirma com quem pediu antes de executar.
 Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
 cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
 
@@ -499,7 +501,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 
 - [ ] Worktree próprio da story, criado a partir de `origin/develop` (ou retomado sem `--create`)
 - [ ] Branch nomeada `TG-xxx` com o número da story
-- [ ] Registro de início feito na story (campos ou tags)
+- [ ] Registro de início feito na story (campos customizados + `assigned_to`)
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
 - [ ] `validate` do orchestrator rodou local e passou
 - [ ] Se o projeto é novo no Sonar, foi semeado antes

@@ -45,9 +45,10 @@ imagens, e cada uma tem a sua cadeia:
    da imagem dos pods é o digest da tag no registry. `Synced` sozinho diz que o cluster bate
    com o Git, não que o pod novo subiu.
 
-Os elos 4 e 5 são território da `basis-k8s-deploy`
-(`references/argocd-image-updater.md` daquela skill): onde fica o overlay, como o Image
-Updater escreve, como ler o digest dos pods.
+Os elos 4 e 5 ficam do outro lado da fronteira desta skill, e a auditoria de status os
+**lê** — só leitura, com as receitas abaixo. Mudar overlay, sincronizar a Application ou
+investigar por que o Image Updater não escreveu é `basis-k8s-deploy`
+(`references/argocd-image-updater.md` daquela skill).
 
 "Staging roda a versão" = os cinco elos fechados no ambiente de staging. "Produção roda a
 versão" = os cinco elos fechados em produção, com a tag `production-*`. Elo que não se
@@ -69,10 +70,37 @@ Exemplo real, no `ponto`: a MR !75 (`TG-111`) devolveu `squash_commit_sha` `fdc7
 `publish-develop` `success`, e `git merge-base --is-ancestor fdc778d0 0f8fd1b9` confirma. A
 tag esperada termina em `.446`.
 
-*A confirmar no piloto:* o caminho mais curto de CalVer para pipeline. Duas opções: pegar o
-sufixo da CalVer (o `CI_PIPELINE_IID`) e filtrar pelo `iid` na listagem acima; ou achar no
-registry a tag `sha-<commit>` com o mesmo digest da CalVer. A data da CalVer vem do relógio
-do job, então não a use para achar a pipeline — o `iid` é o que identifica.
+**De CalVer para pipeline:** o sufixo da CalVer é o `CI_PIPELINE_IID`; filtre a listagem
+acima pelo `iid`. A data da CalVer vem do relógio do job, então não a use para achar a
+pipeline — o `iid` é o que identifica.
+
+## Receitas dos elos 4 e 5
+
+O mapa de identidade do projeto (`AGENTS.md`) dá a pasta no IaC e a Application; o contexto
+do `kubectl` e o namespace vêm do destino da Application.
+
+```bash
+# elo 4: a tag no overlay, lida no remoto (o checkout local pode estar atrás)
+git -C "$REPO_IAC" fetch -q origin
+git -C "$REPO_IAC" show origin/main:manifests/<app>/overlays/<env>/kustomization.yaml | grep -A1 '<registry>/<group>/<image>'
+
+# elo 5: Application, digest da tag no registry e digest dos pods
+argocd app get <app>-<env> -o json | jq '{sync: .status.sync.status, health: .status.health.status, ns: .spec.destination.namespace, cluster: .spec.destination.name}'
+crane digest <registry>/<group>/<image>:<tag>
+kubectl --context <cluster> -n <ns> get pods -l app.kubernetes.io/name=<app> \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[*].imageID}{"\n"}{end}'
+```
+
+O seletor `app.kubernetes.io/name=<app>` é o do padrão da `basis-k8s-deploy`; se não achar
+pod, use o seletor do Deployment no overlay. O elo fecha quando **todos** os pods mostram `@sha256:` igual ao `crane digest`. Um pod com
+o digest antigo é rollout em andamento, ou travado. O `argocd` depende de login SSO, que um
+agente não completa (ver `glab-argocd-cli.md`): sem sessão, o elo 5 é "não foi possível
+confirmar".
+
+Exemplo real, 2026-09-27: o overlay de staging do `ponto` estava em `2026.09.27.446` — a
+pipeline de `iid` 446 acima, que contém a MR !75. `ponto-staging` estava `Synced`/`Healthy`,
+e o único pod rodava `sha256:886d47fe…`, o mesmo digest de `ponto/ponto:2026.09.27.446` no
+registry. Cadeia fechada: staging roda a versão da !75.
 
 ## O que não é produção
 

@@ -26,35 +26,71 @@ projeto no Taiga, que guardam dado estruturado em vez de texto solto:
 
 | Campo customizado | Tipo | Quem grava |
 |---|---|---|
-| `Início da implementação` | data/hora | executor, ao começar |
+| `Início da implementação` | data | executor, ao começar |
 | `Executor` | texto (agente + modelo, ou pessoa) | executor, ao começar |
 | `Worktree` | texto (branch e caminho) | executor, ao começar |
-| `Testado em staging` | sim/não | quem testou |
+| `Testado em staging` | sim/não | quem testou (ou quem orquestra, a pedido explícito dessa pessoa) |
 | `Testado por` | texto | quem testou |
 | `Data do teste` | data | quem testou |
 
-Bloqueio usa o campo nativo da story, `is_blocked` + `blocked_note`.
+Bloqueio usa o campo nativo da story, `is_blocked` + `blocked_note`. O registro de início
+inclui também o `assigned_to` do executor, que o MCP grava.
 
-**Hoje o MCP não cobre isso.** Ele não cria definições de campo, não lê os valores
-(`userstories/custom-attributes-values`), o `custom_attributes` do `taiga_stories_update`
-vai no `PATCH` da story e provavelmente é ignorado, e `is_blocked` não é exposto. Enquanto
-for assim, o registro usa **tags**, com a mesma semântica e sem dado estruturado:
-
-| Registro | Fallback por tags |
-|---|---|
-| Início da execução | `assigned_to` do executor + tag `execucao:TG-xx`; a mudança para `In progress` acompanha, mas não faz parte do registro |
-| Interrupção | tag `bloqueado` (a story continua `In progress`) |
-| Teste/aceite em staging | tag `testado-staging`, aplicada por quem testou (ou pelo orquestrador, a pedido explícito dessa pessoa) |
-
-A regra: **campos quando o projeto os tiver definidos e o MCP souber gravá-los; senão,
-tags.** O status nunca é evidência do registro: uma story arrastada de volta para `Ready` com
-a tag `execucao:TG-xx` continua com início registrado. O resto desta página diz "registro de
-início" e "registro de teste" para valer nas duas formas.
+A mudança de status acompanha o registro, mas **o status nunca é evidência do registro**:
+uma story arrastada de volta para `Ready` com `Início da implementação` preenchido continua
+com início registrado. O resto desta página diz "registro de início" e "registro de teste".
 
 **Registros valem para uma versão.** O registro de teste se refere à versão testada; quando
-a story é reaberta depois de uma entrega, quem reabre retira `testado-staging` (e o campo
-volta a "não"), porque a próxima versão ainda não foi testada. Ao retomar uma story
-interrompida, o executor retira `bloqueado`.
+a story é reaberta depois de uma entrega, quem reabre volta `Testado em staging` para "não",
+porque a próxima versão ainda não foi testada. Ao retomar uma story interrompida, o executor
+desfaz o bloqueio (`is_blocked: false`).
+
+### Gravar e ler os registros pela API do Taiga
+
+**O MCP ainda não cobre isso**: não lê os valores dos campos, o `custom_attributes` do
+`taiga_stories_update` vai no `PATCH` da story (e não no recurso de valores), e `is_blocked`
+não é exposto. Enquanto for assim, os registros vão direto pela API REST do Taiga, com a
+mesma conta de serviço do servidor MCP (as variáveis `TAIGA_BASE_URL`, `TAIGA_USERNAME` e
+`TAIGA_PASSWORD` da configuração dele). Onde essa configuração fica na máquina vem do
+`AGENTS.md` ou de quem pediu — pergunte. O valor da senha e o token não vão para log,
+comentário, commit nem relatório.
+
+```bash
+API="${TAIGA_BASE_URL%/}/api/v1"
+TOKEN=$(jq -n --arg u "$TAIGA_USERNAME" --arg p "$TAIGA_PASSWORD" '{type:"normal",username:$u,password:$p}' \
+  | curl -s -X POST -H 'Content-Type: application/json' -d @- "$API/auth" | jq -r .auth_token)
+H=(-H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json')
+
+# definições do projeto: id, nome e tipo de cada campo
+curl -s "${H[@]}" "$API/userstory-custom-attributes?project=<project_id>" | jq '.[] | {id, name, type}'
+
+# valores da story: {"attributes_values": {"<id do campo>": valor}, "version": n}
+curl -s "${H[@]}" "$API/userstories/custom-attributes-values/<story_id>"
+
+# gravar: o dicionário inteiro, com o version que acabou de ler
+curl -s -X PATCH "${H[@]}" "$API/userstories/custom-attributes-values/<story_id>" \
+  -d '{"attributes_values": {"<id>": "<valor>", ...}, "version": <n>}'
+
+# bloqueio, na própria story (version da story, não o dos valores)
+curl -s -X PATCH "${H[@]}" "$API/userstories/<story_id>" \
+  -d '{"is_blocked": true, "blocked_note": "<causa>", "version": <n>}'
+```
+
+As leituras foram conferidas na instância da Basis em 2026-09-27 (projeto 35, story 1063).
+As escritas seguem a [documentação da API](https://docs.taiga.io/api.html) e **ainda não
+foram exercitadas**: confirme no piloto. Duas regras valem para as duas:
+
+- **Leia antes de gravar, e grave o dicionário inteiro.** O `version` é controle de
+  concorrência: com o valor velho, a API recusa, e a resposta certa é ler de novo, não
+  forçar. Mandar só a chave alterada arrisca apagar os outros campos.
+- **Confira depois.** Releia os valores e confirme que o campo gravado está lá.
+
+**Projeto sem os campos definidos** — o caso do Sistema de Ponto em 2026-09-27
+(`userstory_custom_attributes: null`) — não tem onde registrar. Isso não autoriza trocar o
+registro por tag ou por texto na descrição: reporte e pergunte. Definir os campos é ação de
+quem tem `admin_project_values` no projeto, pela interface ou por
+`POST /userstory-custom-attributes`; os tipos disponíveis são os do Taiga (`text`, `date`,
+`checkbox`…), e a hora exata do início fica no histórico da story.
 
 ### Critérios de transição (quando mover)
 
@@ -84,8 +120,12 @@ e `Ready for test` vai até `Done`. Todo critério tem para onde ir.
 anterior (`In revision`, ou `In progress` sem ele). Não é um estado novo; a auditoria reporta
 "transição pendente: aguardando staging".
 
-`Done` é uma mudança de status. Não significa, por si só, arquivar, fechar ou remover a
-story do board.
+**`Done`, fechado e arquivado são coisas diferentes, e o board decide duas delas.** Cada
+status em `us_statuses` traz `is_closed` e `is_archived`. No Sistema de Ponto, `Done` tem
+`is_closed: true` — mover para `Done` já fecha a story, por configuração do board — e há um
+status `Archived` com `is_archived: true`. O que esta página controla é só o critério para
+mover para `Done`; mover para um status arquivado, ou usar `taiga_stories_archive_or_close`,
+é só a pedido.
 
 ### Regras de auditoria (conferir se o status está certo)
 
@@ -95,6 +135,9 @@ ser.
 - **Precedência.** Avalie do mais avançado para o menos: `Done`, `Waiting for deployment`,
   `Ready for test`, `In revision`, `In progress`, `Ready`, `New`. O primeiro critério
   satisfeito é o status esperado. Status opcional que o board não tem sai da lista.
+- **Story em status arquivado** (`is_archived: true`, como o `Archived` do Ponto) fica fora
+  da auditoria de transição: alguém a tirou do fluxo de propósito. Reporte o status, sem
+  recomendar movê-la.
 - **`Ready` exige ausência de trabalho, não ausência de commits:** sem registro de início e
   sem MR `TG-xx`, aberta ou mergeada. A branch apagada depois do merge não devolve a story a
   `Ready` — a MR mergeada continua lá.
@@ -204,7 +247,7 @@ identidade do projeto — assim a próxima sessão não precisa consultar de nov
 ```
 1. taiga_stories_get(<id>)           → título, descrição, critérios
 2. worktree + branch TG-<id>         → worktree.md
-3. registro de início                → status In progress + campos (ou tags), com autorização
+3. registro de início                → campos pela API + assigned_to + In progress, com autorização
 4. commits "<Verbo> ... - TG-<id>"
 5. MR e ciclo até a devolução        → ciclo-da-mr.md
 6. taiga_stories_archive_or_close    ← somente se arquivamento/fechamento for pedido
@@ -213,8 +256,8 @@ identidade do projeto — assim a próxima sessão não precisa consultar de nov
 O passo 1 é o que muda a qualidade do resto: com o título da story em mãos, a mensagem de
 commit sai no verbo certo e descreve o efeito, não o esforço.
 
-**Cuidado com o passo 6.** Fechar a story é uma ação visível para o time e é diferente de
-marcá-la como `Done`. Confirme antes — merge em `develop` não significa nem que staging já
+**Cuidado com o passo 6.** Arquivar a story é uma ação visível para o time e é diferente de
+movê-la para `Done`, mesmo num board em que `Done` fecha a story. Confirme antes — merge em `develop` não significa nem que staging já
 roda a versão ([`cadeia-de-entrega.md`](cadeia-de-entrega.md)), muito menos que a entrega foi
 aceita ou que a story deve sair do board.
 

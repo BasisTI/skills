@@ -11,15 +11,16 @@ Commits no padrão da skill (`<Verbo> ... - TG-xx`), primeiro push com upstream:
 ```sh
 git push --set-upstream origin TG-xx
 glab mr create --target-branch develop --squash-before-merge --remove-source-branch \
-  --title "<título no padrão do commit> - TG-xx"
+  --title "<título no padrão do commit> - TG-xx" --description "<resumo>" --yes
 ```
 
 **Retomada:** se há MR `TG-xx` **aberta**, a rodada continua nela — só `git push`. Uma
 segunda MR aberta para a mesma story divide a revisão e os comentários de evidência em dois
 lugares. `glab mr list --source-branch TG-xx` lista as abertas; MR já mergeada não se retoma
 (ver [`worktree.md`](worktree.md#retomar)).
-Na retomada de uma story interrompida, retire o registro de bloqueio (tag `bloqueado`) — com
-a mesma autorização das outras transições.
+Na retomada de uma story interrompida, desfaça o bloqueio (`is_blocked: false`, pela API —
+ver [`taiga-mcp.md`](taiga-mcp.md#gravar-e-ler-os-registros-pela-api-do-taiga)) — com a
+mesma autorização das outras transições.
 
 ## 2. Vincular a pipeline ao SHA revisado
 
@@ -38,6 +39,9 @@ Aceite a pipeline só quando as duas condições valem:
   nem `skipped`, nem ausente, nem ainda `pending`/`running`. Pipeline sem
   `check-quality` não analisou nada (MR aberta para `main`, `ref` do template antigo, ou
   pipeline de branch em vez de pipeline de MR).
+
+O GitLab da Basis é CE (18.0.2 em 2026-09-27), sem *merged results pipelines*: a pipeline de
+MR roda no próprio head, e a comparação de SHA é direta.
 
 `glab ci status` não serve para isso: ele lê a pipeline mais recente **da branch**, que pode
 ser uma pipeline de branch sem os jobs de MR, ou de outro SHA. Registre o id, o SHA e o link
@@ -62,7 +66,7 @@ o board tiver; senão a story continua `In progress`. Relatório com desfecho `d
 impedimento externo: acesso, ambiente, dúvida de especificação. Uma correção que revela uma
 falha **nova** é progresso, não repetição. A contagem é por causa, no total da rodada: causas
 que se alternam (A, B, A, B, A) fecham 3 tentativas de A e interrompem. Registro de bloqueio
-(tag `bloqueado` enquanto o MCP não expõe `is_blocked`); status continua `In progress`.
+(`is_blocked` + `blocked_note` com a causa, pela API); status continua `In progress`.
 Relatório com desfecho `bloqueada`, a causa, as tentativas e a última falha. `falhou` fica
 para a rodada que não chegou a nenhum dos dois desfechos por falha do próprio executor
 (sessão caiu, ferramenta indisponível no meio do ciclo).
