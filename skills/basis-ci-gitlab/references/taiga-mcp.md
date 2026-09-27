@@ -96,7 +96,8 @@ opcionais `In revision` (depois de `In progress`) e `Waiting for deployment` (de
 `Ready for test`), pelo `userstory-statuses`, e os seis campos da tabela acima, pelo
 `userstory-custom-attributes`. Sem `--apply` ele só mostra o plano; com `--apply` grava,
 reordena os status e relê o resultado da API. É idempotente: o que já existe com o mesmo
-nome fica como está.
+nome fica como está. Aplicado primeiro no `plataforma-iac` (id 90) em 2026-09-27: status 657
+e 658, campos 27 a 32; a segunda execução respondeu "nada a fazer".
 
 Configurar o board é mudança visível para o time inteiro: rode o plano, mostre-o a quem
 pediu e só então aplique. Exige `admin_project_values` no projeto, que a conta de serviço
