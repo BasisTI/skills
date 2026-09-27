@@ -75,9 +75,14 @@ pre-start = "wt step copy-ignored"
   entra no worktree logo depois pode começar antes de `config/` existir. O `pre-start`
   termina antes de o `wt switch --create` devolver.
 - **Hook de projeto pede aprovação** na primeira vez, em cada máquina, e de novo quando o
-  comando muda. Quem cria worktrees sem terminal interativo (orquestrador, agente) não
-  aprova: uma pessoa roda `wt config approvals add` no repositório antes, uma vez. Sem a
-  aprovação, o hook é pulado e o worktree nasce sem os segredos. Hook na configuração do usuário
+  comando muda. Num terminal, o `wt` pergunta (recusar cria o worktree sem os segredos).
+  **Fora de terminal — orquestrador, agente — o comando para** com `Cannot prompt for
+  approval in non-interactive environment`: nem o worktree sai. Por isso uma pessoa roda
+  `wt config approvals add` no repositório antes, uma vez por máquina.
+- **Valem os arquivos do checkout principal.** O `wt` lê o `.worktreeinclude` e o
+  `.config/wt.toml` do checkout principal (a origem da cópia), não do worktree: mudar esses
+  arquivos numa branch só tem efeito depois que a mudança chega à branch do checkout
+  principal. Hook na configuração do usuário
   (`~/.config/worktrunk/config.toml`) não pede aprovação e vale para todos os repositórios.
 - **A cópia não sobrescreve.** Arquivo que já existe no worktree fica como está: segredo
   trocado no checkout principal não chega a worktrees antigos sozinho. Para atualizar:
