@@ -57,12 +57,26 @@ listado — então liste também o que evita começar do zero:
 
 ```text
 # .worktreeinclude
-config/
-node_modules/
+/config/
+/node_modules/
 ```
+
+**Ancore na raiz.** Os padrões seguem a sintaxe do `.gitignore`: `config/` sem a barra casa
+com qualquer diretório `config` da árvore. No `plataforma-iac`, pegaria também
+`plataforma-iac-core/src/main/resources/config/`, ignorado justamente porque o que fica ali
+entra no jar, e espalharia para todo worktree o segredo que alguém tivesse posto no lugar
+errado.
 
 Listar arquivo versionado não faz nada; é a primeira coisa a conferir quando "o arquivo não
 veio".
+
+**Vale o `.worktreeinclude` da origem da cópia**, que por padrão é o checkout principal, e
+não o do worktree de destino. Um `.worktreeinclude` novo, criado ou alterado na branch de
+uma story, não muda nada até a mudança chegar à branch do checkout principal. Pelo mesmo
+motivo, um `wt step copy-ignored --dry-run` rodado no worktree da story ainda mostra a lista
+antiga. Para ver o efeito antes do merge, use o worktree da story como origem:
+`wt step copy-ignored --from TG-xx --to develop --dry-run`. Isso só funciona se ele já tiver
+os ignorados que se quer testar.
 
 Para a cópia acontecer sozinha, o projeto declara o hook em `.config/wt.toml`:
 
@@ -75,15 +89,18 @@ pre-start = "wt step copy-ignored"
   entra no worktree logo depois pode começar antes de `config/` existir. O `pre-start`
   termina antes de o `wt switch --create` devolver.
 - **Hook de projeto pede aprovação** na primeira vez, em cada máquina, e de novo quando o
-  comando muda. Num terminal, o `wt` pergunta (recusar cria o worktree sem os segredos).
-  **Fora de terminal — orquestrador, agente — o comando para** com `Cannot prompt for
-  approval in non-interactive environment`: nem o worktree sai. Por isso uma pessoa roda
-  `wt config approvals add` no repositório antes, uma vez por máquina.
-- **Valem os arquivos do checkout principal.** O `wt` lê o `.worktreeinclude` e o
-  `.config/wt.toml` do checkout principal (a origem da cópia), não do worktree: mudar esses
-  arquivos numa branch só tem efeito depois que a mudança chega à branch do checkout
-  principal. Hook na configuração do usuário
-  (`~/.config/worktrunk/config.toml`) não pede aprovação e vale para todos os repositórios.
+  comando muda. Num terminal, o `wt` pergunta; quem recusa ganha o worktree sem os segredos.
+  **Fora de terminal (orquestrador, agente), o comando falha** com `Cannot prompt for
+  approval in non-interactive environment` e sai com 1, sem criar worktree nem branch. Por
+  isso uma pessoa roda `wt config approvals add` no repositório antes, uma vez por máquina,
+  revisando o comando. Um agente não aprova por ela, nem com `--yes`. Hook na configuração
+  do usuário (`~/.config/worktrunk/config.toml`) não pede aprovação e vale para todos os
+  repositórios.
+- **Vale o `.config/wt.toml` do worktree onde o comando roda.** O orquestrador roda o
+  `wt switch --create` no checkout principal, então o hook novo, como o `.worktreeinclude`,
+  só vale depois de chegar à branch de lá. Até isso acontecer, o worktree é criado sem hook
+  e sem erro, e sem os segredos. Aprove depois que o arquivo chegar ao checkout principal:
+  o `approvals add` aprova o comando que encontra lá.
 - **A cópia não sobrescreve.** Arquivo que já existe no worktree fica como está: segredo
   trocado no checkout principal não chega a worktrees antigos sozinho. Para atualizar:
   `wt step copy-ignored --to TG-xx --force`.
