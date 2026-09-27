@@ -6,10 +6,12 @@ cada um, elo por elo, a partir de fontes verificáveis.
 
 ## Por que os commits da branch não provam nada
 
-A MR de feature para `develop` é mergeada com **squash**: o GitLab gera um commit novo, com
-outro SHA, e os commits da branch `TG-xx` nunca entram em `develop`. Procurar o SHA do último
-commit da branch no histórico de `develop`, ou na imagem, dá "não encontrado" para uma
-mudança que foi entregue. O ponto de partida é o commit que o merge criou, lido na API da MR.
+A MR de feature para `develop` é mergeada com **squash**: com mais de um commit, o GitLab
+gera um commit novo, com outro SHA, e os commits da branch `TG-xx` não entram em `develop`.
+Procurar o SHA do último commit da branch no histórico de `develop`, ou na imagem, dá "não
+encontrado" para uma mudança que foi entregue. (Com um commit só, o `squash_commit_sha` pode
+coincidir com o head da branch — mas não conte com isso.) O ponto de partida é o commit que
+o merge registrou, lido na API da MR.
 
 ## Os cinco elos
 
@@ -17,9 +19,13 @@ Para **cada target** afetado pela mudança — o `ci/pipeline.toml` pode publica
 imagens, e cada uma tem a sua cadeia:
 
 1. **Commit do merge.** MR `TG-xx`→`develop` com `state: merged`; o commit é o
-   `squash_commit_sha` (ou o `merge_commit_sha`, se não houve squash).
+   `squash_commit_sha` (ou o `merge_commit_sha`, se não houve squash; se os dois vierem
+   `null`, merge fast-forward sem squash, é o `sha` da MR).
 2. **Pipeline de `develop` que contém o commit.** Uma pipeline de `develop` com o job
-   `publish-develop` bem-sucedido, cujo SHA tem o commit do elo 1 no histórico:
+   `publish-develop` que publicou a imagem, cujo SHA tem o commit do elo 1 no histórico.
+   Não filtre a pipeline por `status=success`: o timeout de shutdown do engine marca como
+   `failed` um job que já publicou (ver "O que engana" no `SKILL.md`), e o elo 5 — o digest —
+   é a prova final de qual imagem roda:
 
    ```sh
    git fetch origin develop
@@ -54,7 +60,7 @@ No diretório do repositório do projeto (o `:id` do `glab api` é resolvido pel
 
 ```bash
 glab api "projects/:id/merge_requests/<iid>" | jq '{state, squash_commit_sha, merge_commit_sha}'
-glab api "projects/:id/pipelines?ref=develop&status=success&per_page=50" | jq '.[] | {id, iid, sha}'
+glab api "projects/:id/pipelines?ref=develop&per_page=50" | jq '.[] | {id, iid, sha, status}'
 glab api "projects/:id/pipelines/<pipeline_id>/jobs" | jq '.[] | select(.name=="publish-develop") | {status, web_url}'
 ```
 

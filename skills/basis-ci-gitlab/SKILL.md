@@ -1,22 +1,17 @@
 ---
 name: basis-ci-gitlab
 description: >-
-  Fluxo de uma mudança na Basis, do card do Taiga até a imagem promovida em produção —
-  worktree e branch `TG-xxx` a partir de `develop`, status da story, commit, MR até a
-  devolução, `ci/pipeline.toml`, o template de CI compartilhado e o orchestrator Dagger.
-  Use quando alguém disser "como nomeio a branch", "worktree", "trabalhar em paralelo",
-  "retomar a story", "abrir MR pra develop", "devolver a MR", "a story está no status
-  certo?", "minha pipeline falhou", "o check-quality quebrou", "o Sonar não comentou na
-  MR", "o quality gate passou mas não testou nada", "o promote subiu versão velha", "a
-  pipeline da MR aparece skipped e deixou mergear", "Project not found or access denied",
-  "chave desconhecida no pipeline.toml", "quero rodar a pipeline na minha máquina", "subir
-  isso pra produção", "qual o id da story". O mapa de identidade do projeto (GitLab,
-  ArgoCD, Taiga, IaC, Sonar, registry) vive no `AGENTS.md` do repositório; se não estiver
-  lá, pergunte — não descubra. Prefira esta à `basis-k8s-deploy` quando a pergunta parar
-  na imagem publicada, porque o sintoma engana — "a versão nova não subiu em produção"
-  quase sempre é promote ou tag, e não ArgoCD. Regra de código que o Sonar cobra é
-  `basis-java-code-standards`; aqui está por que a análise não rodou, não decorou a MR, ou
-  passou sem avaliar nada.
+  Fluxo de uma mudança na Basis, do card do Taiga à imagem em produção: worktree e branch
+  `TG-xxx`, status da story, commit, MR até a devolução, `ci/pipeline.toml`, template de CI
+  e orchestrator Dagger. Use quando alguém disser "como nomeio a branch", "worktree",
+  "trabalhar em paralelo", "retomar a story", "posso marcar squash?", "devolver a MR", "a
+  story está no status certo?", "minha pipeline falhou", "o Sonar não comentou na MR", "o
+  quality gate passou mas não testou nada", "criar o projeto no Sonar", "o promote subiu
+  versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
+  "chave desconhecida no pipeline.toml", "qual ref do ci-templates eu uso", "rodar a
+  pipeline na minha máquina", "subir pra produção", "cria a user story". Identidade do
+  projeto vem do `AGENTS.md`; se faltar, pergunte. Prefira à `basis-k8s-deploy` quando a
+  pergunta parar na imagem publicada.
 ---
 
 # CI no GitLab: do card à imagem em produção
@@ -117,9 +112,10 @@ código ao card.
 **Worktree:** um por story, irmão do repositório principal, em `../<repo>.TG-xxx`. É o que
 deixa vários agentes trabalharem no mesmo repositório sem um trocar a branch do outro.
 Começar é `git fetch origin` e `wt switch --create TG-xxx --base origin/develop`; retomar
-uma story que já tem branch, worktree ou MR é `wt switch TG-xxx`, sem `--create`, e continuar
-na MR existente. Por que irmão, o que copiar, upstream e remoção em
-[`references/worktree.md`](references/worktree.md).
+uma story com MR aberta é `git fetch origin` e `wt switch TG-xxx`, sem `--create`, na mesma
+MR — MR já mergeada não se retoma, a rodada nova é worktree e MR novos. O `wt` não muda o
+diretório do shell de um agente: os comandos seguintes rodam no caminho do worktree. Por que
+irmão, o que copiar, upstream e remoção em [`references/worktree.md`](references/worktree.md).
 
 **Commit:** verbo no infinitivo, e ` - TG-xxx` no fim.
 
@@ -134,7 +130,7 @@ o log depois.
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**.
 
 **Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
-é o head da MR e o `check-quality` executou — `glab ci status` lê a branch e pode mostrar o
+é o head da MR e o `check-quality` terminou (nem `skipped`, nem ausente) — `glab ci status` lê a branch e pode mostrar o
 verde de um SHA antigo. Corrigir e empurrar recomeça a checagem. Suspeita de falso positivo
 do Sonar é listada para quem revisa, nunca marcada nem suprimida, e a pipeline segue
 declarada reprovada. Evidência de cada funcionalidade vai num comentário não resolvível da

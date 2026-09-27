@@ -24,6 +24,13 @@ worktrunk. Em `~/Projetos/Basis/ponto`, a story 58 fica em `~/Projetos/Basis/pon
 O `fetch` antes não é cerimônia: `--base origin/develop` parte da referência remota como ela
 está na sua máquina, e sem `fetch` a story começa de uma `develop` velha.
 
+**O `wt` não muda o diretório do shell do agente.** Sem a integração de shell ativa — o caso
+normal num agente —, ele avisa `Cannot change directory` e o shell continua no checkout
+principal, em `develop`. Todo comando seguinte roda no caminho do worktree: `cd` explícito
+para `../<repo>.TG-xx`, ou `git -C ../<repo>.TG-xx ...`. Um `git status` no diretório errado
+mostra `develop` limpo e leva a concluir que nada começou — e a commitar no checkout
+principal.
+
 ## Por que irmão, e dentro de `~/Projetos/Basis`
 
 - **As ferramentas varrem a árvore.** Um worktree dentro do repositório principal (em
@@ -57,19 +64,29 @@ Com `push.autoSetupRemote = true` no git, um `git push` simples resolve.
 
 ## Retomar
 
-Branch, worktree ou MR já existem — o trabalho foi interrompido, ou é uma rodada nova depois
-da revisão. Entrar no que existe:
+Retomar vale enquanto a MR `TG-xx` está **aberta** (ou ainda não existe, mas a branch sim):
+o trabalho foi interrompido, ou é uma rodada nova depois da revisão. Entrar no que existe:
 
 ```sh
-wt switch TG-xx
+git fetch origin
+wt switch TG-xx --no-cd                    # cria o tracking se a branch só existir no remoto
+cd ../<repo>.TG-xx
 git status
+git pull --ff-only                         # alguém pode ter empurrado na branch
 git log -1 --oneline
 ```
 
-Sem `--create`: a branch já existe, e criá-la de novo a partir de `origin/develop` é
-exatamente o que se quer evitar. Se a MR já está aberta, a próxima rodada continua nela — os
-pushes novos entram na mesma MR. Antes de seguir, `git status` e o último commit dizem onde
-o trabalho parou; um worktree com alterações não commitadas é trabalho de alguém, não sujeira.
+Sem `--create`: a branch já existe, e criá-la de novo a partir de `origin/develop` gera uma
+branch divergente da MR, com push rejeitado. **Se `wt switch TG-xx` falhar, a resposta não
+é `--create`**: confira o `fetch` e o nome da branch (`glab mr list --source-branch TG-xx`),
+ou pergunte. Os pushes novos entram na mesma MR. Um worktree com alterações não commitadas é
+trabalho de alguém, não sujeira.
+
+**MR já mergeada não se retoma.** Se a story voltou depois do merge (teste em staging
+reprovou, story reaberta), os commits da branch já entraram em `develop` pelo squash:
+continuar em cima deles reabre a branch apagada e traz de novo conteúdo que já está em
+`develop`. A rodada nova é trabalho novo: `wt remove TG-xx` no worktree velho, depois
+`git fetch origin` e `wt switch --create TG-xx --base origin/develop`, e uma MR nova.
 
 ## Criar o worktree não é começar a story
 

@@ -42,13 +42,19 @@ for assim, o registro usa **tags**, com a mesma semântica e sem dado estruturad
 
 | Registro | Fallback por tags |
 |---|---|
-| Início da execução | status `In progress` + `assigned_to` do executor + tag `execucao:TG-xx` |
+| Início da execução | `assigned_to` do executor + tag `execucao:TG-xx`; a mudança para `In progress` acompanha, mas não faz parte do registro |
 | Interrupção | tag `bloqueado` (a story continua `In progress`) |
 | Teste/aceite em staging | tag `testado-staging`, aplicada por quem testou (ou pelo orquestrador, a pedido explícito dessa pessoa) |
 
 A regra: **campos quando o projeto os tiver definidos e o MCP souber gravá-los; senão,
-tags.** O resto desta página diz "registro de início" e "registro de teste" para valer nas
-duas formas.
+tags.** O status nunca é evidência do registro: uma story arrastada de volta para `Ready` com
+a tag `execucao:TG-xx` continua com início registrado. O resto desta página diz "registro de
+início" e "registro de teste" para valer nas duas formas.
+
+**Registros valem para uma versão.** O registro de teste se refere à versão testada; quando
+a story é reaberta depois de uma entrega, quem reabre retira `testado-staging` (e o campo
+volta a "não"), porque a próxima versão ainda não foi testada. Ao retomar uma story
+interrompida, o executor retira `bloqueado`.
 
 ### Critérios de transição (quando mover)
 
@@ -59,8 +65,12 @@ duas formas.
 | `In progress` | O executor começou de fato: registro de início feito. Commits não são exigidos |
 | `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)) |
 | `Ready for test` | Staging roda a versão |
-| `Waiting for deployment` *(opcional)* | Registro de teste presente; produção ainda não roda a versão |
+| `Waiting for deployment` *(opcional)* | Staging roda a versão **e** registro de teste presente; produção ainda não roda a versão |
 | `Done` | Registro de teste presente **e** produção roda a versão |
+
+"A versão", em todos os critérios, é a da MR `TG-xx` mais recente. Com uma MR aberta, a story
+tem trabalho em andamento, e uma entrega anterior da mesma story não satisfaz `Ready for
+test` nem os seguintes.
 
 "Roda a versão" é a cadeia de entrega completa no ambiente — commit do merge, pipeline,
 tag, overlay e pods —, descrita em [`cadeia-de-entrega.md`](cadeia-de-entrega.md). Tag
