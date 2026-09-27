@@ -2,21 +2,21 @@
 name: basis-ci-gitlab
 description: >-
   Fluxo de uma mudança na Basis, do card do Taiga até a imagem promovida em produção —
-  branch `TG-xxx` a partir de `develop`, mensagem de commit, flags da MR,
-  `ci/pipeline.toml`, o template de CI compartilhado e as funções do orchestrator Dagger.
-  Use quando alguém disser "como nomeio a branch", "abrir MR pra develop", "posso marcar
-  squash?", "minha pipeline falhou", "o check-quality quebrou", "o Sonar não comentou na
+  worktree e branch `TG-xxx` a partir de `develop`, status da story, commit, MR até a
+  devolução, `ci/pipeline.toml`, o template de CI compartilhado e o orchestrator Dagger.
+  Use quando alguém disser "como nomeio a branch", "worktree", "trabalhar em paralelo",
+  "retomar a story", "abrir MR pra develop", "devolver a MR", "a story está no status
+  certo?", "minha pipeline falhou", "o check-quality quebrou", "o Sonar não comentou na
   MR", "o quality gate passou mas não testou nada", "o promote subiu versão velha", "a
   pipeline da MR aparece skipped e deixou mergear", "Project not found or access denied",
   "chave desconhecida no pipeline.toml", "quero rodar a pipeline na minha máquina", "subir
-  isso pra produção", "criar o projeto no Sonar", "qual ref do ci-templates eu uso", "qual
-  o id da story", "cria a user story". O mapa de identidade do projeto (id do GitLab, app
-  do ArgoCD, id do Taiga, pasta no IaC, projeto no Sonar, grupo no registry) vive no
-  `AGENTS.md` do repositório; se não estiver lá, pergunte — não descubra. Prefira esta à
-  `basis-k8s-deploy` quando a pergunta parar na imagem publicada e não chegar no manifesto,
-  porque o sintoma engana — "a versão nova não subiu em produção" quase sempre é promote ou
-  tag, e não ArgoCD. Regra de código que o Sonar cobra é `basis-java-code-standards`; aqui
-  está por que a análise não rodou, não decorou a MR, ou passou sem avaliar nada.
+  isso pra produção", "qual o id da story". O mapa de identidade do projeto (GitLab,
+  ArgoCD, Taiga, IaC, Sonar, registry) vive no `AGENTS.md` do repositório; se não estiver
+  lá, pergunte — não descubra. Prefira esta à `basis-k8s-deploy` quando a pergunta parar
+  na imagem publicada, porque o sintoma engana — "a versão nova não subiu em produção"
+  quase sempre é promote ou tag, e não ArgoCD. Regra de código que o Sonar cobra é
+  `basis-java-code-standards`; aqui está por que a análise não rodou, não decorou a MR, ou
+  passou sem avaliar nada.
 ---
 
 # CI no GitLab: do card à imagem em produção
@@ -473,6 +473,9 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 | Erro de certificado ao chamar serviço interno do `dagger call` local | DNS: o engine não usa o resolvedor da VPN |
 | Erro de credencial num build, com a variável criada e correta no GitLab | Container hermético: o segredo só entra por flag `env:NOME` do orchestrator (§5) |
 | Target `dockerfile` não encontra o arquivo | O nome é `Dockerfile`, case-sensitive |
+| MR "verde" e o Sonar reclama do último push | Pipeline lida por branch ou de SHA antigo; ler `head_pipeline` da MR |
+| Auditoria diz `Ready` e alguém está trabalhando | Critério por commits; o início se prova pelo registro, não pelo git |
+| `production-*` no registry e a story não é `Done` | Overlay/ArgoCD ainda na versão anterior; ver a cadeia de entrega |
 
 ## O que engana
 
@@ -498,11 +501,20 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 
 **Antes de abrir a MR para `develop`:**
 
+- [ ] Worktree próprio da story, criado a partir de `origin/develop` (ou retomado sem `--create`)
 - [ ] Branch nomeada `TG-xxx` com o número da story
+- [ ] Registro de início feito na story (campos ou tags)
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
 - [ ] `validate` do orchestrator rodou local e passou
 - [ ] Se o projeto é novo no Sonar, foi semeado antes
 - [ ] Delete Branch e Squash commits marcados
+
+**Antes de devolver a MR:**
+
+- [ ] `head_pipeline.sha` igual ao head da MR, e `check-quality` executou (não `skipped`)
+- [ ] Evidências em comentário não resolvível, um por funcionalidade
+- [ ] Suspeitas de falso positivo listadas, não marcadas no Sonar nem suprimidas
+- [ ] Relatório completo, com o desfecho
 
 **Antes de promover para `main`:**
 
@@ -529,4 +541,11 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [`references/glab-argocd-cli.md`](references/glab-argocd-cli.md) — receitas verificadas de
   `glab`, `argocd`, `sonar` e `kubectl`.
 - [`references/taiga-mcp.md`](references/taiga-mcp.md) — as ferramentas `mcp__taiga__*`, o
-  que devolvem, e as que estão bloqueadas.
+  que devolvem, as que estão bloqueadas, e os status: registros, critérios de transição e
+  regras de auditoria.
+- [`references/worktree.md`](references/worktree.md) — worktree por story: criar, retomar,
+  `copy-ignored`, upstream e remoção.
+- [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md) — os cinco elos do
+  commit do merge até os pods, que provam "staging/produção roda a versão".
+- [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md) — da abertura à devolução:
+  pipeline do head, desfechos, falso positivo, evidências e relatório.
