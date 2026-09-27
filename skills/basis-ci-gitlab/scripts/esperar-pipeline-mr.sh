@@ -21,6 +21,9 @@
 #      check-quality ausente, skipped ou failed
 #   2  uso / ambiente
 #   3  limite de tempo atingido (o head ainda sem pipeline final)
+#   4  verde SEM ANÁLISE: check-quality passou dizendo "Nenhuma mudança
+#      detectada" -- a MR não tocou caminho de target nenhum. Normal numa story
+#      com a tag `config`; em mudança de código, é sinal de que nada foi avaliado.
 
 set -u
 
@@ -59,10 +62,20 @@ while :; do
     if [ "$psha" = "$head" ]; then
       case "$pstatus" in
         success|failed|canceled|skipped|manual)
-          cq=$(glab api "projects/:id/pipelines/$pid/jobs?per_page=100" 2>/dev/null \
-            | jq -r '[.[] | select(.name == "check-quality")][0].status // "ausente"')
+          job=$(glab api "projects/:id/pipelines/$pid/jobs?per_page=100" 2>/dev/null \
+            | jq -c '[.[] | select(.name == "check-quality")][0] // {}')
+          cq=$(jq -r '.status // "ausente"' <<<"$job")
           printf 'pipeline %s sha %s status %s check-quality %s %s\n' "$pid" "$head" "$pstatus" "$cq" "$purl"
-          [ "$pstatus" = success ] && [ "$cq" = success ] && exit 0
+          if [ "$pstatus" = success ] && [ "$cq" = success ]; then
+            # Verde não é prova: o check-quality sai verde sem avaliar nada quando
+            # a MR não toca caminho de target (SKILL.md, hábito 3).
+            if glab api "projects/:id/jobs/$(jq -r '.id' <<<"$job")/trace" 2>/dev/null \
+                | grep -aq 'Nenhuma mudança detectada'; then
+              printf 'check-quality sem análise: "Nenhuma mudança detectada" (nenhum target tocado)\n'
+              exit 4
+            fi
+            exit 0
+          fi
           exit 1
           ;;
       esac

@@ -541,7 +541,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 | Script | Muta? | Uso |
 |---|---|---|
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
-| `scripts/esperar-pipeline-mr.sh <mr>` | Não | Espera a pipeline do head da MR terminar e diz se serve de aceite (0 aceita, 1 não serve, 3 limite de tempo). Use-o em vez de montar laço de espera |
+| `scripts/esperar-pipeline-mr.sh <mr>` | Não | Espera a pipeline do head da MR terminar e diz se serve de aceite (0 aceita, 1 não serve, 3 limite de tempo, 4 verde sem análise). Use-o em vez de montar laço de espera |
 | `source scripts/taiga-env.sh <arquivo>` | Não | Carrega a credencial do Taiga de um `compose.yaml` ou `.env` sem imprimir valor |
 | `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board os status `In revision` e `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
 

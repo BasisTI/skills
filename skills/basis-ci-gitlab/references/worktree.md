@@ -51,8 +51,8 @@ Os segredos de desenvolvimento local — credenciais de OAuth, tokens de integra
 configuração faltando ou errada.
 
 `wt step copy-ignored` copia do checkout principal o que é ignorado pelo Git. Sem
-`.worktreeinclude`, copia **tudo** o que é ignorado (166 MiB no `plataforma-iac`, com
-`node_modules/` e `target/`). Com o arquivo, copia **só** o que estiver ignorado **e**
+`.worktreeinclude`, copia **tudo** o que é ignorado — `node_modules/`, `target/`, o Node
+baixado pelo build, caches —, facilmente centenas de MiB. Com o arquivo, copia **só** o que estiver ignorado **e**
 listado — então liste também o que evita começar do zero:
 
 ```text

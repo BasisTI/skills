@@ -42,8 +42,11 @@ Aceite a pipeline só quando as duas condições valem:
 
 **Para esperar, use `scripts/esperar-pipeline-mr.sh <mr>`**, de dentro do repositório. Ele
 repete a leitura acima até o `head_pipeline` ser do head e ter terminado, e sai com 0 (aceita:
-pipeline e `check-quality` em `success`), 1 (terminou e não serve), ou 3 (limite de tempo,
-padrão 1 h). Imprime uma linha por mudança de estado e sempre o resumo final — rode-o direto
+pipeline e `check-quality` em `success`, com análise), 1 (terminou e não serve), 3 (limite de
+tempo, padrão 1 h) ou 4 (**verde sem análise**: o `check-quality` passou dizendo "Nenhuma
+mudança detectada", porque a MR não tocou caminho de target). O 4 é o normal numa story com
+a tag `config`; numa mudança de código, significa que nada foi avaliado — investigue o
+`ci/pipeline.toml` em vez de devolver. Imprime uma linha por mudança de estado e sempre o resumo final — rode-o direto
 num monitor ou em segundo plano, sem laço em volta. Não improvise essa espera: na US #14 do
 `plataforma-iac`, um laço feito na hora com `set -- $out` sob zsh nunca casou o SHA, e o
 agente ficou 30 minutos parado depois de a pipeline terminar, até o monitor estourar.
@@ -132,7 +135,8 @@ da MR, para quem revisa sem acesso à conversa.
 
 - Desfecho: `devolvida` | `bloqueada` | `falhou`
 - Link da MR
-- Pipeline: id, SHA, link; `check-quality` executado e resultado
+- Pipeline: id, SHA, link; `check-quality` executado, resultado, e **o que ele avaliou** —
+  os targets analisados, ou "sem análise: nenhuma mudança detectada"
 - Link(s) do(s) comentário(s) de evidência
 - Sonar: `ok`, ou a lista de suspeitas de falso positivo
 - Testes executados e resultado
