@@ -163,11 +163,17 @@ skill não estiver configurada com o servidor, pergunte — não tente adivinhar
 do nome do repositório, porque eles divergem (`triagem.ai` no GitLab é `triagemai` no
 Taiga; `contavinculada` é `conta-vinculada`).
 
-Os critérios para mover a story entre `New`, `Ready`, `In Progress`, `Ready For Test` e
-`Done`, e o uso de `taiga_stories_update`, estão em
-[`references/taiga-mcp.md`](references/taiga-mcp.md). `Done` é status de conclusão da
-story; não arquive nem remova a story do board automaticamente. Confirme mudanças visíveis
-no board antes de executá-las.
+**Status: critério para mover e regra para auditar.** Os nomes vêm do board
+(`taiga_projects_get` → `us_statuses`), não da memória: o Ponto grafa `In progress` e
+`Ready for test`. Cada status tem um critério verificável: `In progress` exige o **registro
+de início** (campos customizados ou, enquanto o MCP não os grava, tags), não commits;
+`Ready for test` exige staging rodando a versão; `Done` exige o **registro de teste** e
+produção rodando a versão — a cadeia completa até os pods, não a tag no registry.
+`In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
+status existentes. `Done` não é arquivar nem fechar. A auditoria compara o status com as
+evidências e reporta; transição se confirma com quem pediu antes de executar.
+Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
+cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
 
 ## 3. `ci/pipeline.toml` é a fonte de verdade
 
