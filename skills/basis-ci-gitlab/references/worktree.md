@@ -96,9 +96,10 @@ a MR está `merged` antes de forçar com `-D`.
 
 ## Agente sozinho × com orquestrador
 
-- **Agente sozinho** cria o worktree com `wt switch --create TG-xx --base origin/develop
-  --no-cd` e passa a trabalhar no caminho criado (o `--no-cd` evita depender de o shell do
-  agente seguir o `cd`), ou usa a skill `wt-switch-create`, que cria e muda o diretório da
-  sessão.
+- **Agente sozinho**, numa story sem branch nem worktree, cria com `wt switch --create TG-xx
+  --base origin/develop --no-cd` e passa a trabalhar no caminho criado (o `--no-cd` evita
+  depender de o shell do agente seguir o `cd`), ou usa a skill `wt-switch-create`, que cria e
+  muda o diretório da sessão. Se a branch ou o worktree já existem, é retomada: `wt switch
+  TG-xx --no-cd`, sem `--create`.
 - **Com orquestrador**, o pane do Herdr já nasce dentro do worktree; o agente não cria nada,
   só confere com `git status` e `git branch --show-current` que está na branch da story.

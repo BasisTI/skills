@@ -91,6 +91,9 @@ ser.
 - **Registro de início sem commits é `In progress`.** O executor pode estar lendo, testando
   hipótese, ou ter sido interrompido antes do primeiro commit. Nunca recomende regressão a
   `Ready` por falta de commits.
+- **MR `TG-xx` sem registro de início também é trabalho.** Alguém começou sem registrar: o
+  esperado é `In progress` (ou mais avançado, pelos outros critérios), e o relatório aponta
+  o registro que falta.
 - **Worktree sem registro de início não conta.** O orquestrador prepara worktrees de
   antemão; worktree existir é preparação, não início ([`worktree.md`](worktree.md)).
 - **Evidência inacessível** — API fora, overlay ilegível, story sem acesso: o resultado é
