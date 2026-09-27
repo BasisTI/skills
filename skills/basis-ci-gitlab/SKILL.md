@@ -133,6 +133,15 @@ o log depois.
 
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**.
 
+**Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
+é o head da MR e o `check-quality` executou — `glab ci status` lê a branch e pode mostrar o
+verde de um SHA antigo. Corrigir e empurrar recomeça a checagem. Suspeita de falso positivo
+do Sonar é listada para quem revisa, nunca marcada nem suprimida, e a pipeline segue
+declarada reprovada. Evidência de cada funcionalidade vai num comentário não resolvível da
+MR. O ciclo termina **devolvida** (verde, ou reprovada só por suspeitas) ou **interrompida**
+(mesma causa em 3 tentativas, ou impedimento externo), com relatório, e o agente para ali.
+Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
+
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
 auditoria de produção consultam.
