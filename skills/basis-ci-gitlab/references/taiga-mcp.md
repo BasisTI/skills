@@ -34,7 +34,10 @@ projeto no Taiga, que guardam dado estruturado em vez de texto solto:
 | `Data do teste` | data | quem testou |
 
 Bloqueio usa o campo nativo da story, `is_blocked` + `blocked_note`. O registro de início
-inclui também o `assigned_to` do executor, que o MCP grava.
+também **acrescenta** o executor em `assigned_users`, a lista de responsáveis, mantendo quem
+já estava. Não use o `assigned_to` do `taiga_stories_update` para isso: ele troca o
+responsável principal, e na US #14 do `plataforma-iac` a pessoa dona do card saiu dele sem
+aviso (`[6]` virou `[166]`).
 
 A mudança de status acompanha o registro, mas **o status nunca é evidência do registro**:
 uma story arrastada de volta para `Ready` com `Início da implementação` preenchido continua
@@ -55,7 +58,13 @@ mesma conta de serviço do servidor MCP (as variáveis `TAIGA_BASE_URL`, `TAIGA_
 `AGENTS.md` ou de quem pediu — pergunte. O valor da senha e o token não vão para log,
 comentário, commit nem relatório.
 
+Carregue a credencial com `source scripts/taiga-env.sh <arquivo>`: ele lê tanto a lista de
+ambiente de um `compose.yaml` (`- TAIGA_USERNAME=...`) quanto um `.env`, exporta as três
+variáveis e lista só os nomes. Não escreva um parser na hora, e não use `cat`, `grep` ou
+`env` para conferir — isso imprime a senha.
+
 ```bash
+source scripts/taiga-env.sh <arquivo>      # caminho da skill; o arquivo vem do AGENTS.md
 API="${TAIGA_BASE_URL%/}/api/v1"
 TOKEN=$(jq -n --arg u "$TAIGA_USERNAME" --arg p "$TAIGA_PASSWORD" '{type:"normal",username:$u,password:$p}' \
   | curl -s -X POST -H 'Content-Type: application/json' -d @- "$API/auth" | jq -r .auth_token)
@@ -71,14 +80,21 @@ curl -s "${H[@]}" "$API/userstories/custom-attributes-values/<story_id>"
 curl -s -X PATCH "${H[@]}" "$API/userstories/custom-attributes-values/<story_id>" \
   -d '{"attributes_values": {"<id>": "<valor>", ...}, "version": <n>}'
 
+# responsáveis: a lista atual mais o executor (version da story)
+curl -s "${H[@]}" "$API/userstories/<story_id>" | jq '{assigned_users, version}'
+curl -s -X PATCH "${H[@]}" "$API/userstories/<story_id>" \
+  -d '{"assigned_users": [<atuais>, <executor>], "version": <n>}'
+
 # bloqueio, na própria story (version da story, não o dos valores)
 curl -s -X PATCH "${H[@]}" "$API/userstories/<story_id>" \
   -d '{"is_blocked": true, "blocked_note": "<causa>", "version": <n>}'
 ```
 
-As leituras foram conferidas na instância da Basis em 2026-09-27 (projeto 35, story 1063).
-As escritas seguem a [documentação da API](https://docs.taiga.io/api.html) e **ainda não
-foram exercitadas**: confirme no piloto. Duas regras valem para as duas:
+O que já foi exercitado na instância da Basis, em 2026-09-27: as leituras (projeto 35, story
+1063) e a gravação dos valores (`plataforma-iac`, US #14: `version` 1→2, dicionário relido
+igual). O `PATCH` de `assigned_users` e o de bloqueio seguem a
+[documentação da API](https://docs.taiga.io/api.html) e **ainda não foram exercitados**:
+confira o resultado relendo a story. Duas regras valem para todas as escritas:
 
 - **Leia antes de gravar, e grave o dicionário inteiro.** O `version` é controle de
   concorrência: com o valor velho, a API recusa, e a resposta certa é ler de novo, não
@@ -128,6 +144,13 @@ test` nem os seguintes.
 tag, overlay e pods —, descrita em [`cadeia-de-entrega.md`](cadeia-de-entrega.md). Tag
 publicada no registry não basta.
 
+**Projeto sem staging.** Há projeto que não tem ambiente de teste da própria aplicação — o
+`plataforma-iac` roda só no cluster `infra`, com as tags de produção. O `AGENTS.md` do
+projeto diz qual ambiente faz papel de staging (linha `Staging` da tabela de identidade, §0
+do `SKILL.md`) ou que não há. Sem staging, "staging roda a versão" não se verifica e não se
+presume: `Ready for test` e `Waiting for deployment` usam o critério de produção — a story
+vai a `Ready for test` quando produção roda a versão, e a `Done` com o registro de teste.
+
 **Sem os opcionais.** Boards que não têm `In revision` nem `Waiting for deployment` — é o
 caso comum hoje — caem nos status existentes: `In progress` vai até staging rodar a versão,
 e `Ready for test` vai até `Done`. Todo critério tem para onde ir.
@@ -143,6 +166,33 @@ status `Archived` com `is_archived: true`. O que esta página controla é só o 
 mover para `Done`; mover para um status arquivado, ou usar `taiga_stories_archive_or_close`,
 é só a pedido.
 
+### Mudança de configuração (tag `config`)
+
+Story com a tag `config` é mudança **sem efeito no comportamento da aplicação**, e por isso
+não passa pelo teste em staging. Exemplos:
+
+- versão do template de CI ou do orchestrator, e o `ci/pipeline.toml`;
+- skills versionadas no repositório, `AGENTS.md` e documentação;
+- arquivos do fluxo de trabalho local, como `.worktreeinclude` e `.config/wt.toml`;
+- segredos locais fora do Git: a TG-31 do `plataforma-iac` trocou o `.env.example` por
+  `config/application-gitlab.yml` ignorado pelo Git, com `.gitignore`, README e só
+  comentários nos `application*.yml`.
+
+**Não é `config`** tudo o que mexe em código da aplicação — inclusive uma classe
+`@Configuration` do Spring —, um **valor** num `application*.yml` empacotado com a
+aplicação, ou uma dependência no `pom.xml`: isso muda o comportamento e segue o fluxo
+completo. Na dúvida, não é `config`. A tag é classificação posta por quem escreve a story; o executor que discordar
+reporta, em vez de trocar a tag.
+
+O que muda no fluxo:
+
+| Etapa | Com a tag `config` |
+|---|---|
+| Worktree, branch `TG-xx`, MR com squash para `develop` | Igual: o arquivo continua no repositório |
+| Registro de início, ciclo da MR até a devolução | Igual |
+| Registro de teste, `Ready for test`, `Waiting for deployment` | Não se aplicam |
+| `Done` | MR mergeada **e** a primeira pipeline de `develop` que contém o merge terminou verde — a prova de que a configuração nova não quebrou a pipeline |
+
 ### Regras de auditoria (conferir se o status está certo)
 
 Auditar é comparar o status atual da story com o que as evidências dizem que ele deveria
@@ -151,6 +201,8 @@ ser.
 - **Precedência.** Avalie do mais avançado para o menos: `Done`, `Waiting for deployment`,
   `Ready for test`, `In revision`, `In progress`, `Ready`, `New`. O primeiro critério
   satisfeito é o status esperado. Status opcional que o board não tem sai da lista.
+- **Story com a tag `config`** segue a tabela da seção anterior: sem registro de teste nem
+  staging, e `Done` pela MR mergeada com a pipeline de `develop` verde.
 - **Story em status arquivado** (`is_archived: true`, como o `Archived` do Ponto) fica fora
   da auditoria de transição: alguém a tirou do fluxo de propósito. Reporte o status, sem
   recomendar movê-la.
@@ -163,6 +215,11 @@ ser.
 - **MR `TG-xx` sem registro de início também é trabalho.** Alguém começou sem registrar: o
   esperado é `In progress` (ou mais avançado, pelos outros critérios), e o relatório aponta
   o registro que falta.
+- **Entregue pela MR de outra story.** Sem MR `TG-xx` própria, procure também MRs que citem
+  a story no título ou na descrição (`#xx`, `TG-xx`): `glab mr list --search TG-xx --all` e
+  `--search "#xx"`. Achando, reporte "entregue por TG-yy, a confirmar" com a cadeia da MR
+  achada, sem inferir o status — quem decide é a pessoa. Foi o caso da US #12 do
+  `plataforma-iac`, entregue pela TG-11 e auditada como `Ready` pela regra estrita.
 - **Worktree sem registro de início não conta.** O orquestrador prepara worktrees de
   antemão; worktree existir é preparação, não início ([`worktree.md`](worktree.md)).
 - **Evidência inacessível** — API fora, overlay ilegível, story sem acesso: o resultado é

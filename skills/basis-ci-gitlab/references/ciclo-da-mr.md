@@ -40,6 +40,19 @@ Aceite a pipeline só quando as duas condições valem:
   `check-quality` não analisou nada (MR aberta para `main`, `ref` do template antigo, ou
   pipeline de branch em vez de pipeline de MR).
 
+**Para esperar, use `scripts/esperar-pipeline-mr.sh <mr>`**, de dentro do repositório. Ele
+repete a leitura acima até o `head_pipeline` ser do head e ter terminado, e sai com 0 (aceita:
+pipeline e `check-quality` em `success`), 1 (terminou e não serve), ou 3 (limite de tempo,
+padrão 1 h). Imprime uma linha por mudança de estado e sempre o resumo final — rode-o direto
+num monitor ou em segundo plano, sem laço em volta. Não improvise essa espera: na US #14 do
+`plataforma-iac`, um laço feito na hora com `set -- $out` sob zsh nunca casou o SHA, e o
+agente ficou 30 minutos parado depois de a pipeline terminar, até o monitor estourar.
+
+Depois do push, o `head_pipeline` pode continuar na pipeline anterior por alguns minutos,
+com a nova já rodando: é esperar o SHA bater, não aceitar a antiga. Na listagem de pipelines
+da MR (`merge_requests/<iid>/pipelines`) aparecem também pipelines de origem `external` —
+os status que o Sonar publica —, que não são a pipeline da MR; o `head_pipeline` não as usa.
+
 O GitLab da Basis é CE (18.0.2 em 2026-09-27), sem *merged results pipelines*: a pipeline de
 MR roda no próprio head, e a comparação de SHA é direta.
 
@@ -52,9 +65,12 @@ da pipeline aceita — vão para o relatório.
 Leia as falhas e as issues do Sonar, corrija, faça commit e push — e **volte ao passo 2 a
 cada push**. A pipeline verde anterior não vale para o SHA novo.
 
-Cada rodada que termina reprovada conta como uma **tentativa registrada**: a causa (o job e
-a mensagem, ou a regra do Sonar e o arquivo) e o que foi mudado. É o registro que decide o
-desfecho.
+Conta como **tentativa registrada** a rodada que empurrou uma correção para a causa e
+terminou reprovada: a causa (o job e a mensagem, ou a regra do Sonar e o arquivo) e o que foi
+mudado. Pipeline de um SHA já superado, ou de um push que não tentava corrigir aquela causa
+(um ajuste de nome de teste, por exemplo), não conta — senão duas pipelines reprovadas pela
+mesma causa antes de qualquer correção já seriam 2 das 3 tentativas. É o registro que
+decide o desfecho.
 
 ## 4. Os dois desfechos
 
@@ -99,7 +115,20 @@ resolvidas. A evidência é a que prova a funcionalidade: captura de tela para t
 job ou integração, resposta de API para endpoint, relatório de teste para regra de negócio.
 Evidência que fica só no worktree some com o `wt remove`.
 
+**Tela atrás de login que o agente não completa** (SSO, autorização OAuth do GitLab): use a
+tela renderizada nos testes — o HTML que o servidor devolve, com o CSS do build, capturado
+num navegador sem sessão — e **diga no comentário** que não houve sessão real. A captura com
+login fica para quem revisa. Não contorne a autenticação para tirar a foto.
+
+**As discussões do Sonar se resolvem sozinhas.** Quando o quality gate passa, o Sonar marca
+como resolvidas as discussões que abriu na MR. O executor não resolve discussão nenhuma à
+mão — nem as do Sonar, nem as de quem revisa.
+
 ## O relatório de devolução
+
+Vai para quem pediu o trabalho — o orquestrador, ou a pessoa, na resposta final —, e um
+resumo (desfecho, pipeline aceita, links das evidências) vai num comentário não resolvível
+da MR, para quem revisa sem acesso à conversa.
 
 - Desfecho: `devolvida` | `bloqueada` | `falhou`
 - Link da MR

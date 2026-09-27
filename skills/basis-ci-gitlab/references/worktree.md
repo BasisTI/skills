@@ -15,7 +15,7 @@ que o fluxo da Basis exige.
 ```sh
 git fetch origin
 wt switch --create TG-xx --base origin/develop    # cria ../<repo>.TG-xx
-wt step copy-ignored --to TG-xx                   # .env, caches, target/
+wt step copy-ignored --to TG-xx                   # só se o projeto não tiver o hook pre-start
 ```
 
 O worktree nasce em `../<repo>.TG-xx`, irmão do repositório principal — o padrão do
@@ -43,13 +43,45 @@ principal.
   principal. Num worktree em `/tmp` ou em outra pasta, a sessão cai fora do workspace e a
   memória não aparece nem é gravada no lugar certo.
 
-## O que o `copy-ignored` copia
+## Segredos locais e o que o `copy-ignored` copia
 
-`wt step copy-ignored` copia **tudo** o que é gitignored do worktree principal: `.env`,
-`target/`, `node_modules/`, caches. Para limitar, o projeto mantém um `.worktreeinclude` na
-raiz. Um arquivo só é copiado se estiver ignorado pelo git **e** listado no
-`.worktreeinclude` — listar um arquivo versionado não faz nada, e é a primeira coisa a
-conferir quando "o arquivo não veio".
+Os segredos de desenvolvimento local — credenciais de OAuth, tokens de integração — ficam
+**uma vez**, no checkout principal, numa pasta ignorada pelo Git (no `plataforma-iac`,
+`config/`). Cada worktree recebe uma cópia na criação, e ninguém começa uma story com
+configuração faltando ou errada.
+
+`wt step copy-ignored` copia do checkout principal o que é ignorado pelo Git. Sem
+`.worktreeinclude`, copia **tudo** o que é ignorado (166 MiB no `plataforma-iac`, com
+`node_modules/` e `target/`). Com o arquivo, copia **só** o que estiver ignorado **e**
+listado — então liste também o que evita começar do zero:
+
+```text
+# .worktreeinclude
+config/
+node_modules/
+```
+
+Listar arquivo versionado não faz nada; é a primeira coisa a conferir quando "o arquivo não
+veio".
+
+Para a cópia acontecer sozinha, o projeto declara o hook em `.config/wt.toml`:
+
+```toml
+# .config/wt.toml
+pre-start = "wt step copy-ignored"
+```
+
+- **`pre-start`, não `post-start`.** O `post-start` roda em segundo plano, e o agente que
+  entra no worktree logo depois pode começar antes de `config/` existir. O `pre-start`
+  termina antes de o `wt switch --create` devolver.
+- **Hook de projeto pede aprovação** na primeira vez, em cada máquina, e de novo quando o
+  comando muda. Quem cria worktrees sem terminal interativo (orquestrador, agente) não
+  aprova: uma pessoa roda `wt config approvals add` no repositório antes, uma vez. Sem a
+  aprovação, o hook é pulado e o worktree nasce sem os segredos. Hook na configuração do usuário
+  (`~/.config/worktrunk/config.toml`) não pede aprovação e vale para todos os repositórios.
+- **A cópia não sobrescreve.** Arquivo que já existe no worktree fica como está: segredo
+  trocado no checkout principal não chega a worktrees antigos sozinho. Para atualizar:
+  `wt step copy-ignored --to TG-xx --force`.
 
 ## Upstream e o primeiro push
 
