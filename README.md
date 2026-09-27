@@ -6,7 +6,7 @@ Agent skills com os padrões de engenharia da [Basis](https://www.basis.com.br) 
 
 | Skill | Quando ativar |
 |-------|---------------|
-| [`basis-ci-gitlab`](skills/basis-ci-gitlab/SKILL.md) | Fluxo de uma mudança, do card do Taiga à imagem promovida: branch `TG-xxx`, mensagem de commit, flags da MR, `ci/pipeline.toml`, o template de CI compartilhado, as funções do orchestrator Dagger, e por que a análise do Sonar não rodou/não decorou/não avaliou nada. Traz script. |
+| [`basis-ci-gitlab`](skills/basis-ci-gitlab/SKILL.md) | Fluxo de uma mudança, do card do Taiga à imagem promovida: branch `TG-xxx`, mensagem de commit, flags da MR, `ci/pipeline.toml`, o template de CI compartilhado, as funções do orchestrator Dagger, por que a análise do Sonar não rodou/não decorou/não avaliou nada, worktree por story, status verificáveis e ciclo da MR até a devolução. Traz script. |
 | [`basis-k8s-deploy`](skills/basis-k8s-deploy/SKILL.md) | Deploy/infra: kustomize base+overlays, ArgoCD + Image Updater, secrets de operators (Postgres/RabbitMQ/Minio/MariaDB/Redis), tags CalVer. Pareada com `basis-ci-gitlab` — a fronteira é a imagem no registry com a tag de produção. |
 | [`basis-spring-app`](skills/basis-spring-app/SKILL.md) | Apps Spring: Java LTS + Maven + Spring Modulith, `application.*` em `@ConfigurationProperties`, Postgres + Flyway, Spring Cloud Stream RabbitMQ, Thymeleaf + HTMX + Tailwind + DaisyUI, Keycloak OIDC, Actuator, dev local com Docker Compose, banner de startup + logs de DEBUG, testes de estrutura Modulith. |
 | [`basis-python-app`](skills/basis-python-app/SKILL.md) | Apps Python: 3.13+ com `uv` obrigatório, ruff, pytest, Dockerfile multi-stage, workspace só com 2+ components. |

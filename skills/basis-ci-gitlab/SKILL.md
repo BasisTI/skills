@@ -1,22 +1,17 @@
 ---
 name: basis-ci-gitlab
 description: >-
-  Fluxo de uma mudança na Basis, do card do Taiga até a imagem promovida em produção —
-  branch `TG-xxx` a partir de `develop`, mensagem de commit, flags da MR,
-  `ci/pipeline.toml`, o template de CI compartilhado e as funções do orchestrator Dagger.
-  Use quando alguém disser "como nomeio a branch", "abrir MR pra develop", "posso marcar
-  squash?", "minha pipeline falhou", "o check-quality quebrou", "o Sonar não comentou na
-  MR", "o quality gate passou mas não testou nada", "o promote subiu versão velha", "a
-  pipeline da MR aparece skipped e deixou mergear", "Project not found or access denied",
-  "chave desconhecida no pipeline.toml", "quero rodar a pipeline na minha máquina", "subir
-  isso pra produção", "criar o projeto no Sonar", "qual ref do ci-templates eu uso", "qual
-  o id da story", "cria a user story". O mapa de identidade do projeto (id do GitLab, app
-  do ArgoCD, id do Taiga, pasta no IaC, projeto no Sonar, grupo no registry) vive no
-  `AGENTS.md` do repositório; se não estiver lá, pergunte — não descubra. Prefira esta à
-  `basis-k8s-deploy` quando a pergunta parar na imagem publicada e não chegar no manifesto,
-  porque o sintoma engana — "a versão nova não subiu em produção" quase sempre é promote ou
-  tag, e não ArgoCD. Regra de código que o Sonar cobra é `basis-java-code-standards`; aqui
-  está por que a análise não rodou, não decorou a MR, ou passou sem avaliar nada.
+  Fluxo de uma mudança na Basis, do card do Taiga à imagem em produção: worktree e branch
+  `TG-xxx`, status da story, commit, MR até a devolução, `ci/pipeline.toml`, template de CI
+  e orchestrator Dagger. Use quando alguém disser "como nomeio a branch", "worktree",
+  "trabalhar em paralelo", "retomar a story", "posso marcar squash?", "devolver a MR", "a
+  story está no status certo?", "minha pipeline falhou", "o Sonar não comentou na MR", "o
+  quality gate passou mas não testou nada", "criar o projeto no Sonar", "o promote subiu
+  versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
+  "chave desconhecida no pipeline.toml", "qual ref do ci-templates eu uso", "rodar a
+  pipeline na minha máquina", "subir pra produção", "cria a user story". Identidade do
+  projeto vem do `AGENTS.md`; se faltar, pergunte. Prefira à `basis-k8s-deploy` quando a
+  pergunta parar na imagem publicada.
 ---
 
 # CI no GitLab: do card à imagem em produção
@@ -45,7 +40,9 @@ produção"*. Ou vai integrar um projeto novo na CI e pergunta o que precisa exi
 
 **Esta skill não cobre** manifesto, kustomize, ArgoCD, Image Updater ou operadores — isso é
 `basis-k8s-deploy`. A fronteira é a imagem no registry com a tag de produção: até lá, aqui;
-dali em diante, lá.
+dali em diante, lá. A exceção é **ler**: para dizer se uma story está em `Ready for test` ou
+`Done`, a auditoria atravessa a fronteira e confere overlay, ArgoCD e digest dos pods, sem
+mudar nada ([`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md)).
 
 ## Os três hábitos que resolvem
 
@@ -105,14 +102,22 @@ momento de precisar dele já é o handoff para `basis-k8s-deploy`.
 ## 1. O caminho de uma mudança
 
 ```
-card no Taiga  →  branch TG-xxx (de develop)  →  commits  →  MR para develop
-    →  check-quality  →  merge (squash)  →  publish-develop  →  staging
+card no Taiga  →  worktree + branch TG-xxx (de origin/develop)  →  commits  →  MR para develop
+    →  check-quality (ciclo até devolver)  →  merge (squash)  →  publish-develop  →  staging
         →  MR develop→main (sem squash)  →  promote  →  produção
 ```
 
 **Branch:** criada a partir de `develop`, nomeada `TG-xxx` onde `xxx` é o número da user
 story no Taiga. Não é estética: existe integração GitLab↔Taiga, e é o nome que costura o
 código ao card.
+
+**Worktree:** um por story, irmão do repositório principal, em `../<repo>.TG-xxx`. É o que
+deixa vários agentes trabalharem no mesmo repositório sem um trocar a branch do outro.
+Começar é `git fetch origin` e `wt switch --create TG-xxx --base origin/develop`; retomar
+uma story com MR aberta é `git fetch origin` e `wt switch TG-xxx`, sem `--create`, na mesma
+MR — MR já mergeada não se retoma, a rodada nova é worktree e MR novos. O `wt` não muda o
+diretório do shell de um agente: os comandos seguintes rodam no caminho do worktree. Por que
+irmão, o que copiar, upstream e remoção em [`references/worktree.md`](references/worktree.md).
 
 **Commit:** verbo no infinitivo, e ` - TG-xxx` no fim.
 
@@ -125,6 +130,15 @@ está descrevendo o que você fez, não o que o commit faz — e é a segunda qu
 o log depois.
 
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**.
+
+**Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
+é o head da MR e o `check-quality` terminou (nem `skipped`, nem ausente) — `glab ci status` lê a branch e pode mostrar o
+verde de um SHA antigo. Corrigir e empurrar recomeça a checagem. Suspeita de falso positivo
+do Sonar é listada para quem revisa, nunca marcada nem suprimida, e a pipeline segue
+declarada reprovada. Evidência de cada funcionalidade vai num comentário não resolvível da
+MR. O ciclo termina **devolvida** (verde, ou reprovada só por suspeitas) ou **interrompida**
+(mesma causa em 3 tentativas, ou impedimento externo), com relatório, e o agente para ali.
+Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
@@ -156,11 +170,17 @@ skill não estiver configurada com o servidor, pergunte — não tente adivinhar
 do nome do repositório, porque eles divergem (`triagem.ai` no GitLab é `triagemai` no
 Taiga; `contavinculada` é `conta-vinculada`).
 
-Os critérios para mover a story entre `New`, `Ready`, `In Progress`, `Ready For Test` e
-`Done`, e o uso de `taiga_stories_update`, estão em
-[`references/taiga-mcp.md`](references/taiga-mcp.md). `Done` é status de conclusão da
-story; não arquive nem remova a story do board automaticamente. Confirme mudanças visíveis
-no board antes de executá-las.
+**Status: critério para mover e regra para auditar.** Os nomes vêm do board
+(`taiga_projects_get` → `us_statuses`), não da memória: o Ponto grafa `In progress` e
+`Ready for test`. Cada status tem um critério verificável: `In progress` exige o **registro
+de início** (campos customizados, gravados pela API do Taiga enquanto o MCP não os cobre),
+não commits; `Ready for test` exige staging rodando a versão; `Done` exige o **registro de
+teste** e produção rodando a versão — a cadeia completa até os pods, não a tag no registry.
+`In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
+status existentes. Arquivar é só a pedido. A auditoria compara o status com as evidências e
+reporta; transição se confirma com quem pediu antes de executar.
+Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
+cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
 
 ## 3. `ci/pipeline.toml` é a fonte de verdade
 
@@ -451,6 +471,9 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 | Erro de certificado ao chamar serviço interno do `dagger call` local | DNS: o engine não usa o resolvedor da VPN |
 | Erro de credencial num build, com a variável criada e correta no GitLab | Container hermético: o segredo só entra por flag `env:NOME` do orchestrator (§5) |
 | Target `dockerfile` não encontra o arquivo | O nome é `Dockerfile`, case-sensitive |
+| MR "verde" e o Sonar reclama do último push | Pipeline lida por branch ou de SHA antigo; ler `head_pipeline` da MR |
+| Auditoria diz `Ready` e alguém está trabalhando | Critério por commits; o início se prova pelo registro, não pelo git |
+| `production-*` no registry e a story não é `Done` | Overlay/ArgoCD ainda na versão anterior; ver a cadeia de entrega |
 
 ## O que engana
 
@@ -476,11 +499,20 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 
 **Antes de abrir a MR para `develop`:**
 
+- [ ] Worktree próprio da story, criado a partir de `origin/develop` (ou retomado sem `--create`)
 - [ ] Branch nomeada `TG-xxx` com o número da story
+- [ ] Registro de início feito na story (campos customizados + `assigned_to`)
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
 - [ ] `validate` do orchestrator rodou local e passou
 - [ ] Se o projeto é novo no Sonar, foi semeado antes
 - [ ] Delete Branch e Squash commits marcados
+
+**Antes de devolver a MR:**
+
+- [ ] `head_pipeline.sha` igual ao head da MR, e `check-quality` executou (não `skipped`)
+- [ ] Evidências em comentário não resolvível, um por funcionalidade
+- [ ] Suspeitas de falso positivo listadas, não marcadas no Sonar nem suprimidas
+- [ ] Relatório completo, com o desfecho
 
 **Antes de promover para `main`:**
 
@@ -493,6 +525,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 | Script | Muta? | Uso |
 |---|---|---|
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
+| `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board os status `In revision` e `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
 
 ## References
 
@@ -507,4 +540,11 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [`references/glab-argocd-cli.md`](references/glab-argocd-cli.md) — receitas verificadas de
   `glab`, `argocd`, `sonar` e `kubectl`.
 - [`references/taiga-mcp.md`](references/taiga-mcp.md) — as ferramentas `mcp__taiga__*`, o
-  que devolvem, e as que estão bloqueadas.
+  que devolvem, as que estão bloqueadas, e os status: registros, critérios de transição e
+  regras de auditoria.
+- [`references/worktree.md`](references/worktree.md) — worktree por story: criar, retomar,
+  `copy-ignored`, upstream e remoção.
+- [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md) — os cinco elos do
+  commit do merge até os pods, que provam "staging/produção roda a versão".
+- [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md) — da abertura à devolução:
+  pipeline do head, desfechos, falso positivo, evidências e relatório.

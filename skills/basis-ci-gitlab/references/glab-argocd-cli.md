@@ -42,6 +42,15 @@ glab api "projects/:id/jobs/<job_id>/trace"              # log completo do job
 O `trace` é texto puro. Para achar a causa num log longo, filtre pelo fim — o erro real
 costuma estar antes do ruído de shutdown (ver `dagger-local.md`).
 
+A pipeline de uma MR se lê na própria MR, pelo `head_pipeline`, e só vale se o SHA dela for
+o head da MR — logo depois de um push, ela ainda é a do SHA anterior:
+
+```bash
+glab mr view <mr> --output json | jq '{sha, head_pipeline: {id: .head_pipeline.id, sha: .head_pipeline.sha, status: .head_pipeline.status, web_url: .head_pipeline.web_url}}'
+```
+
+Critérios de aceite e o ciclo completo em `ciclo-da-mr.md`.
+
 ### Variáveis de CI
 
 ```bash
