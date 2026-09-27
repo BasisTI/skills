@@ -87,10 +87,25 @@ foram exercitadas**: confirme no piloto. Duas regras valem para as duas:
 
 **Projeto sem os campos definidos** — o caso do Sistema de Ponto em 2026-09-27
 (`userstory_custom_attributes: null`) — não tem onde registrar. Isso não autoriza trocar o
-registro por tag ou por texto na descrição: reporte e pergunte. Definir os campos é ação de
-quem tem `admin_project_values` no projeto, pela interface ou por
-`POST /userstory-custom-attributes`; os tipos disponíveis são os do Taiga (`text`, `date`,
-`checkbox`…), e a hora exata do início fica no histórico da story.
+registro por tag ou por texto na descrição: reporte e pergunte.
+
+### Preparar o board de um projeto
+
+`scripts/configurar-taiga-projeto.sh <project_id>` cria o que o fluxo espera: os status
+opcionais `In revision` (depois de `In progress`) e `Waiting for deployment` (depois de
+`Ready for test`), pelo `userstory-statuses`, e os seis campos da tabela acima, pelo
+`userstory-custom-attributes`. Sem `--apply` ele só mostra o plano; com `--apply` grava,
+reordena os status e relê o resultado da API. É idempotente: o que já existe com o mesmo
+nome fica como está.
+
+Configurar o board é mudança visível para o time inteiro: rode o plano, mostre-o a quem
+pediu e só então aplique. Exige `admin_project_values` no projeto, que a conta de serviço
+do MCP normalmente não tem — o script confere antes de gravar e recusa (saída 3); nesse
+caso quem aplica é um admin do projeto, com a própria credencial em `TAIGA_TOKEN` ou
+`TAIGA_USERNAME`/`TAIGA_PASSWORD`. Board sem os status âncora (`in-progress`,
+`ready-for-test`) é board fora do padrão: o script para (saída 4) em vez de adivinhar onde
+encaixar. Os tipos dos campos são os do Taiga (`text`, `date`, `checkbox`); a hora exata do
+início fica no histórico da story.
 
 ### Critérios de transição (quando mover)
 

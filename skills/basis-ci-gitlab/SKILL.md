@@ -525,6 +525,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 | Script | Muta? | Uso |
 |---|---|---|
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
+| `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board os status `In revision` e `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
 
 ## References
 
