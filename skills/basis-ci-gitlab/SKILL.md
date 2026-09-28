@@ -5,7 +5,7 @@ description: >-
   `TG-xxx`, status da story, commit, MR até a revisão, `ci/pipeline.toml`, template de CI
   e orchestrator Dagger. Use quando alguém disser "como nomeio a branch", "worktree",
   "trabalhar em paralelo", "retomar a story", "posso marcar squash?", "devolver a MR",
-  "revisar a MR", "a
+  "revisar a MR", "revisão geral", "a
   story está no status certo?", "minha pipeline falhou", "o Sonar não comentou na MR", "o
   quality gate passou mas não testou nada", "criar o projeto no Sonar", "o promote subiu
   versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
@@ -190,7 +190,9 @@ teste** e produção rodando a versão — a cadeia completa até os pods, não 
 `In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
 status existentes. Story com a tag `config` — mudança sem efeito no comportamento da
 aplicação, nunca código, nem uma classe `@Configuration` — dispensa o teste em staging e
-chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Story bloqueada é
+chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Story com a tag `review`
+— revisão com o `qa-adversarial` sobre código já mergeado — não tem MR: o relatório vai num
+comentário da story (`Ready for test`), e a triagem humana dos achados a leva a `Done`. Story bloqueada é
 desbloqueada por quem a retoma, no começo da rodada, depois de conferir na fonte que a causa
 do `blocked_note` se resolveu. Arquivar é só a pedido. A auditoria compara o status com as evidências e
 reporta; transição se confirma com quem pediu antes de executar.

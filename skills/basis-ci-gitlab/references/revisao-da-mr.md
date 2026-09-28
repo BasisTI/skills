@@ -6,6 +6,9 @@ parte da premissa de que a MR tem defeito e procura o caso que prova. O valor de
 carregar a intenção de quem escreveu — por isso nunca é o executor revendo o próprio
 trabalho. O merge continua humano.
 
+Código que já foi mergeado sem esta revisão se revisa numa story com a tag `review`
+([`taiga-mcp.md`](taiga-mcp.md#revisão-global-tag-review)).
+
 ## 1. Lançar o revisor
 
 Quem lança é quem lançou o executor — o orquestrador, ou quem pediu —, logo depois do
