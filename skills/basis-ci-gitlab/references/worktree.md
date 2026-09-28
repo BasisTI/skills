@@ -24,6 +24,16 @@ worktrunk. Em `~/Projetos/Basis/ponto`, a story 58 fica em `~/Projetos/Basis/pon
 O `fetch` antes não é cerimônia: `--base origin/develop` parte da referência remota como ela
 está na sua máquina, e sem `fetch` a story começa de uma `develop` velha.
 
+### Base da branch
+
+A base é sempre `origin/develop`, inclusive quando a story depende de outra cuja MR ainda
+está aberta. Empilhar — trazer a branch da outra story para a `TG-xx` — faz a MR para
+`develop` carregar o diff das duas até a primeira ser mergeada, e a revisão da segunda
+passa a depender da primeira; apontar a MR para a branch da outra story tira dela o
+`check-quality`, que só roda com destino `develop`. Por isso é decisão de quem pediu. O
+executor para no impedimento ([`taiga-mcp.md`](taiga-mcp.md#a-story-pode-começar)); se
+quem pediu decidir empilhar, a descrição da MR diz qual MR precisa ser mergeada antes.
+
 **O `wt` não muda o diretório do shell do agente.** Sem a integração de shell ativa — o caso
 normal num agente —, ele avisa `Cannot change directory` e o shell continua no checkout
 principal, em `develop`. Todo comando seguinte roda no caminho do worktree: `cd` explícito

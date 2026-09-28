@@ -82,10 +82,12 @@ exclusivamente por suspeitas de falso positivo do Sonar (abaixo). Status → `In
 o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
 
 **Interrompida** — a **mesma causa** aparece em 3 tentativas registradas, ou há um
-impedimento externo: acesso, ambiente, dúvida de especificação. Uma correção que revela uma
+impedimento externo: acesso, ambiente, dúvida de especificação, dependência de story não
+mergeada ([`taiga-mcp.md`](taiga-mcp.md#a-story-pode-começar)). Uma correção que revela uma
 falha **nova** é progresso, não repetição. A contagem é por causa, no total da rodada: causas
 que se alternam (A, B, A, B, A) fecham 3 tentativas de A e interrompem. Registro de bloqueio
-(`is_blocked` + `blocked_note` com a causa, pela API); status continua `In progress`.
+(`is_blocked` + `blocked_note` com a causa, pela API); status continua `In progress` — ou o
+que era, se a interrupção veio antes do registro de início.
 Relatório com desfecho `bloqueada`, a causa, as tentativas e a última falha. `falhou` fica
 para a rodada que não chegou a nenhum dos dois desfechos por falha do próprio executor
 (sessão caiu, ferramenta indisponível no meio do ciclo).
@@ -141,6 +143,12 @@ da MR, para quem revisa sem acesso à conversa.
 - Sonar: `ok`, ou a lista de suspeitas de falso positivo
 - Testes executados e resultado
 - Tentativas (se interrompida), dúvidas e bloqueadores
+
+**Interrompida antes da MR** — a story não pôde começar, ou parou antes do primeiro push:
+desfecho `bloqueada`, a causa, e "não houve MR" no lugar dos itens de MR, pipeline,
+evidências e Sonar. O relatório vai só para quem pediu; o `blocked_note` da story faz o papel
+do comentário na MR. Diga também em que estado ficaram o worktree e a branch (limpo, com
+commits locais) e se o registro de início foi feito.
 
 ## Depois do desfecho
 

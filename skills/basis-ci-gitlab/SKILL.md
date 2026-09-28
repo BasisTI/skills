@@ -517,7 +517,8 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 
 - [ ] Worktree próprio da story, criado a partir de `origin/develop` (ou retomado sem `--create`)
 - [ ] Branch nomeada `TG-xxx` com o número da story
-- [ ] Registro de início feito na story (campos customizados + `assigned_to`)
+- [ ] Story pode começar: critérios de aceite presentes e o código de que depende já na `develop`
+- [ ] Registro de início feito na story (campos customizados + `assigned_users`)
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
 - [ ] Se tocou o `ci/pipeline.toml`: `validate` do orchestrator, na versão do template em uso, rodou local e passou
 - [ ] Se o projeto é novo no Sonar, foi semeado antes
