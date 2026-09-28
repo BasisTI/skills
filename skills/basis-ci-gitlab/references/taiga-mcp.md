@@ -45,8 +45,8 @@ com início registrado. O resto desta página diz "registro de início" e "regis
 
 **Registros valem para uma versão.** O registro de teste se refere à versão testada; quando
 a story é reaberta depois de uma entrega, quem reabre volta `Testado em staging` para "não",
-porque a próxima versão ainda não foi testada. Ao retomar uma story interrompida, o executor
-desfaz o bloqueio (`is_blocked: false`).
+porque a próxima versão ainda não foi testada. O bloqueio de uma story interrompida se desfaz
+ao retomá-la ([abaixo](#retomar-story-bloqueada)).
 
 ### Gravar e ler os registros pela API do Taiga
 
@@ -133,7 +133,7 @@ início fica no histórico da story.
 | `New` | A ideia existe; a especificação ainda precisa ser fechada |
 | `Ready` | Especificação concluída: critérios de aceitação presentes |
 | `In progress` | O executor começou de fato: registro de início feito. Commits não são exigidos |
-| `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)) |
+| `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)); volta a `In progress` se a revisão tiver achados ([`revisao-da-mr.md`](revisao-da-mr.md)) |
 | `Ready for test` | Staging roda a versão |
 | `Waiting for deployment` *(opcional)* | Staging roda a versão **e** registro de teste presente; produção ainda não roda a versão |
 | `Done` | Registro de teste presente **e** produção roda a versão |
@@ -244,8 +244,9 @@ compartilhado: **confirme a transição com quem pediu** e, depois, confira o re
 leitura da story.
 
 A exceção é um pacote de tarefa do orquestrador que liste transições explícitas — `In
-progress` ao começar, `In revision` ao devolver, registro de bloqueio ao interromper. Essas
-já vêm autorizadas. Nenhuma outra transição é implícita.
+progress` ao começar, `In revision` ao devolver, registro de bloqueio ao interromper,
+desbloqueio ao retomar, `In progress` de volta quando a revisão tem achados. Essas já vêm
+autorizadas. Nenhuma outra transição é implícita.
 
 ## O que existe
 
@@ -322,13 +323,14 @@ identidade do projeto — assim a próxima sessão não precisa consultar de nov
 ## O uso no fluxo
 
 ```
-1. taiga_stories_get(<id>)           → título, descrição, critérios
+1. taiga_stories_get(<id>)           → título, descrição, critérios, is_blocked
 2. worktree + branch TG-<id>         → worktree.md
-3. a story pode começar?             → abaixo; se não, bloqueio e para
+3. a story pode começar?             → abaixo; se não, bloqueio e para; bloqueada, desbloqueio
 4. registro de início                → campos pela API + assigned_users + In progress, com autorização
 5. commits "<Verbo> ... - TG-<id>"
 6. MR e ciclo até a devolução        → ciclo-da-mr.md
-7. taiga_stories_archive_or_close    ← somente se arquivamento/fechamento for pedido
+7. revisão por outro agente          → revisao-da-mr.md
+8. taiga_stories_archive_or_close    ← somente se arquivamento/fechamento for pedido
 ```
 
 O passo 1 é o que muda a qualidade do resto: com o título da story em mãos, a mensagem de
@@ -355,7 +357,24 @@ início e sem mudar o status, e relatório de interrompida
 ([`ciclo-da-mr.md`](ciclo-da-mr.md#4-os-dois-desfechos)). Empilhar a branch sobre a da outra
 story é decisão de quem pediu, não do executor ([`worktree.md`](worktree.md#base-da-branch)).
 
-**Cuidado com o passo 6.** Arquivar a story é uma ação visível para o time e é diferente de
+### Retomar story bloqueada
+
+Quem desbloqueia é **quem retoma a story, no começo da rodada nova** — não quem bloqueou,
+cuja sessão já terminou. O passo 3 se refaz a partir da causa do `blocked_note`: a condição
+que ele dá para retomar se confere na fonte (a MR citada está `merged`, o código de que a
+story depende está em `origin/develop`), e não se presume pelo tempo que passou.
+
+- **A causa se resolveu:** desbloqueie (`is_blocked: false`, `blocked_note: ""`, pela
+  [API](#gravar-e-ler-os-registros-pela-api-do-taiga), com o `version` relido), releia a
+  story e siga o fluxo. O registro de início que já existe não se refaz: faça só o que
+  falta. A branch parada numa `develop` velha avança antes do primeiro commit
+  ([`worktree.md`](worktree.md#retomar)).
+- **Não se resolveu:** a story continua bloqueada e a rodada termina interrompida. Se a
+  causa mudou, atualize o `blocked_note`.
+
+O desbloqueio segue a autorização das outras transições ([abaixo](#atualizar-o-status)).
+
+**Cuidado com o passo 8.** Arquivar a story é uma ação visível para o time e é diferente de
 movê-la para `Done`, mesmo num board em que `Done` fecha a story. Confirme antes — merge em `develop` não significa nem que staging já
 roda a versão ([`cadeia-de-entrega.md`](cadeia-de-entrega.md)), muito menos que a entrega foi
 aceita ou que a story deve sair do board.

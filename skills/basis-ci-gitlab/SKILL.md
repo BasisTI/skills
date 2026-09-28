@@ -2,9 +2,10 @@
 name: basis-ci-gitlab
 description: >-
   Fluxo de uma mudança na Basis, do card do Taiga à imagem em produção: worktree e branch
-  `TG-xxx`, status da story, commit, MR até a devolução, `ci/pipeline.toml`, template de CI
+  `TG-xxx`, status da story, commit, MR até a revisão, `ci/pipeline.toml`, template de CI
   e orchestrator Dagger. Use quando alguém disser "como nomeio a branch", "worktree",
-  "trabalhar em paralelo", "retomar a story", "posso marcar squash?", "devolver a MR", "a
+  "trabalhar em paralelo", "retomar a story", "posso marcar squash?", "devolver a MR",
+  "revisar a MR", "a
   story está no status certo?", "minha pipeline falhou", "o Sonar não comentou na MR", "o
   quality gate passou mas não testou nada", "criar o projeto no Sonar", "o promote subiu
   versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
@@ -105,7 +106,8 @@ momento de precisar dele já é o handoff para `basis-k8s-deploy`.
 
 ```
 card no Taiga  →  worktree + branch TG-xxx (de origin/develop)  →  commits  →  MR para develop
-    →  check-quality (ciclo até devolver)  →  merge (squash)  →  publish-develop  →  staging
+    →  check-quality (ciclo até devolver)  →  revisão (qa-adversarial)  →  merge (squash)
+        →  publish-develop  →  staging
         →  MR develop→main (sem squash)  →  promote  →  produção
 ```
 
@@ -142,6 +144,12 @@ declarada reprovada. Evidência de cada funcionalidade vai num comentário não 
 MR. O ciclo termina **devolvida** (verde, ou reprovada só por suspeitas) ou **interrompida**
 (mesma causa em 3 tentativas, ou impedimento externo), com relatório, e o agente para ali.
 Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
+
+**Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
+modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
+Achado `Bloqueante` ou `Sério` devolve a story a `In progress` para uma nova rodada na mesma
+MR; sem eles, a MR aguarda o merge, que é humano. Detalhe em
+[`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
@@ -182,7 +190,9 @@ teste** e produção rodando a versão — a cadeia completa até os pods, não 
 `In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
 status existentes. Story com a tag `config` — mudança sem efeito no comportamento da
 aplicação, nunca código, nem uma classe `@Configuration` — dispensa o teste em staging e
-chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Arquivar é só a pedido. A auditoria compara o status com as evidências e
+chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Story bloqueada é
+desbloqueada por quem a retoma, no começo da rodada, depois de conferir na fonte que a causa
+do `blocked_note` se resolveu. Arquivar é só a pedido. A auditoria compara o status com as evidências e
 reporta; transição se confirma com quem pediu antes de executar.
 Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
 cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
@@ -518,6 +528,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [ ] Worktree próprio da story, criado a partir de `origin/develop` (ou retomado sem `--create`)
 - [ ] Branch nomeada `TG-xxx` com o número da story
 - [ ] Story pode começar: critérios de aceite presentes e o código de que depende já na `develop`
+- [ ] Se a story estava bloqueada: causa conferida na fonte, bloqueio desfeito e branch atualizada a partir de `origin/develop`
 - [ ] Registro de início feito na story (campos customizados + `assigned_users`)
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
 - [ ] Se tocou o `ci/pipeline.toml`: `validate` do orchestrator, na versão do template em uso, rodou local e passou
@@ -530,6 +541,11 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [ ] Evidências em comentário não resolvível, um por funcionalidade
 - [ ] Suspeitas de falso positivo listadas, não marcadas no Sonar nem suprimidas
 - [ ] Relatório completo, com o desfecho
+
+**Antes do merge:**
+
+- [ ] Revisão `qa-adversarial` por outro agente, sobre o SHA atual da MR, com desfecho `aprovada`
+- [ ] Discussões dos achados resolvidas pela revisão que confirmou a correção
 
 **Antes de promover para `main`:**
 
@@ -567,3 +583,5 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
   commit do merge até os pods, que provam "staging/produção roda a versão".
 - [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md) — da abertura à devolução:
   pipeline do head, desfechos, falso positivo, evidências e relatório.
+- [`references/revisao-da-mr.md`](references/revisao-da-mr.md) — da devolução ao merge:
+  quem lança o `qa-adversarial`, onde vão os achados e os desfechos da revisão.

@@ -1,8 +1,9 @@
 # O ciclo da MR até a devolução
 
-Do primeiro push até a MR devolvida para revisão humana, no worktree da story
+Do primeiro push até a MR devolvida para revisão, no worktree da story
 ([`worktree.md`](worktree.md)). O trabalho termina num de dois **desfechos** — devolvida ou
-interrompida — e num relatório. Revisão e merge não fazem parte dele.
+interrompida — e num relatório. A revisão é de outro agente
+([`revisao-da-mr.md`](revisao-da-mr.md)), e o merge é humano.
 
 ## 1. Abrir a MR
 
@@ -17,10 +18,8 @@ glab mr create --target-branch develop --squash-before-merge --remove-source-bra
 **Retomada:** se há MR `TG-xx` **aberta**, a rodada continua nela — só `git push`. Uma
 segunda MR aberta para a mesma story divide a revisão e os comentários de evidência em dois
 lugares. `glab mr list --source-branch TG-xx` lista as abertas; MR já mergeada não se retoma
-(ver [`worktree.md`](worktree.md#retomar)).
-Na retomada de uma story interrompida, desfaça o bloqueio (`is_blocked: false`, pela API —
-ver [`taiga-mcp.md`](taiga-mcp.md#gravar-e-ler-os-registros-pela-api-do-taiga)) — com a
-mesma autorização das outras transições.
+(ver [`worktree.md`](worktree.md#retomar)). Story bloqueada chega aqui já desbloqueada:
+o desbloqueio é o começo da rodada ([`taiga-mcp.md`](taiga-mcp.md#retomar-story-bloqueada)).
 
 ## 2. Vincular a pipeline ao SHA revisado
 
@@ -98,7 +97,8 @@ confirmação de quem pediu.
 
 ## Suspeita de falso positivo do Sonar
 
-Quando uma issue parece falso positivo, **liste-a e deixe a decisão com quem revisa**. Para
+Quando uma issue parece falso positivo, **liste-a e deixe a decisão com a pessoa que faz o
+merge**. Para
 cada uma: regra, `arquivo:linha`, link da issue e uma linha de justificativa. E declare no
 relatório que **a pipeline continua reprovada** até alguém avaliar.
 
@@ -123,11 +123,11 @@ Evidência que fica só no worktree some com o `wt remove`.
 **Tela atrás de login que o agente não completa** (SSO, autorização OAuth do GitLab): use a
 tela renderizada nos testes — o HTML que o servidor devolve, com o CSS do build, capturado
 num navegador sem sessão — e **diga no comentário** que não houve sessão real. A captura com
-login fica para quem revisa. Não contorne a autenticação para tirar a foto.
+login fica para a pessoa que faz o merge. Não contorne a autenticação para tirar a foto.
 
 **As discussões do Sonar se resolvem sozinhas.** Quando o quality gate passa, o Sonar marca
 como resolvidas as discussões que abriu na MR. O executor não resolve discussão nenhuma à
-mão — nem as do Sonar, nem as de quem revisa.
+mão — nem as do Sonar, nem as da revisão.
 
 ## O relatório de devolução
 
@@ -152,7 +152,8 @@ commits locais) e se o registro de início foi feito.
 
 ## Depois do desfecho
 
-O agente **para**. Revisão e merge são humanos. As transições seguintes — `Ready for test`,
+O agente **para**. A revisão é outra rodada, de outro agente, com o `qa-adversarial`
+([`revisao-da-mr.md`](revisao-da-mr.md)); o merge é humano. As transições seguintes — `Ready for test`,
 `Waiting for deployment`, `Done` — são do orquestrador ou de quem acompanha, pelos critérios
 de [`taiga-mcp.md`](taiga-mcp.md) e pela [cadeia de entrega](cadeia-de-entrega.md). Se a
 revisão pedir mudança com a MR ainda aberta, a próxima rodada retoma o mesmo worktree e a

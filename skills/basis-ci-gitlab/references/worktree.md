@@ -146,6 +146,13 @@ branch divergente da MR, com push rejeitado. **Se `wt switch TG-xx` falhar, a re
 ou pergunte. Os pushes novos entram na mesma MR. Um worktree com alterações não commitadas é
 trabalho de alguém, não sujeira.
 
+**Branch que ficou atrás da `develop`.** A story bloqueada por dependência retoma num
+worktree criado antes do merge de que precisava: a `TG-xx` não tem o código novo. Sem
+commits próprios e sem push, `git merge --ff-only origin/develop` a leva até a `develop`
+atual (o `git pull --ff-only` acima não serve: a branch ainda não tem upstream). Com commits
+locais ainda sem push, é `git rebase origin/develop`. Depois do primeiro push, a MR já
+existe, e trazer a `develop` é decisão de quem pediu.
+
 **MR já mergeada não se retoma.** Se a story voltou depois do merge (teste em staging
 reprovou, story reaberta), os commits da branch já entraram em `develop` pelo squash:
 continuar em cima deles reabre a branch apagada e traz de novo conteúdo que já está em
