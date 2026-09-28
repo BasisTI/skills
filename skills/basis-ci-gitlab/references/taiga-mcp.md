@@ -194,6 +194,7 @@ O que muda no fluxo:
 |---|---|
 | Worktree, branch `TG-xx`, MR com squash para `develop` | Igual: o arquivo continua no repositório |
 | Registro de início, ciclo da MR até a devolução | Igual |
+| Revisão da MR pelo `qa-adversarial` | Não se aplica: sem comportamento novo, não há o que quebrar; a MR vai direto ao merge humano |
 | Registro de teste, `Ready for test`, `Waiting for deployment` | Não se aplicam |
 | `Done` | MR mergeada **e** a primeira pipeline de `develop` que contém o merge terminou verde — a prova de que a configuração nova não quebrou a pipeline |
 
