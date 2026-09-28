@@ -90,11 +90,13 @@ curl -s -X PATCH "${H[@]}" "$API/userstories/<story_id>" \
   -d '{"is_blocked": true, "blocked_note": "<causa>", "version": <n>}'
 ```
 
-O que já foi exercitado na instância da Basis, em 2026-09-27: as leituras (projeto 35, story
-1063) e a gravação dos valores (`plataforma-iac`, US #14: `version` 1→2, dicionário relido
-igual). O `PATCH` de `assigned_users` e o de bloqueio seguem a
-[documentação da API](https://docs.taiga.io/api.html) e **ainda não foram exercitados**:
-confira o resultado relendo a story. Duas regras valem para todas as escritas:
+Tudo acima foi exercitado na instância da Basis: as leituras (projeto 35, story 1063) e a
+gravação dos valores (`plataforma-iac`, US #14, 2026-09-27: `version` 1→2, dicionário relido
+igual); o `PATCH` de `assigned_users` e o de bloqueio (`plataforma-iac`, US #15, 2026-09-28).
+A API devolve `assigned_users` em outra ordem (`[6, 166]` gravado, `[166, 6]` relido) e não
+mexe no `assigned_to`: o que se confere é quem está na lista, não a ordem. A mudança de
+status pelo MCP também sobe o `version` da story — leia de novo antes do `PATCH` seguinte.
+Duas regras valem para todas as escritas:
 
 - **Leia antes de gravar, e grave o dicionário inteiro.** O `version` é controle de
   concorrência: com o valor velho, a API recusa, e a resposta certa é ler de novo, não
@@ -150,6 +152,8 @@ projeto diz qual ambiente faz papel de staging (linha `Staging` da tabela de ide
 do `SKILL.md`) ou que não há. Sem staging, "staging roda a versão" não se verifica e não se
 presume: `Ready for test` e `Waiting for deployment` usam o critério de produção — a story
 vai a `Ready for test` quando produção roda a versão, e a `Done` com o registro de teste.
+`AGENTS.md` sem a linha `Staging` não diz nem uma coisa nem outra: pergunte, e aponte no
+relatório a linha que falta.
 
 **Sem os opcionais.** Boards que não têm `In revision` nem `Waiting for deployment` — é o
 caso comum hoje — caem nos status existentes: `In progress` vai até staging rodar a versão,
@@ -320,14 +324,36 @@ identidade do projeto — assim a próxima sessão não precisa consultar de nov
 ```
 1. taiga_stories_get(<id>)           → título, descrição, critérios
 2. worktree + branch TG-<id>         → worktree.md
-3. registro de início                → campos pela API + assigned_to + In progress, com autorização
-4. commits "<Verbo> ... - TG-<id>"
-5. MR e ciclo até a devolução        → ciclo-da-mr.md
-6. taiga_stories_archive_or_close    ← somente se arquivamento/fechamento for pedido
+3. a story pode começar?             → abaixo; se não, bloqueio e para
+4. registro de início                → campos pela API + assigned_users + In progress, com autorização
+5. commits "<Verbo> ... - TG-<id>"
+6. MR e ciclo até a devolução        → ciclo-da-mr.md
+7. taiga_stories_archive_or_close    ← somente se arquivamento/fechamento for pedido
 ```
 
 O passo 1 é o que muda a qualidade do resto: com o título da story em mãos, a mensagem de
 commit sai no verbo certo e descreve o efeito, não o esforço.
+
+### A story pode começar?
+
+O passo 3 vem antes do registro de início porque o registro afirma que o trabalho começou:
+feito numa story que não pode andar, deixa no board um início sem trabalho atrás. Duas
+perguntas, respondidas pelo conteúdo da story, não pelo status:
+
+- **A especificação está fechada?** Critérios de aceite presentes na descrição — o critério
+  de `Ready`. Uma story em `New` com critérios pode começar quando quem pediu a entregou
+  para execução; uma em `Ready` sem critérios é dúvida de especificação.
+- **O que ela consome já está na `develop`?** Leia o que a descrição cita e a story vizinha
+  anterior (`neighbors` do `taiga_stories_get`), e confira em `origin/develop` o código de
+  que a story depende. Existindo só na branch de outra story, com MR aberta, é
+  **dependência de story não mergeada**. Na US #15 do `plataforma-iac` (B7), o IP a validar
+  era um campo do `Draft` da B6, que estava só na MR !24: sem ela, a validação não tinha
+  fluxo nenhum para bloquear.
+
+Qualquer "não" é impedimento externo: registro de bloqueio com a causa, **sem** registro de
+início e sem mudar o status, e relatório de interrompida
+([`ciclo-da-mr.md`](ciclo-da-mr.md#4-os-dois-desfechos)). Empilhar a branch sobre a da outra
+story é decisão de quem pediu, não do executor ([`worktree.md`](worktree.md#base-da-branch)).
 
 **Cuidado com o passo 6.** Arquivar a story é uma ação visível para o time e é diferente de
 movê-la para `Done`, mesmo num board em que `Done` fecha a story. Confirme antes — merge em `develop` não significa nem que staging já
