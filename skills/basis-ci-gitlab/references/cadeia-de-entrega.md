@@ -38,9 +38,11 @@ imagens, e cada uma tem a sua cadeia:
    carregar a mudança, não ser a primeira a carregá-la.
 3. **Tag da imagem.** A CalVer dessa pipeline, `YYYY.MM.DD.<CI_PIPELINE_IID>`. Em produção,
    `production-<calver>` com a mesma CalVer (§7 do `SKILL.md`).
-4. **Overlay do ambiente.** O `newTag` do `kustomization.yaml` do overlay em `argocd-apps`,
-   escrito pelo Image Updater, é igual à tag do elo 3 — ou a uma posterior que também
-   satisfaça o elo 2.
+4. **Overlay do ambiente.** A tag que o Image Updater escreveu no overlay em `argocd-apps` é
+   igual à do elo 3 — ou a uma posterior que também satisfaça o elo 2. Onde ela fica depende
+   da Application: com `write-back-target: kustomization`, no `newTag` do
+   `kustomization.yaml`; sem essa anotação, num `.argocd-source-<app>.yaml` ao lado dele, que
+   **prevalece** sobre o `newTag` — que então fica parado numa versão velha e engana.
 5. **O que está rodando.** A Application no ArgoCD está `Synced` e `Healthy`, **e** o digest
    da imagem dos pods é o digest da tag no registry. `Synced` sozinho diz que o cluster bate
    com o Git, não que o pod novo subiu.
@@ -80,8 +82,11 @@ O mapa de identidade do projeto (`AGENTS.md`) dá a pasta no IaC e a Application
 do `kubectl` e o namespace vêm do destino da Application.
 
 ```bash
-# elo 4: a tag no overlay, lida no remoto (o checkout local pode estar atrás)
+# elo 4: a tag no overlay, lida no remoto (o checkout local pode estar atrás);
+# o .argocd-source-<app>.yaml, se existir, vence o newTag do kustomization.yaml
 git -C "$REPO_IAC" fetch -q origin
+git -C "$REPO_IAC" ls-tree --name-only origin/main manifests/<app>/overlays/<env>/ | grep argocd-source
+git -C "$REPO_IAC" show origin/main:manifests/<app>/overlays/<env>/.argocd-source-<app>-<env>.yaml
 git -C "$REPO_IAC" show origin/main:manifests/<app>/overlays/<env>/kustomization.yaml | grep -A1 '<registry>/<group>/<image>'
 
 # elo 5: Application, digest da tag no registry e digest dos pods
@@ -101,6 +106,11 @@ Exemplo real, 2026-09-27: o overlay de staging do `ponto` estava em `2026.09.27.
 pipeline de `iid` 446 acima, que contém a MR !75. `ponto-staging` estava `Synced`/`Healthy`,
 e o único pod rodava `sha256:886d47fe…`, o mesmo digest de `ponto/ponto:2026.09.27.446` no
 registry. Cadeia fechada: staging roda a versão da !75.
+
+O caso do `.argocd-source`, no mesmo dia: no `plataforma-iac`, o `kustomization.yaml` do
+overlay `infra` dizia `production-2026.09.21.14`, e o `.argocd-source-plataforma-iac-infra.yaml`
+ao lado dizia `production-2026.09.26.60` — a que o pod de fato rodava, com o mesmo digest do
+registry. Quem lesse só o `newTag` concluiria que a versão nova não tinha chegado.
 
 ## O que não é produção
 

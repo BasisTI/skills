@@ -9,9 +9,9 @@ description: >-
   quality gate passou mas não testou nada", "criar o projeto no Sonar", "o promote subiu
   versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
   "chave desconhecida no pipeline.toml", "qual ref do ci-templates eu uso", "rodar a
-  pipeline na minha máquina", "subir pra produção", "cria a user story". Identidade do
-  projeto vem do `AGENTS.md`; se faltar, pergunte. Prefira à `basis-k8s-deploy` quando a
-  pergunta parar na imagem publicada.
+  pipeline na minha máquina", "subir pra produção", "cria a user story", "é só
+  configuração". Identidade do projeto vem do `AGENTS.md`; se faltar, pergunte. Prefira à
+  `basis-k8s-deploy` quando a pergunta parar na imagem publicada.
 ---
 
 # CI no GitLab: do card à imagem em produção
@@ -60,7 +60,7 @@ acontecem neste ambiente e estão documentadas abaixo.
 
 ## 0. O mapa de identidade do projeto
 
-Seis nomes que quase nunca são iguais entre si, e que o agente precisa para agir sem
+Sete nomes que quase nunca são iguais entre si, e que o agente precisa para agir sem
 adivinhar:
 
 | Chave | Exemplo | Onde é usada |
@@ -71,6 +71,7 @@ adivinhar:
 | Grupo no registry | `ponto` | `[project] group` do TOML |
 | Projeto no Sonar | `ponto` | chave permanente da análise |
 | Pasta no IaC | `manifests/ponto/` | handoff para `basis-k8s-deploy` |
+| Staging | `staging` (no `plataforma-iac`: não há) | critérios de status da story ([`references/taiga-mcp.md`](references/taiga-mcp.md)) |
 
 **Ordem de resolução:** o que veio no prompt → o `AGENTS.md` do repositório → **perguntar**.
 Nunca deduzir de um `find`, de um `git remote` ou da semelhança entre nomes. O grupo do
@@ -87,6 +88,7 @@ Bloco para colar no `AGENTS.md` do repositório:
 |------------|--------------------------|
 | GitLab     | basis/<repo> (id <NNNN>) |
 | Taiga      | <slug> (id <NN>)         |
+| Staging    | <ambiente>, ou "não há"  |
 | Registry   | <group>                  |
 | Sonar      | <chave>                  |
 | ArgoCD app | <app>                    |
@@ -132,7 +134,8 @@ o log depois.
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**.
 
 **Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
-é o head da MR e o `check-quality` terminou (nem `skipped`, nem ausente) — `glab ci status` lê a branch e pode mostrar o
+é o head da MR e o `check-quality` terminou (nem `skipped`, nem ausente; espere com
+`scripts/esperar-pipeline-mr.sh`) — `glab ci status` lê a branch e pode mostrar o
 verde de um SHA antigo. Corrigir e empurrar recomeça a checagem. Suspeita de falso positivo
 do Sonar é listada para quem revisa, nunca marcada nem suprimida, e a pipeline segue
 declarada reprovada. Evidência de cada funcionalidade vai num comentário não resolvível da
@@ -177,7 +180,9 @@ de início** (campos customizados, gravados pela API do Taiga enquanto o MCP nã
 não commits; `Ready for test` exige staging rodando a versão; `Done` exige o **registro de
 teste** e produção rodando a versão — a cadeia completa até os pods, não a tag no registry.
 `In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
-status existentes. Arquivar é só a pedido. A auditoria compara o status com as evidências e
+status existentes. Story com a tag `config` — mudança sem efeito no comportamento da
+aplicação, nunca código, nem uma classe `@Configuration` — dispensa o teste em staging e
+chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Arquivar é só a pedido. A auditoria compara o status com as evidências e
 reporta; transição se confirma com quem pediu antes de executar.
 Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
 cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
@@ -218,11 +223,21 @@ O mesmo princípio tem uma segunda face, que já custou uma promoção errada: u
 publicada precisa ser resolvida pelo commit mais recente **entre todos eles** — resolver só
 pelo caminho primário promove uma imagem velha, com a pipeline toda verde.
 
-Validar antes de empurrar:
+Validar antes de empurrar, **quando a mudança toca o `ci/pipeline.toml`** — é o que o
+`validate` avalia:
 
 ```bash
 dagger call -m github.com/BasisTI/daggerverse/orchestrator@<versão> \
   --source . --config-path ci/pipeline.toml validate
+```
+
+A `<versão>` é a que o template em uso chama, não a mais nova: pegue o `ref` do
+`.gitlab-ci.yml` e leia o template nesse `ref`.
+
+```bash
+REF=$(awk '/ref:/{gsub(/["\x27]/,"",$2); print $2; exit}' .gitlab-ci.yml)
+glab api "projects/basis%2Fiac%2Fci-templates/repository/files/templates%2Fdagger-orchestrator.gitlab-ci.yml/raw?ref=$REF" \
+  | grep -o 'orchestrator@[^ "]*' | sort -u          # v1.15.1 → orchestrator@3.15.0
 ```
 
 Schema completo — cada chave, default, e as validações cruzadas — em
@@ -473,6 +488,7 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 | Target `dockerfile` não encontra o arquivo | O nome é `Dockerfile`, case-sensitive |
 | MR "verde" e o Sonar reclama do último push | Pipeline lida por branch ou de SHA antigo; ler `head_pipeline` da MR |
 | Auditoria diz `Ready` e alguém está trabalhando | Critério por commits; o início se prova pelo registro, não pelo git |
+| Agente parado muito depois de a pipeline da MR terminar | Espera improvisada que nunca casa o SHA; usar `scripts/esperar-pipeline-mr.sh` |
 | `production-*` no registry e a story não é `Done` | Overlay/ArgoCD ainda na versão anterior; ver a cadeia de entrega |
 
 ## O que engana
@@ -503,7 +519,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [ ] Branch nomeada `TG-xxx` com o número da story
 - [ ] Registro de início feito na story (campos customizados + `assigned_to`)
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
-- [ ] `validate` do orchestrator rodou local e passou
+- [ ] Se tocou o `ci/pipeline.toml`: `validate` do orchestrator, na versão do template em uso, rodou local e passou
 - [ ] Se o projeto é novo no Sonar, foi semeado antes
 - [ ] Delete Branch e Squash commits marcados
 
@@ -525,6 +541,8 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 | Script | Muta? | Uso |
 |---|---|---|
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
+| `scripts/esperar-pipeline-mr.sh <mr>` | Não | Espera a pipeline do head da MR terminar e diz se serve de aceite (0 aceita, 1 não serve, 3 limite de tempo, 4 verde sem análise). Use-o em vez de montar laço de espera |
+| `source scripts/taiga-env.sh <arquivo>` | Não | Carrega a credencial do Taiga de um `compose.yaml` ou `.env` sem imprimir valor |
 | `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board os status `In revision` e `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
 
 ## References
