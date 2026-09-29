@@ -288,9 +288,17 @@ existem a partir da `v1.12.1`/`v1.14.0`. Projeto pinado abaixo disso não os tem
 **`security-check` é a varredura de dependências, e só roda por agendamento.** O que ela
 procura não está no diff — a base de CVE do NVD muda sozinha, então prendê-la a merge request
 faz todo MR pagar um scan que quase sempre não revela nada, enquanto a dependência que apodrece
-sem ninguém commitar não é vista por MR nenhum. Ela não tem `allow_failure`, ao contrário do
-`sonar-branch-full`: lá o vermelho chega depois do deploy e não bloqueia nada; aqui o job **é**
-o controle, e a notificação ao dono do agendamento é o que faz a varredura existir.
+sem ninguém commitar não é vista por MR nenhum.
+
+**CVE não deixa o job vermelho; o resultado sai por três canais.** O **badge** do projeto
+(`CVE | N críticas · M altas`, criado por `scripts/create-security-badges.sh` do ci-templates),
+a **aba Tests** da pipeline, com cada CVE como falha JUnit mesmo com o job verde, e o
+**webhook** opcional (`SECURITY_SCAN_WEBHOOK_URL`). O job só reprova quando um alvo falhou sem
+gerar relatório — falha técnica, para quem cuida dos agentes de build investigar. Por isso ele
+não tem `allow_failure`: a falha técnica precisa aparecer. Baixar o `failBuildOnCVSS` para o
+job reprovar por CVE mistura os dois sinais; não é a política (`basis-java-code-standards`
+§1.1). Depois de corrigir uma CVE, o badge só muda quando a varredura roda de novo: dispare o
+agendamento (`glab schedule run <id>`) em vez de esperar a semana.
 
 Sem agendamento o job nunca dispara. Criar com o script do próprio ci-templates:
 
