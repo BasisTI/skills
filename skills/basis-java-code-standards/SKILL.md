@@ -156,10 +156,12 @@ orchestrator `3.13.0`) e a variável `NVD_API_KEY` visível ao projeto — o mec
 `mvn verify`, que é o arranjo antigo: serve a quem ainda tem o plugin no `<build>` e deixa de
 importar assim que ele for para o perfil.
 
-**`failBuildOnCVSS` no default (11) só relata.** O `verify` passa **verde** com CVE crítica na
-tela: o plugin informa, não bloqueia. Para reprovar MR a partir de um limiar, é preciso baixar
-esse valor de propósito. Vale o hábito de sempre — verde não é prova; pergunte o que a
-checagem avaliou.
+**`failBuildOnCVSS` fica no default (11), e isso é a política da casa: CVE não quebra build.**
+O `verify` passa **verde** com CVE crítica no relatório — o plugin informa, não bloqueia. Build
+vermelha na Basis é problema técnico, para quem cuida dos agentes de build investigar; o
+resultado da varredura tem canal próprio: o badge do projeto (`CVE | N críticas · M altas`) e
+a aba Tests da pipeline (`basis-ci-gitlab` §4). CVE achada vira story de correção, não limiar
+mais baixo. Vale o hábito de sempre — verde não é prova; pergunte o que a checagem avaliou.
 
 **O primeiro update baixa a base inteira.** Medido no `triagem.ai`: 394.865 registros, ~23
 minutos, ~250 MB em `~/.m2/repository/org/owasp/dependency-check-data`. As execuções seguintes
