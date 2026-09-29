@@ -57,8 +57,9 @@ fazer o merge são da pessoa.
 (`glab mr update <mr> --draft`): o GitLab recusa o merge de MR em Draft, e é isso que impede
 alguém de mergear a MR antes da correção. Na US #15 do `plataforma-iac`, a MR !27 foi
 mergeada com dois achados `Sério` em aberto, e a correção pronta ficou sem MR onde entrar.
-Status volta a `In progress`: o
-trabalho recomeçou, e o registro de início que já existe continua valendo. A próxima rodada
+A story **fica em `In revision`**: o status é a barreira entre a devolução e o merge, e as
+idas e voltas entre revisor e executor acontecem dentro dela — o Draft da MR é o que diz que
+há correção pendente. A próxima rodada
 do executor retoma o mesmo worktree e a mesma MR ([`worktree.md`](worktree.md#retomar)),
 corrige, devolve de novo pelo [`ciclo-da-mr.md`](ciclo-da-mr.md), e a revisão roda outra
 vez sobre o SHA novo. O mesmo achado voltando em 3 revisões é a mesma causa em 3 tentativas:
