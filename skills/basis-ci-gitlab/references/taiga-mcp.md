@@ -194,8 +194,41 @@ O que muda no fluxo:
 |---|---|
 | Worktree, branch `TG-xx`, MR com squash para `develop` | Igual: o arquivo continua no repositório |
 | Registro de início, ciclo da MR até a devolução | Igual |
+| Revisão da MR pelo `qa-adversarial` | Não se aplica: sem comportamento novo, não há o que quebrar; a MR vai direto ao merge humano |
 | Registro de teste, `Ready for test`, `Waiting for deployment` | Não se aplicam |
 | `Done` | MR mergeada **e** a primeira pipeline de `develop` que contém o merge terminou verde — a prova de que a configuração nova não quebrou a pipeline |
+
+### Revisão global (tag `review`)
+
+Story com a tag `review` pede uma revisão com o `qa-adversarial` sobre código **já
+mergeado** — um módulo, um período, MRs que entraram sem a
+[revisão da MR](revisao-da-mr.md). O entregável é o relatório de achados, não código: sem
+branch `TG-xx` para escrever, sem commits e sem MR.
+
+- **Escopo** vem da descrição da story: o que revisar (módulo, MRs, intervalo de commits).
+  O revisor lê um worktree próprio no SHA de `origin/develop` que revisa (`git worktree add
+  --detach ../<repo>.TG-xx <sha>`) e registra esse SHA no relatório.
+- **Harness, modelo e esforço** se escolhem como na revisão da MR: vêm de quem pediu, ou se
+  pergunta.
+- **O relatório vai num comentário da story**, pela API (campo `comment` no `PATCH` da
+  story, com o `version` relido — ainda não exercitado: confira relendo a story). Achados
+  numerados (`R1`, `R2`, …) no formato do `qa-adversarial`, do mais grave ao menos, com o SHA
+  revisado e a seção `O que tentei e não quebrou`.
+- **A triagem é humana.** Quem pediu escolhe os achados a implementar, como dividi-los em
+  stories e em que prioridade. Depois da triagem, o agente pode criar as stories, com a
+  confirmação de [escrita em board](#escrita-em-board-compartilhado): cada uma cita a US de
+  revisão e os achados que cobre, e segue o fluxo do tipo dela — nunca a tag `review`.
+
+| Status | Critério |
+|---|---|
+| `Ready` | Escopo da revisão definido na descrição |
+| `In progress` | Registro de início |
+| `Ready for test` | Relatório publicado na story; aguarda a triagem |
+| `Done` | Triagem feita: cada achado tem destino no comentário da triagem — story criada (link), agrupado em outra, ou descartado com o motivo |
+
+Registro de teste, staging e produção não se aplicam, e `In revision` e `Waiting for
+deployment` não são usados. O worktree de leitura sai com `git worktree remove` quando o
+relatório é publicado.
 
 ### Regras de auditoria (conferir se o status está certo)
 
@@ -205,8 +238,10 @@ ser.
 - **Precedência.** Avalie do mais avançado para o menos: `Done`, `Waiting for deployment`,
   `Ready for test`, `In revision`, `In progress`, `Ready`, `New`. O primeiro critério
   satisfeito é o status esperado. Status opcional que o board não tem sai da lista.
-- **Story com a tag `config`** segue a tabela da seção anterior: sem registro de teste nem
+- **Story com a tag `config`** segue a tabela da seção dela: sem registro de teste nem
   staging, e `Done` pela MR mergeada com a pipeline de `develop` verde.
+- **Story com a tag `review`** segue a tabela da seção dela: `Ready for test` pelo
+  relatório publicado, `Done` pela triagem com destino para cada achado.
 - **Story em status arquivado** (`is_archived: true`, como o `Archived` do Ponto) fica fora
   da auditoria de transição: alguém a tirou do fluxo de propósito. Reporte o status, sem
   recomendar movê-la.
