@@ -147,8 +147,8 @@ Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 
 **Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
 modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
-Achado `Bloqueante` ou `Sério` devolve a story a `In progress` para uma nova rodada na mesma
-MR; sem eles, a MR aguarda o merge, que é humano. Detalhe em
+Achado `Bloqueante` ou `Sério` põe a MR em Draft e pede uma nova rodada na mesma MR, com a
+story parada em `In revision`; sem eles, a MR aguarda o merge, que é humano. Detalhe em
 [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico

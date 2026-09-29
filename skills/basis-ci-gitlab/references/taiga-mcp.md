@@ -133,7 +133,7 @@ início fica no histórico da story.
 | `New` | A ideia existe; a especificação ainda precisa ser fechada |
 | `Ready` | Especificação concluída: critérios de aceitação presentes |
 | `In progress` | O executor começou de fato: registro de início feito. Commits não são exigidos |
-| `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)); volta a `In progress` se a revisão tiver achados ([`revisao-da-mr.md`](revisao-da-mr.md)) |
+| `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)). É a barreira até o merge: as idas e voltas entre revisor e executor acontecem dentro dela ([`revisao-da-mr.md`](revisao-da-mr.md)) |
 | `Ready for test` | Staging roda a versão |
 | `Waiting for deployment` *(opcional)* | Staging roda a versão **e** registro de teste presente; produção ainda não roda a versão |
 | `Done` | Registro de teste presente **e** produção roda a versão |
@@ -280,8 +280,7 @@ leitura da story.
 
 A exceção é um pacote de tarefa do orquestrador que liste transições explícitas — `In
 progress` ao começar, `In revision` ao devolver, registro de bloqueio ao interromper,
-desbloqueio ao retomar, `In progress` de volta quando a revisão tem achados. Essas já vêm
-autorizadas. Nenhuma outra transição é implícita.
+desbloqueio ao retomar. Essas já vêm autorizadas. Nenhuma outra transição é implícita.
 
 ## O que existe
 
