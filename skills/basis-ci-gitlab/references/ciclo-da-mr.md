@@ -79,6 +79,8 @@ decide o desfecho.
 **Devolvida para revisão** — `check-quality` verde no SHA atual, **ou** reprovada
 exclusivamente por suspeitas de falso positivo do Sonar (abaixo). Status → `In revision`, se
 o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
+MR que voltou da revisão em Draft sai dele ao devolver (`glab mr update <mr> --ready`) — a
+revisão seguinte é quem decide se ela volta.
 
 **Interrompida** — a **mesma causa** aparece em 3 tentativas registradas, ou há um
 impedimento externo: acesso, ambiente, dúvida de especificação, dependência de story não

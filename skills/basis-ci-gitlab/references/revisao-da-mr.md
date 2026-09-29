@@ -13,7 +13,8 @@ Story com a tag `config` não passa por esta revisão
 ## 1. Lançar o revisor
 
 Quem lança é quem lançou o executor — o orquestrador, ou quem pediu —, logo depois do
-desfecho `devolvida`. **Harness, modelo e esforço se escolhem como os da implementação:**
+desfecho `devolvida`, e com a MR ainda **aberta**: `glab mr view <mr> --output json | jq
+.state` antes de lançar. MR mergeada não se revisa aqui; vira story com a tag `review`. **Harness, modelo e esforço se escolhem como os da implementação:**
 vêm de quem pediu; se não vieram, pergunte antes de lançar. A escolha da implementação não
 passa para a revisão sem que alguém a repita.
 
@@ -52,12 +53,20 @@ correção no SHA novo — nunca o executor.
 `In progress`, sem esse status), e a MR aguarda o merge humano. Aprovar a MR no GitLab e
 fazer o merge são da pessoa.
 
-**Com achados** — ao menos um `Bloqueante` ou `Sério`. Status volta a `In progress`: o
+**Com achados** — ao menos um `Bloqueante` ou `Sério`. O revisor marca a MR como **Draft**
+(`glab mr update <mr> --draft`): o GitLab recusa o merge de MR em Draft, e é isso que impede
+alguém de mergear a MR antes da correção. Na US #15 do `plataforma-iac`, a MR !27 foi
+mergeada com dois achados `Sério` em aberto, e a correção pronta ficou sem MR onde entrar.
+Status volta a `In progress`: o
 trabalho recomeçou, e o registro de início que já existe continua valendo. A próxima rodada
 do executor retoma o mesmo worktree e a mesma MR ([`worktree.md`](worktree.md#retomar)),
 corrige, devolve de novo pelo [`ciclo-da-mr.md`](ciclo-da-mr.md), e a revisão roda outra
 vez sobre o SHA novo. O mesmo achado voltando em 3 revisões é a mesma causa em 3 tentativas:
 a story é interrompida, com registro de bloqueio.
+
+**Antes de relançar o executor**, quem lança confere que a MR continua aberta (o `state`,
+como no passo 1). Mergeada mesmo assim, a correção vai numa rodada nova, com worktree e MR
+novos ([`worktree.md`](worktree.md#retomar)), que é decisão de quem pediu.
 
 As transições seguem a autorização de [`taiga-mcp.md`](taiga-mcp.md#atualizar-o-status).
 
