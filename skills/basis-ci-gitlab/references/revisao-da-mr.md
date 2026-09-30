@@ -49,14 +49,17 @@ correção no SHA novo — nunca o executor.
 
 ## 3. Os dois desfechos
 
-**Aprovada** — nenhum achado `Bloqueante` nem `Sério`. A story fica em `In revision` (ou
-`In progress`, sem esse status), e a MR aguarda o merge humano. Aprovar a MR no GitLab e
-fazer o merge são da pessoa.
+**Aprovada** — nenhum achado `Bloqueante` nem `Sério`. O revisor tira o Draft
+(`glab mr update <mr> --ready`), e só aqui: é o sinal de que a MR pode ser mesclada. A story
+fica em `In revision` (ou `In progress`, sem esse status), e a MR aguarda o merge humano.
+Aprovar a MR no GitLab e fazer o merge são da pessoa.
 
-**Com achados** — ao menos um `Bloqueante` ou `Sério`. O revisor marca a MR como **Draft**
-(`glab mr update <mr> --draft`): o GitLab recusa o merge de MR em Draft, e é isso que impede
+**Com achados** — ao menos um `Bloqueante` ou `Sério`. A MR **continua em Draft**, onde nasceu
+([`ciclo-da-mr.md`](ciclo-da-mr.md#1-abrir-a-mr)); se alguém a tirou, o revisor a devolve
+(`glab mr update <mr> --draft`). O GitLab recusa o merge de MR em Draft, e é isso que impede
 alguém de mergear a MR antes da correção. Na US #15 do `plataforma-iac`, a MR !27 foi
-mergeada com dois achados `Sério` em aberto, e a correção pronta ficou sem MR onde entrar.
+mergeada com dois achados `Sério` em aberto, e a correção pronta ficou sem MR onde entrar; na
+!296 do `portal-liven` (TG-53), aberta sem Draft, o merge veio com a revisão ainda rodando.
 A story **fica em `In revision`**: o status é a barreira entre a devolução e o merge, e as
 idas e voltas entre revisor e executor acontecem dentro dela — o Draft da MR é o que diz que
 há correção pendente. A próxima rodada

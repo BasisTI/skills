@@ -133,7 +133,11 @@ O teste é completar a frase **"Aplicar esse commit vai…"**. Se não completar
 está descrevendo o que você fez, não o que o commit faz — e é a segunda que serve a quem lê
 o log depois.
 
-**MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**.
+**MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**, e abra em
+**Draft**. O Draft quer dizer "ainda não pode mesclar": o GitLab recusa o merge, e ele só sai
+quando as rodadas de revisão terminam com `aprovada`. Com a MR aberta pronta, um humano mescla
+no meio da revisão — foi o que aconteceu na !296 do `portal-liven`, mergeada com o
+`qa-adversarial` ainda rodando.
 
 **Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
 é o head da MR e o `check-quality` terminou (nem `skipped`, nem ausente; espere com
@@ -147,9 +151,9 @@ Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 
 **Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
 modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
-Achado `Bloqueante` ou `Sério` põe a MR em Draft e pede uma nova rodada na mesma MR, com a
-story parada em `In revision`; sem eles, a MR aguarda o merge, que é humano. Detalhe em
-[`references/revisao-da-mr.md`](references/revisao-da-mr.md).
+Achado `Bloqueante` ou `Sério` mantém a MR em Draft e pede uma nova rodada na mesma MR, com a
+story parada em `In revision`; sem eles, a revisão tira o Draft e a MR aguarda o merge, que é
+humano. Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
@@ -543,7 +547,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [ ] Mensagens de commit passam no teste "Aplicar esse commit vai…" e terminam em ` - TG-xxx`
 - [ ] Se tocou o `ci/pipeline.toml`: `validate` do orchestrator, na versão do template em uso, rodou local e passou
 - [ ] Se o projeto é novo no Sonar, foi semeado antes
-- [ ] Delete Branch e Squash commits marcados
+- [ ] Delete Branch e Squash commits marcados, e a MR aberta em **Draft**
 
 **Antes de devolver a MR:**
 
@@ -555,6 +559,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 **Antes do merge:**
 
 - [ ] Revisão `qa-adversarial` por outro agente, sobre o SHA atual da MR, com desfecho `aprovada`
+- [ ] Draft retirado só por essa revisão aprovada (ou, com a tag `config`, na devolução)
 - [ ] Discussões dos achados resolvidas pela revisão que confirmou a correção
 
 **Antes de promover para `main`:**

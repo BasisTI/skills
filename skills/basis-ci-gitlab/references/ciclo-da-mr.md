@@ -11,9 +11,14 @@ Commits no padrão da skill (`<Verbo> ... - TG-xx`), primeiro push com upstream:
 
 ```sh
 git push --set-upstream origin TG-xx
-glab mr create --target-branch develop --squash-before-merge --remove-source-branch \
+glab mr create --target-branch develop --squash-before-merge --remove-source-branch --draft \
   --title "<título no padrão do commit> - TG-xx" --description "<resumo>" --yes
 ```
+
+A MR nasce em **Draft** e fica nele durante este ciclo e as rodadas de revisão: o Draft é a
+trava que impede o merge antes de a revisão aprovar. Quem o tira é a revisão aprovada
+([`revisao-da-mr.md`](revisao-da-mr.md#3-os-dois-desfechos)); com a tag `config`, que não passa
+por revisão, a devolução (passo 4).
 
 **Retomada:** se há MR `TG-xx` **aberta**, a rodada continua nela — só `git push`. Uma
 segunda MR aberta para a mesma story divide a revisão e os comentários de evidência em dois
@@ -79,8 +84,9 @@ decide o desfecho.
 **Devolvida para revisão** — `check-quality` verde no SHA atual, **ou** reprovada
 exclusivamente por suspeitas de falso positivo do Sonar (abaixo). Status → `In revision`, se
 o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
-MR que voltou da revisão em Draft sai dele ao devolver (`glab mr update <mr> --ready`) — a
-revisão seguinte é quem decide se ela volta.
+A MR **continua em Draft**: devolver é pedir revisão, não liberar o merge. A exceção é a
+story com a tag `config`, que não tem revisão: aí a devolução tira o Draft
+(`glab mr update <mr> --ready`) e a MR vai direto ao merge humano.
 
 **Interrompida** — a **mesma causa** aparece em 3 tentativas registradas, ou há um
 impedimento externo: acesso, ambiente, dúvida de especificação, dependência de story não
