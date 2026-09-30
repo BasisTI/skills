@@ -1,0 +1,61 @@
+# Exemplo: copie para config/orquestrador.toml no coordenador e personalize.
+# Modelos abaixo reproduzem o piloto; disponibilidade deve ser validada.
+[coordenador]
+artefatos = "~/tmp/orquestrador"
+max_executores = 2
+max_revisores = 1
+max_builds_pesados = 1
+min_memoria_disponivel_gib = 4
+retencao_dias = 14
+
+[aliases.implementacao-padrao]
+harness = "claude-code"
+modelo = "claude-opus-5-5"
+esforco = "medium"
+ambiente = "local"
+
+[aliases.revisao-padrao]
+harness = "codex"
+modelo = "gpt-6-sol"
+esforco = "medium"
+ambiente = "local"
+
+[aliases.planejamento-padrao]
+harness = "claude-code"
+modelo = "claude-opus-5-5"
+esforco = "medium"
+ambiente = "local"
+
+[[selecao]]
+papel = "implementacao"
+complexidade = "*"
+risco = "*"
+alias = "implementacao-padrao"
+fallback = []
+
+[[selecao]]
+papel = "revisao"
+complexidade = "*"
+risco = "*"
+alias = "revisao-padrao"
+fallback = []
+
+[[selecao]]
+papel = "planejamento"
+complexidade = "*"
+risco = "*"
+alias = "planejamento-padrao"
+fallback = []
+
+[ambientes.local]
+runtime = "herdr"
+# Capacidades só passam para verificadas após o pré-voo.
+permissoes_verificadas = false
+qa_adversarial_modo = "nativo" # ou "arquivo", com autorização explícita
+
+[projetos.exemplo]
+caminho = "/caminho/absoluto/do/repositorio"
+taiga_project_id = 0 # substituir pelo ID real
+branch_base = "develop" # conferir no alvo; pode ser main
+memoria_config = "/caminho/da/.ai-memory.toml"
+fluxo = "basis-ci-gitlab" # adaptações ficam nas instruções do alvo
