@@ -20,7 +20,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
 
 ```html
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="caramellatte"
+<html lang="pt-BR" data-theme="basis-interno"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:fragment="layout(content, activeMenu)">
@@ -41,7 +41,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#cc6d13">
+    <meta name="theme-color" content="#071a2e">   <!-- navy do menu: pinta a barra do navegador no celular -->
 
     <style>
         #main-sidebar { transition: width 0.3s ease, border-width 0.3s ease; }
@@ -53,18 +53,21 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
 
     <!-- ============ Sidebar ============ -->
     <aside id="main-sidebar"
-           class="w-64 h-screen bg-base-100 border-r border-base-300 flex flex-col shrink-0 z-20 overflow-hidden">
+           class="w-64 h-screen bg-basis-navy text-white flex flex-col shrink-0 z-20 overflow-hidden">
         <div class="p-6 pb-2 shrink-0">
-            <img th:src="@{/images/logo-header.png}" alt="Basis Tecnologia" class="h-8 w-auto" />
-            <div class="text-[10px] uppercase tracking-widest text-base-content/50 mt-2"
+            <!-- logo BRANCO: o logo-header.png é preto e some no navy -->
+            <img th:src="@{/images/logo-basis-branco.png}" alt="Basis Tecnologia" class="h-12 w-auto" />
+            <div class="mt-3 font-display text-sm font-semibold tracking-wide text-white/70"
                  th:text="#{app.sidebar.subtitulo}">Subtitulo</div>
         </div>
 
-        <ul class="menu menu-md flex-grow p-4 pt-2 overflow-y-auto">
+        <!-- .menu-lateral: cores do menu navy e item ativo; CSS em tema-interno.md -->
+        <ul class="menu menu-lateral menu-md w-full flex-grow p-4 pt-2 overflow-y-auto">
             <li class="menu-title" th:text="#{app.grupo.cadastros}">Cadastros</li>
             <li>
+                <!-- aria-current, e não a classe `active` (DaisyUI 4; não pinta nada no 5) -->
                 <a th:href="@{/configs/allocations}"
-                   th:classappend="${activeMenu == 'allocations' ? 'active' : ''}">
+                   th:aria-current="${activeMenu == 'allocations'} ? 'page'">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18" />
@@ -76,18 +79,18 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
         </ul>
 
         <div class="mt-auto flex flex-col gap-2 p-4 shrink-0">
-            <div class="p-4 bg-base-200 rounded-xl flex items-center gap-3">
+            <div class="p-4 bg-white/8 rounded-xl flex items-center gap-3">
                 <div class="avatar placeholder">
-                    <div class="bg-neutral text-neutral-content rounded-full w-10 shrink-0">
+                    <div class="bg-white/15 text-white rounded-full w-10 shrink-0">
                         <span class="text-xs" th:text="${#strings.substring(currentUser, 0, 2)}">US</span>
                     </div>
                 </div>
                 <div class="flex-grow overflow-hidden">
                     <div class="text-sm font-bold truncate" th:text="${currentUser}">Usuario</div>
-                    <div class="text-xs opacity-50 font-mono" th:text="#{app.usuario.papel}">papel</div>
+                    <div class="text-xs text-white/70 font-mono" th:text="#{app.usuario.papel}">papel</div>
                 </div>
             </div>
-            <div class="text-[10px] text-center opacity-30 px-4" th:text="#{app.rodape.copyright}">
+            <div class="text-[10px] text-center text-white/70 px-4" th:text="#{app.rodape.copyright}">
                 Copyright © Basis Tecnologia
             </div>
         </div>
@@ -108,9 +111,9 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
                 </button>
             </div>
 
-            <div class="flex-1 px-2 mx-2 font-bold text-primary flex items-baseline gap-2">
+            <div class="flex-1 px-2 mx-2 font-display font-bold text-secondary flex items-baseline gap-2">
                 <span>&lt;Nome do app&gt;</span>
-                <span class="text-[10px] font-mono opacity-40" th:text="'v' + ${appVersion}">v0.0.1</span>
+                <span class="text-[10px] font-mono text-base-content/70" th:text="'v' + ${appVersion}">v0.0.1</span>
             </div>
 
             <div class="flex-none gap-1">
@@ -164,7 +167,7 @@ O `~{::section}` passa a `<section>` da página como `content`. O segundo argume
 </html>
 ```
 
-O listener de `htmx:responseError` (alerta em `#error-alert`) está em [`paginas-de-erro.md`](paginas-de-erro.md).
+O listener de `htmx:responseError` (alerta em `#error-alert`) está em [`paginas-de-erro.md`](paginas-de-erro.md). A camada de espera das ações lentas (`#espera-de-tela`, dentro do `<main>`, que fica `relative`) e o script dela estão em [`tema-interno.md`](tema-interno.md#espera-de-tela-nas-ações-lentas).
 
 ## Cadeia de altura
 
@@ -218,7 +221,8 @@ public class GlobalControllerAdvice {
 ## Regras
 
 - **Um layout só por app.** Variação de tela é composição dentro do `content`, não um segundo `layout-*.html`
-- **`activeMenu` sempre passado**, inclusive `''` — omitir quebra o `th:classappend`
+- **`activeMenu` sempre passado**, inclusive `''` — com valor que não casa, o `th:aria-current` fica nulo e o Thymeleaf omite o atributo
+- **Texto esmaecido no menu e no header por cor** (`text-white/70`, `text-base-content/70`), nunca `opacity-*` abaixo de 70% — ver o contraste em [`tema-interno.md`](tema-interno.md#contraste--medido-não-estimado)
 - **Menu com ícone SVG inline** (`w-5 h-5`, `stroke-currentColor`) — herda a cor do tema e não depende de fonte de ícone externa
 - **Logout por `POST`** (`/logout` do Spring Security com CSRF), nunca link `GET`
 - **Item de menu por role**: `sec:authorize="hasRole('<APP>_ADMIN')"` (requer `thymeleaf-extras-springsecurity6`) — esconder no menu não substitui a proteção no `SecurityFilterChain`

@@ -4,11 +4,12 @@ description: >-
   Use when building or changing the web UI of a Basis application — Thymeleaf + HTMX +
   Tailwind v4 + DaisyUI, listing tables with pinned header/footer where only the rows
   scroll, forms aligned with Tailwind utilities, and a custom error page so the user never
-  hits the Whitelabel Error Page. Covers both visual identities and which one applies —
-  the `caramellatte` theme with sidebar layout for internal authenticated systems, and the
-  `basis-publico` theme following the institutional site (navy, orange accent, single
-  centred column, measured WCAG contrast) for public login-free applications such as
-  candidacy or citizen-facing forms. Activate for new screens, templates and fragments,
+  hits the Whitelabel Error Page. Covers both visual identities, both following the
+  institutional site (navy, orange, Carlito and Inter Tight, measured WCAG contrast), and
+  which one applies — the `basis-interno` theme with a navy sidebar and navy primary action
+  for internal authenticated systems, and the `basis-publico` theme with an orange primary
+  action in a single centred column for public login-free applications such as candidacy or
+  citizen-facing forms. Activate for new screens, templates and fragments,
   table/listing work, form layout, error pages, theme/branding/colour choices, accessibility
   and contrast questions, or the Tailwind/DaisyUI build.
 ---
@@ -28,39 +29,39 @@ Padrões da Basis para a UI de apps web. Pareada com `basis-spring-app` (aquela 
 
 ## 2. Tema e identidade — a primeira decisão da tela
 
-**Antes de escolher qualquer cor, decida se a app é interna ou pública.** As duas seguem
-identidades diferentes, e usar a errada não é questão de gosto: um formulário público com a
-cara de sistema interno parece outro site para quem acabou de clicar no link da Basis.
+**Antes de escolher qualquer cor, decida se a app é interna ou pública.** As duas vestem a
+identidade do site institucional (navy, laranja, Carlito e Inter Tight), em temas diferentes
+porque o uso é diferente: um formulário público tem uma ação repetida, e ela pode ser
+laranja; um sistema interno tem uma ação por linha de tabela, e uma coluna de botões laranja
+grita mais que os dados.
 
 | | **Interna** — funcionário autenticado | **Pública** — sem login |
 |---|---|---|
-| Tema | `caramellatte` (DaisyUI) | `basis-publico` (site institucional) |
-| Layout | sidebar à esquerda + header (§3) | coluna única centrada, sem sidebar |
-| Destaque | o do tema | laranja `#F68B1F` sobre navy `#071A2E` |
+| Tema | `basis-interno` | `basis-publico` |
+| Layout | menu lateral navy à esquerda + header (§3) | coluna única centrada, sem sidebar |
+| Ação primária | navy `#0A2E5C`, texto branco | laranja `#F68B1F`, texto navy |
+| Laranja | marca: item ativo do menu, foco, espera | ação e destaque |
+| Referência | [`references/tema-interno.md`](references/tema-interno.md) | [`references/tema-publico.md`](references/tema-publico.md) |
 
-Critério prático: se o host resolve de fora e não exige credencial, é público.
-A paleta pública inteira, com os números de contraste medidos, está em
-[`references/tema-publico.md`](references/tema-publico.md) — **leia antes de escrever a
-primeira tela**, porque o laranja da marca reprova em contraste no uso mais óbvio dele.
+Critério prático: se o host resolve de fora e não exige credencial, é público. **Leia a
+referência do tema antes de escrever a primeira tela**: as duas trazem os contrastes medidos,
+e o laranja da marca reprova em contraste no uso mais óbvio dele.
 
-- **App interna — tema DaisyUI `caramellatte`**, declarado em `data-theme` no `<html>` do layout e habilitado no `input.css`:
-  ```css
-  @plugin "daisyui" {
-    themes: light --default, dark --prefersdark, caramellatte;
-  }
-  ```
-- **App pública — tema `basis-publico`**, definido no próprio `input.css` com
-  `@plugin "daisyui/theme"`. As restrições de acessibilidade da marca ficam **dentro do
-  tema** (`--color-primary-content` é navy, não branco), para que `btn-primary` já nasça
-  acessível sem ninguém precisar lembrar da regra
+- **Os dois temas são definidos no próprio `input.css`** com `@plugin "daisyui/theme"`
+  (`default: true`), e o `@plugin "daisyui"` leva `themes: false` para tirar do bundle os
+  temas embutidos. O `caramellatte`, usado antes nos sistemas internos, saiu: genérico e
+  pálido, deixava o sistema sem cara de Basis
+- **As restrições de acessibilidade ficam dentro do tema**, e não num checklist:
+  `primary-content` navy no público, `warning` âmbar-escuro no interno. Assim `btn-primary` e
+  `text-warning` já nascem acessíveis sem ninguém precisar lembrar da regra
 - **Usar as cores semânticas do tema** (`bg-base-100`, `bg-base-200`, `text-base-content`, `text-primary`, `badge-error`, `alert-warning`), nunca cor crua (`bg-white`, `text-gray-700`, `#cc6d13`) — cor crua quebra ao trocar de tema e destoa do resto do sistema
-- **Hierarquia de superfície**: fundo da página `base-200`, cartões/sidebar/navbar `base-100`, bordas `border-base-300`. Texto secundário por opacidade (`text-base-content/60`), não por cor fixa
-- **Logo Basis** em `src/main/resources/static/images/` (único diretório versionado dentro de `static/`): assinatura completa na página de erro/login, reduzida no topo da sidebar, e a **marca quadrada** (`marca-b-500.png`) onde o espaço é redondo ou pequeno — loader, favicon. Assinatura horizontal não cabe em caixa quadrada: encolhe até ficar ilegível. Cópias em [`references/assets/`](references/assets/)
-- **Favicon + `theme-color`** configurados no `<head>`, alinhados ao tema em uso:
-  `#cc6d13` no `caramellatte`, `#071A2E` no `basis-publico`
+- **Hierarquia de superfície**: fundo da página `base-200`, cartões e navbar `base-100`, bordas `border-base-300`; no interno, o menu lateral é navy
+- **Texto secundário a 70%, por cor: `text-base-content/70`.** `/60` reprova nos dois temas: 4,06:1 no branco do interno e 3,59:1 no do público; `/70` dá 5,60:1 e 4,74:1. Também não use `opacity-*` em texto: ela se soma à transparência herdada (um `opacity-70` dentro de `.label` caiu para 2,99:1). O DaisyUI esmaece sozinho `.label`, `thead`/`tfoot`, aba inativa, `stat-*` e `menu-title`, abaixo de 70%; as sobrescritas e o teste que as garante estão em [`references/tema-interno.md`](references/tema-interno.md#o-daisyui-esmaece-texto-por-conta-própria)
+- **Logo Basis** em `src/main/resources/static/images/` (único diretório versionado dentro de `static/`): assinatura completa na página de erro/login, branca (`logo-basis-branco.png`) no topo do menu navy, e a **marca quadrada** (`marca-b-500.png`) onde o espaço é redondo ou pequeno — loader, favicon. Assinatura horizontal não cabe em caixa quadrada: encolhe até ficar ilegível. Cópias em [`references/assets/`](references/assets/)
+- **Favicon + `theme-color`** configurados no `<head>`: `#071A2E` nos dois temas
 - Cor de marca que não existe no tema entra como token, não como valor espalhado:
   ```css
-  @theme { --color-basis-blue: #0A2E5C; }   /* azul institucional */
+  @theme { --color-basis-navy: #071A2E; --color-basis-laranja: #F68B1F; }
   ```
 
 ## 3. Layout padrão: sidebar à esquerda + header
@@ -78,7 +79,8 @@ erro, sem log e sem marca no HTML. `<script>` de página vai **dentro** da `<sec
 layout precisa de um segundo parâmetro de fragmento para recebê-lo. Já custou duas telas num
 projeto nosso, com o gráfico e o relógio simplesmente não aparecendo.
 
-- **Sidebar à esquerda** (`w-64`, `bg-base-100`, borda à direita): logo no topo, `ul.menu` com `li.menu-title` agrupando por área, item ativo por `th:classappend="${activeMenu == 'x' ? 'active' : ''}"`, ícone SVG inline em cada item
+- **Sidebar à esquerda** (`w-64`, `bg-basis-navy`): logo branco no topo, `ul.menu.menu-lateral` com `li.menu-title` agrupando por área, ícone SVG inline em cada item
+- **Item ativo por `th:aria-current="${activeMenu == 'x'} ? 'page'"`**, e o CSS desenha a partir do atributo (ver [`references/tema-interno.md`](references/tema-interno.md#menu-lateral-navy)). Não use a classe `active`: é do DaisyUI 4 e não pinta nada no DaisyUI 5, onde a classe é `menu-active`. O atributo ainda é o que o leitor de tela anuncia
 - **Rodapé da sidebar**: bloco do usuário logado (avatar + nome + papel) e copyright. Logout e ações de perfil ficam aqui ou no canto direito do header — um lugar só, o mesmo em todas as apps
 - **Header (`navbar`)**: botão de recolher a sidebar, título da aplicação e versão (`appVersion`); à direita, ícones de perfil/ações globais
 - **A sidebar recolhe** (`w-0` + `border-r-0` com `transition-[width]`) — em tela pequena o conteúdo precisa da largura inteira
@@ -272,6 +274,7 @@ Ver [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.
 - Fragmento Thymeleaf servido por Controller dedicado, retornando **só o pedaço** (`~{::fragmento}`), com `hx-target` apontando para o id do contêiner
 - `hx-target="#modal-root"` para modal; o fragmento traz o `<dialog>`/`modal` inteiro
 - Indicador de carregamento com `.htmx-indicator` (regras no `input.css`) em toda ação que chama o servidor
+- **Ação lenta em POST comum** (IA, sincronização, envio a sistema externo) usa a espera de tela do layout, com `data-carregando="<mensagem>"` no `<form>`. O script precisa tratar envio em outra aba, envio duplo, Voltar e navegação interrompida: ver [`references/tema-interno.md`](references/tema-interno.md#espera-de-tela-nas-ações-lentas)
 - Depois de qualquer manipulação de DOM feita por JS (List.js, por exemplo), chamar `htmx.process(elemento)`
 - Com Spring Security, o token CSRF precisa acompanhar as requisições HTMX (meta tag + `hx-headers`, ou `hx-vals`) — POST de HTMX falhando com 403 é quase sempre isso
 
@@ -299,5 +302,6 @@ src/main/resources/templates/
 - [`references/i18n.md`](references/i18n.md) — convenção de nome de chave, texto em atributo, os quatro comportamentos de inlining em `<script>` medidos, `spring.messages`, `MessageFormat`, checklist
 - [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.html`, `@ExceptionHandler` com traceId, erros de HTMX
 - [`references/frontend-build.md`](references/frontend-build.md) — `input.css`, `package.json`, `frontend-maven-plugin`, `.gitignore`, watch mode
+- [`references/tema-interno.md`](references/tema-interno.md) — identidade dos sistemas internos: tema DaisyUI `basis-interno`, fontes servidas pelo app, contrastes medidos, os textos que o DaisyUI esmaece e o teste que os vigia, menu lateral navy, espera de tela nas ações lentas
 - [`references/tema-publico.md`](references/tema-publico.md) — identidade das apps públicas: tema DaisyUI `basis-publico`, paleta do site institucional, contrastes medidos, layout sem sidebar, indicador de espera
-- [`references/assets/`](references/assets/) — logo Basis para `static/images/`: assinatura completa (`Logo-BASIS-300x130.png`), reduzida (`logo-header.png`) e marca quadrada (`marca-b-500.png`, usada no loader e no favicon)
+- [`references/assets/`](references/assets/) — logo Basis para `static/images/`: assinatura completa (`Logo-BASIS-300x130.png`), reduzida (`logo-header.png`), branca para o menu navy (`logo-basis-branco.png`) e marca quadrada (`marca-b-500.png`, usada no loader e no favicon)

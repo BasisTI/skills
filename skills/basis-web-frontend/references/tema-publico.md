@@ -1,15 +1,16 @@
 # Tema público — identidade do site institucional
 
-O `caramellatte` é o tema dos **sistemas internos**. Aplicação que um cidadão ou candidato
-acessa sem login não usa esse tema: ela é a continuação do site institucional de onde a
-pessoa acabou de clicar, e trocar de identidade no meio do caminho parece outro site — ou
-pior, parece phishing.
+O [`basis-interno`](tema-interno.md) é o tema dos **sistemas internos**. Aplicação que um
+cidadão ou candidato acessa sem login usa o `basis-publico`: ela é a continuação do site
+institucional de onde a pessoa acabou de clicar, e trocar de identidade no meio do caminho
+parece outro site — ou pior, parece phishing. Os dois temas têm a mesma marca; mudam a ação
+primária (laranja aqui, navy no interno) e o layout.
 
 Paleta extraída do site institucional em **2026-08-19**.
 
 ## Quando aplicar
 
-| Pergunta | Interno (`caramellatte`) | Público (`basis-publico`) |
+| Pergunta | Interno (`basis-interno`) | Público (`basis-publico`) |
 |---|---|---|
 | Quem acessa? | funcionário autenticado | qualquer pessoa, sem login |
 | De onde vem? | do menu do sistema | de um link do site da Basis |
@@ -196,7 +197,11 @@ Duas coisas que a inspeção mostrou e que mudam o que copiar:
 }
 ```
 
-- Um componente só (`fragments/carregando.html`), não uma variação por tela
+- Um componente só (`fragments/carregando.html`), não uma variação por tela. O mesmo
+  fragmento serve o tema interno, onde ele também cobre a espera de tela das ações lentas em
+  POST comum, com os casos de envio em outra aba, envio duplo e navegação interrompida
+  ([`tema-interno.md`](tema-interno.md#espera-de-tela-nas-ações-lentas)). Formulário público
+  com envio por POST comum precisa dos mesmos cuidados
 - **A marca fica parada no centro; quem gira é o anel.** Logo girando junto embaralha a
   leitura da marca
 - `alt=""` na imagem: ela é decorativa, quem anuncia é o `role="status"` com o texto ao lado.

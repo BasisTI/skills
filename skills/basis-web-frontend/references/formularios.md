@@ -14,7 +14,7 @@ Cada campo é um bloco: rótulo, controle, e mensagem de ajuda/erro quando houve
            th:field="*{contractNumber}"
            th:errorclass="input-error"
            placeholder="000157" required />
-    <p class="label text-base-content/60" th:text="#{fornecedor.campo.contratoAjuda}">Formato: 6 digitos.</p>
+    <p class="label text-base-content/70" th:text="#{fornecedor.campo.contratoAjuda}">Formato: 6 digitos.</p>
     <p class="text-error text-sm" th:if="${#fields.hasErrors('contractNumber')}"
        th:errors="*{contractNumber}">Erro</p>
 </fieldset>
@@ -107,7 +107,7 @@ Formulário longo se divide em seções com título, não em uma pilha de 20 cam
 <fieldset class="fieldset">
     <legend class="fieldset-legend font-bold" th:text="#{importacao.campo.arquivo}">Arquivo</legend>
     <input type="file" name="file" class="file-input w-full" accept=".csv,.xlsx" required />
-    <p class="label text-base-content/60" th:text="#{importacao.campo.arquivoAjuda}">CSV ou XLSX, ate 10 MB.</p>
+    <p class="label text-base-content/70" th:text="#{importacao.campo.arquivoAjuda}">CSV ou XLSX, ate 10 MB.</p>
 </fieldset>
 ```
 

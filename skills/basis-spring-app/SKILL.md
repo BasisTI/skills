@@ -125,11 +125,11 @@ O mecanismo que faz disso um guarda-corpo, e não documentação: a anotação m
 
 ## 6. Web stack (quando aplicável)
 
-O padrão de UI (layout com sidebar, tabelas com cabeçalho/rodapé fixos, formulários, página de erro, tema `caramellatte`, build de CSS/JS) está na skill **`basis-web-frontend`**. Resumo do que a app Spring precisa saber:
+O padrão de UI (layout com sidebar, tabelas com cabeçalho/rodapé fixos, formulários, página de erro, temas `basis-interno` e `basis-publico`, build de CSS/JS) está na skill **`basis-web-frontend`**. Resumo do que a app Spring precisa saber:
 
 - Thymeleaf em `src/main/resources/templates/`, layout único em `layout.html` (`th:fragment="layout(content, activeMenu)"`)
 - Fragmentos HTMX servidos por Controller dedicado, devolvendo só o trecho (`~{::fragmento}`)
-- Tema DaisyUI **`caramellatte`**; `input.css` em `src/frontend/` (fora do classpath), output gerado em `target/classes/static/`
+- Tema DaisyUI **`basis-interno`** nos sistemas internos e **`basis-publico`** nos públicos, com as fontes da marca servidas pelo app (`/fonts/**` no `permitAll`); `input.css` em `src/frontend/` (fora do classpath), output gerado em `target/classes/static/`
 - `frontend-maven-plugin` na fase `generate-resources` roda `npm run build`
 - `.gitignore`: `src/main/resources/static/*` exceto `static/images/` (assets versionáveis)
 - `templates/error.html` **obrigatório** — sem ele a app cai na Whitelabel Error Page do Spring Boot; `server.error.whitelabel.enabled: false` e `include-stacktrace: never`

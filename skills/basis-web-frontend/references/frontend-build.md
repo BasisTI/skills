@@ -54,6 +54,11 @@ Apenas `src/main/resources/static/images/` é versionado (assets manuais — log
 }
 ```
 
+Os dois temas da Basis usam Carlito e Inter Tight, servidas pelo app: acrescente
+`@fontsource/carlito` e `@fontsource/inter-tight` às `devDependencies`, `target/classes/static/fonts`
+ao `mkdir -p` e um `cp` dos `.woff2` ao `build`. O comando completo está em
+[`tema-interno.md`](tema-interno.md#fontes-servidas-pelo-app).
+
 Pontos:
 - `mkdir -p` antes do tailwind: garante o destino antes do `generate-resources` (target/classes ainda não existe)
 - Output dos vendored JS direto via `cp` — sem complicar com webpack/esbuild
@@ -63,14 +68,19 @@ Pontos:
 
 ```css
 @import "tailwindcss";
-@plugin "daisyui" {
-  themes: light --default, dark --prefersdark, caramellatte;
+@plugin "daisyui" { themes: false; }   /* tira do bundle os temas embutidos */
+@plugin "daisyui/theme" {
+  name: "basis-interno";
+  default: true;
+  color-scheme: light;
+  /* … tokens completos em basis-web-frontend/references/tema-interno.md … */
 }
 
 @source "../main/resources/templates/<modulo>/**/*.html";
 
 @theme {
-  --color-basis-blue: #0A2E5C;   /* azul institucional */
+  --color-basis-navy: #071A2E;
+  --color-basis-laranja: #F68B1F;
 }
 
 /* Customização HTMX */
@@ -79,10 +89,13 @@ Pontos:
 .htmx-request.htmx-indicator { display: flex; }
 ```
 
+O `input.css` do tema interno também leva as fontes, as sobrescritas de contraste do DaisyUI,
+o CSS do menu lateral e o da espera de tela: tudo em [`tema-interno.md`](tema-interno.md).
+
 ### Variante para app pública
 
-App sem login não usa o `caramellatte` — troca o bloco `@plugin "daisyui"` pela definição do
-tema `basis-publico`, e o resto do arquivo fica igual:
+App sem login troca o tema `basis-interno` pelo `basis-publico`, e o resto do arquivo fica
+igual:
 
 ```css
 @import "tailwindcss";
@@ -182,5 +195,6 @@ E garantir que o Spring Boot serve `target/classes/static` mesmo com hot-reload 
 - **Usar Webpack/Vite/esbuild só pra copiar 2 JS** — overengineering; `cp` resolve
 - **Esquecer `mkdir -p`** — Tailwind não cria parent dirs, build falha em primeira execução pós-`mvn clean`
 - **HTMX/List.js por CDN** (`unpkg`, `cdnjs`) — app interno costuma rodar em rede fechada, e a tela quebra sem internet; além de colocar um terceiro no caminho de renderização. Vendorizar e versionar junto com o app
-- **Tema fora do `input.css`** — o `caramellatte` precisa estar na lista do `@plugin "daisyui"` (e o `basis-publico`, num bloco `@plugin "daisyui/theme"`), senão o `data-theme` do layout não encontra o tema e a página cai no `light` — sem erro de build, só a cor errada
-- **Fonte da marca vinda de CDN em app pública** — requisição a terceiro carregando o IP de quem preenche o formulário; a fonte é servida pelo próprio app, como o resto
+- **Tema fora do `input.css`** — o `basis-interno` e o `basis-publico` são blocos `@plugin "daisyui/theme"`; sem o bloco, o `data-theme` do layout não encontra o tema e a página cai no padrão do DaisyUI — sem erro de build, só a cor errada
+- **Fonte da marca vinda de CDN** — em app pública, é requisição a terceiro carregando o IP de quem preenche o formulário; em app interna, rede fechada derruba a fonte. A fonte é servida pelo próprio app, como o resto
+- **`/fonts/**` fora do `permitAll`** — a fonte cai na regra geral do `SecurityFilterChain`, e o usuário com um papel fora dela recebe 403 e vê a tela na fonte de sistema, sem erro
