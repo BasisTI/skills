@@ -14,6 +14,18 @@ Preencha o template de implementação. Registre conflitos potenciais entre stor
 
 ## Inicialização
 
-Leia o perfil do harness e a skill `herdr`. Crie pane com cwd autorizado e preserve foco do usuário. Obtenha IDs da resposta; associe pane e agente à missão. Passe argumentos nativos por uma lista explícita, sem montar comandos por concatenação de texto externo.
+Leia o perfil do harness e a skill `herdr`.
+
+O layout é um workspace Herdr por projeto alvo, com um pane do coordenador aberto na pasta do orquestrador. Workers e conversas de planejamento nascem nesse mesmo workspace, o do pane do coordenador (`$HERDR_WORKSPACE_ID`), com o worktree como cwd e sem tirar o foco do usuário:
+
+```bash
+herdr pane split --current --direction right --cwd <worktree> --no-focus
+# aba cheia (panes estreitos demais): aba nova no mesmo workspace
+herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <pane> --no-focus
+```
+
+O worktree já existe, criado pelo `wt` no passo anterior; `herdr workspace create` e `herdr worktree create/open` abririam um workspace à parte para cada worker, que é justamente o que este layout evita. Story de projeto diferente do workspace atual: pergunte ao usuário onde abrir.
+
+Obtenha IDs da resposta; associe pane e agente à missão. Passe argumentos nativos por uma lista explícita, sem montar comandos por concatenação de texto externo.
 
 Confirme agente pronto e entrega do prompt. Não reenvie automaticamente depois de timeout. O pacote contém transições autorizadas; registros de status são feitos pelo responsável indicado nele.

@@ -80,7 +80,7 @@ Vai para quem lançou o revisor:
 
 - Desfecho: `aprovada` | `com achados` | `falhou` (a revisão não terminou: sessão caiu,
   ferramenta indisponível)
-- Link da MR e o SHA revisado
+- Link da MR (URL completa) e o SHA revisado
 - Harness, modelo e esforço usados
 - Achados por severidade, com o link de cada discussão
 - O que foi executado (testes, reproduções) e o que foi só lido
