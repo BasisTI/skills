@@ -139,6 +139,12 @@ quando as rodadas de revisão terminam com `aprovada`. Com a MR aberta pronta, u
 no meio da revisão — foi o que aconteceu na !296 do `portal-liven`, mergeada com o
 `qa-adversarial` ainda rodando.
 
+**A MR se cita pelo link.** Em toda mensagem — resposta ao usuário, relatório, comentário no
+Taiga ou na MR — a MR aparece com a URL completa (`https://.../-/merge_requests/N`), e o
+`!N` vai, se for, como texto do link. Um `!N` solto obriga quem lê a descobrir de qual
+projeto ele é e caçar a MR no GitLab. A URL sai do `glab mr create`; numa MR que já existe,
+`glab mr view TG-xxx --output json | jq -r .web_url`.
+
 **Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
 é o head da MR e o `check-quality` terminou (nem `skipped`, nem ausente; espere com
 `scripts/esperar-pipeline-mr.sh`) — `glab ci status` lê a branch e pode mostrar o
