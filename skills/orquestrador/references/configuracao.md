@@ -16,6 +16,12 @@ Precedência: escolha explícita atual do usuário → preferência persistente 
 
 Fallback só usa aliases listados e disponíveis. Se nenhum puder cumprir o contrato, reporte bloqueio e peça a escolha que falta. Escalada por ambiguidade ou falhas recorrentes usa a política configurada; não autoriza gasto ou modelo fora das escolhas do usuário.
 
+## Identidade no GitLab
+
+Cada papel pode ter um usuário próprio no GitLab, para que MR, comentários de evidência, achados e respostas mostrem quem é executor e quem é revisor. `[identidades.<papel>]` aponta `glab_config_dir` para um diretório com o `config.yml` do `glab` daquele usuário; o pane do worker recebe `GLAB_CONFIG_DIR` com esse caminho absoluto ([despacho](despacho.md#inicialização)). O token vive só nesse `config.yml` (`600`), e o orquestrador passa o caminho, nunca o valor — `GITLAB_TOKEN` no `--env` deixaria o segredo no comando, no transcript e no estado do Herdr.
+
+A identidade cobre o `glab`. Commit e push continuam com o `git` do usuário: autor e evento de push são dele. Papel sem entrada, como planejamento, usa o `glab` do usuário.
+
 ## Cadastro de projetos e ambiente
 
 Cada projeto registra caminho, board Taiga, branch base, instruções de entrega e referência da identidade ai-memory. Leia `workspace`/`project` da configuração real; o cadastro não substitui a resolução de `repo-root`. Repositórios GitHub/main não herdam automaticamente comandos GitLab/develop: explicite adaptações autorizadas do projeto.
