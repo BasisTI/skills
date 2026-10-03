@@ -13,7 +13,7 @@ Motivo: a listagem é a primeira tela de praticamente todo cadastro. Tabela cujo
     <div class="shrink-0 flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-black" th:text="#{alocacao.titulo}">Alocacoes</h1>
-            <p class="text-base-content/60" th:text="#{alocacao.subtitulo}">Descricao curta da tela.</p>
+            <p class="text-base-content/70" th:text="#{alocacao.subtitulo}">Descricao curta da tela.</p>
         </div>
         <div class="flex items-center gap-2">
             <input type="search" class="input input-bordered input-sm search"
@@ -127,7 +127,7 @@ Ela vai como **`div` irmã do contêiner que rola**, com `shrink-0`. Fica presa 
     </div>
 
     <div class="shrink-0 border-t border-base-300 bg-base-100 p-3 flex items-center justify-between gap-3">
-      <div class="text-xs text-base-content/60">
+      <div class="text-xs text-base-content/70">
         <span th:text="#{comum.paginacao.posicao(${pagina.pagina()}, ${pagina.totalPaginas()})}">Página 1 de 1</span>
         <span class="mx-2 opacity-30">|</span>
         <span th:if="${pagina.vazia()}" th:text="#{comum.paginacao.vazio}">nenhum registro</span>
