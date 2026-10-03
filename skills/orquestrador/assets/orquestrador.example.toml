@@ -47,6 +47,14 @@ risco = "*"
 alias = "planejamento-padrao"
 fallback = []
 
+# Identidade GitLab por papel: o pane do worker recebe GLAB_CONFIG_DIR com este caminho.
+# O token fica no config.yml desse diretório (chmod 600), nunca aqui. Papel sem entrada usa o glab do usuário.
+[identidades.implementacao]
+glab_config_dir = "/home/<usuario>/.config/glab-agentes/executor"
+
+[identidades.revisao]
+glab_config_dir = "/home/<usuario>/.config/glab-agentes/revisor"
+
 [ambientes.local]
 runtime = "herdr"
 # Capacidades só passam para verificadas após o pré-voo.
