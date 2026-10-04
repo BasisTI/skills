@@ -21,9 +21,14 @@ o conteúdo é o deste arquivo.
 ## O tema DaisyUI
 
 ```css
-@import "tailwindcss";
+/* `source(none)`: o Tailwind varre só o que o `@source` aponta, e não docs/, .agents/ e o resto
+   do módulo -- classe citada num Markdown (`text-base-content/60` num plano ou numa skill) entraria
+   no CSS. Caminho e motivo em frontend-build.md. */
+@import "tailwindcss" source(none);
 /* `themes: false` tira do bundle os temas embutidos (light, dark...) que ninguém usa. */
 @plugin "daisyui" { themes: false; }
+
+@source "../main/resources/templates/**/*.html";   /* relativo a este arquivo: confira */
 
 @plugin "daisyui/theme" {
   name: "basis-interno";
@@ -155,12 +160,14 @@ Estado desabilitado e placeholder ficam abaixo de 70% de propósito, e estão ce
 isenta componente inativo.
 
 A sobrescrita repete o seletor da regra do DaisyUI e vai em `@layer utilities`, que é onde ele
-mora. Em `components` ela perde, porque `utilities` vem depois na cascata.
+mora. Em `components` ela perde, porque `utilities` vem depois na cascata. O seletor acompanha a
+versão do DaisyUI: a 5.5.19 acrescentou `[aria-current="true"], [aria-current="page"]` ao
+`:not(...)` da aba, e o teste abaixo é quem avisa quando ele muda de novo (colaboradados, TG-193).
 
 ```css
 @layer utilities {
   .label { color: color-mix(in oklab, currentColor 70%, transparent); }
-  .tab:not(:checked, label:has(:checked), :hover, .tab-active, [aria-selected="true"]) {
+  .tab:not(:checked, label:has(:checked), :hover, .tab-active, [aria-selected="true"], [aria-current="true"], [aria-current="page"]) {
     color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
   }
   .table :where(thead, tfoot) { color: color-mix(in oklab, var(--color-base-content) 70%, transparent); }
@@ -193,7 +200,13 @@ lendo:
 - **`:not(...)` é removido antes de decidir se o estado é desabilitado.** `:not(:disabled)` é
   justamente o estado ativo.
 - **O seletor aninhado é normalizado** (`.tab { &:not(...) }` → `.tab:not(...)`) para se
-  comparar com a regra plana do tema.
+  comparar com a regra plana do tema, inclusive o espaço junto ao parêntese: o Tailwind imprime
+  `:not( :checked, ... )` nas regras do DaisyUI e `:not(:checked, ...)` na do tema.
+- **O teste só confronta o componente que o build gera.** O Tailwind trata como candidato a
+  classe qualquer palavra dos arquivos varridos, **comentários inclusive**: no colaboradados, um
+  comentário com "the new tab" no `layout.html` fez o DaisyUI passar a gerar `.tab`, e só então o
+  teste teve a regra de 50% para comparar. App que não usa um componente não testa a sobrescrita
+  dele; quando passar a usar, o teste passa a cobrir sozinho.
 - **O teste se testa**: casos com CSS sintético (regra nova reprova; `:not(:disabled)` reprova;
   sobrescrita só num `@media` reprova; mesmo seletor depois aprova; desabilitado fica de fora).
 

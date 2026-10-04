@@ -110,11 +110,21 @@ igual:
 @source "../main/resources/templates/**/*.html";
 ```
 
+Com `@import "tailwindcss" source(none);` no lugar da primeira linha, o Tailwind varre **só** o
+que o `@source` aponta. Sem isso ele varre também a pasta do módulo inteira — `docs/`,
+`.agents/`, planos em Markdown — e gera classe citada em texto: no colaboradados, exemplos
+`text-base-content/60` de uma skill entravam no CSS e reprovavam o `ContrasteDoTemaTest`, e o
+CSS caiu de ~304 KB para ~125 KB com o `source(none)` (TG-193). O preço é o caminho do `@source`
+precisar estar certo: com o `source(none)`, um caminho errado gera um CSS sem as classes dos
+templates em vez de um CSS que funciona por acaso.
+
 Tema definido com `@plugin "daisyui/theme"` **não** entra na lista `themes:` do
 `@plugin "daisyui"` — quem tenta declarar nos dois lugares recebe o tema padrão sem erro
 nenhum, que é o modo de falha mais caro de perceber.
 
-`@source` é relativo ao input.css — de `src/frontend/`, sobe 1 nível e desce até `src/main/resources/templates/`. Tailwind usa esse caminho pra detectar classes utilizadas e tree-shake o CSS final.
+`@source` é relativo ao input.css — de `src/frontend/`, sobe 1 nível e desce até `src/main/resources/templates/`. Tailwind usa esse caminho pra detectar classes utilizadas e tree-shake o CSS final. Com o `input.css` em outro lugar o caminho muda: em `static/css/input.css` é `../../templates/**/*.html`. O colaboradados tinha `../templates/...` apontando para o vazio, e só funcionava porque o Tailwind varria o módulo inteiro.
+
+**Comentário também gera classe.** O scanner lê qualquer palavra dos arquivos varridos, inclusive dentro de `<!-- -->` e `/* */`: "the new tab" num comentário do template faz o DaisyUI gerar o componente `.tab`.
 
 ## `pom.xml`: frontend-maven-plugin
 

@@ -173,7 +173,9 @@ class ContrasteDoTemaTest {
                 seletor.append(seletor.isEmpty() ? "" : " ").append(nivel);
             }
         }
-        return seletor.toString().replaceAll("\\s+", " ").strip();
+        // O Tailwind imprime `:not( :checked, ... )` com espaços nas regras do DaisyUI e sem espaços na
+        // do tema, conforme o resto do arquivo; espaço junto ao parêntese não muda o seletor.
+        return seletor.toString().replaceAll("\\s+", " ").replaceAll("\\(\\s+", "(").replaceAll("\\s+\\)", ")").strip();
     }
 
     private static String condicoes(Deque<String> pilha) {
