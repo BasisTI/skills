@@ -84,8 +84,9 @@ decide o desfecho.
 
 ## 4. Os dois desfechos
 
-**Devolvida para revisão** — `check-quality` verde no SHA atual, **ou** reprovada
-exclusivamente por suspeitas de falso positivo do Sonar (abaixo). Status → `In revision`, se
+**Devolvida para revisão** — pipeline aceita no SHA atual (passo 2: pipeline e
+`check-quality` verdes), **ou** reprovada exclusivamente por suspeitas de falso positivo do
+Sonar (abaixo), e o que [Antes de devolver](#antes-de-devolver) pede. Status → `In revision`, se
 o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
 A MR **continua em Draft**: devolver é pedir revisão, não liberar o merge. A exceção é a
 story com a tag `config`, que não tem revisão: aí a devolução tira o Draft
@@ -105,6 +106,18 @@ para a rodada que não chegou a nenhum dos dois desfechos por falha do próprio 
 As transições deste passo seguem a autorização de
 [`taiga-mcp.md`](taiga-mcp.md#atualizar-o-status): pacote do orquestrador que as liste, ou
 confirmação de quem pediu.
+
+## Antes de devolver
+
+- **Spec e descrição da MR acompanham a mudança**, na mesma rodada. Regra alterada com a
+  descrição antiga vira achado documental na revisão seguinte (TG-57, r5).
+- **No máximo uma passada de autorrevisão** interna antes de devolver. Na TG-22, 3 e 5
+  passadas de `qa-adversarial` dentro da execução custaram 7,2 h, e a revisão externa ainda
+  achou caso novo em cada rodada.
+- **Rodada que volta da revisão corrige a classe, não o caso**: o mecanismo que deixou o
+  achado passar, com a lista das variantes testadas. E reexecuta as reproduções das rodadas
+  anteriores contra o mecanismo novo — correção que gera a rodada seguinte é regressão (na
+  TG-22, a r2 e a r4 só acharam regressões da correção anterior).
 
 ## Suspeita de falso positivo do Sonar
 
