@@ -8,12 +8,15 @@ O Claude Code acorda o turno quando um comando em background termina. Arme a esp
 
 ```bash
 until [ -s <relatorio> ]; do
-  herdr agent wait <worker> --timeout 60000 && break
+  if herdr agent wait <worker> --timeout 60000; then
+    sleep 45; [ -s <relatorio> ] && break               # tolerância
+    herdr agent read <worker> --source visible | grep -q 'still running' || break
+  fi
   herdr agent get <worker> >/dev/null || break   # pane sumiu
 done
 ```
 
-O laço sai com relatório gravado, worker parado ou pane encerrado; ao acordar, confira qual dos dois e trate o outro como anomalia. Para vigiar merge, acrescente a consulta do estado da MR ao laço. O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: ao receber esse aviso, confira estado e relatório e rearme. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
+O laço sai com relatório gravado, worker parado sem shell em background ([anomalias](../acompanhamento.md#anomalias)) ou pane encerrado; ao acordar, confira qual dos dois e trate o outro como anomalia. Para vigiar merge, acrescente a consulta do estado da MR ao laço. O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: ao receber esse aviso, confira estado e relatório e rearme. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
 
 ## Permissões de worktrees e temporários
 

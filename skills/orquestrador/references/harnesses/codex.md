@@ -4,7 +4,7 @@ Confira `codex --help` e a configuração efetiva. A CLI instalada pode oferecer
 
 ## Espera
 
-O Codex não tem tarefa em background que acorde um turno encerrado. Com worker ativo, a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) é um laço dentro do turno: cada volta roda `herdr agent wait <worker> --timeout 60000` (ou uma espera de 45–60 s), confere relatório e estado da MR e dá uma linha de progresso ao usuário. O turno termina quando o worker termina, bloqueia ou mostra anomalia. Foi assim que a reação caiu de horas para 12–49 s na TG-63.
+O Codex não tem tarefa em background que acorde um turno encerrado. Com worker ativo, a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) é um laço dentro do turno: cada volta roda `herdr agent wait <worker> --timeout 60000` (ou uma espera de 45–60 s), confere relatório e estado da MR e dá uma linha de progresso ao usuário. Worker `done` sem relatório passa pela tolerância de [anomalias](../acompanhamento.md#anomalias) antes de virar anomalia. O turno termina quando o worker termina, bloqueia ou mostra anomalia. Foi assim que a reação caiu de horas para 12–49 s na TG-63.
 
 ## Diretórios e aprovação
 
