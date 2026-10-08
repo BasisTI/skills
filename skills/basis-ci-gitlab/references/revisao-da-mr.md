@@ -43,8 +43,6 @@ a correção pode ter trazido. Achado novo fora do delta só bloqueia com ocorr�
 TG-22 do `plataforma-iac`, esse pedido na r2 e um modelo de ameaça só declarado na r7
 renderam 9 revisões, cada uma com uma variante mais exótica da mesma máscara.
 
-## 2. Registrar o resultado na MR
-
 ### Severidade ancorada no ambiente real
 
 Achado `Bloqueante` ou `Sério` diz em qual projeto, consumidor ou configuração real nossa o
@@ -53,6 +51,8 @@ produz, "não verifiquei produção" — é `Menor`, ou limite documentado no re
 TG-22, o Bloqueante era um codec alternativo que o próprio revisor mediu em 14 de 200.000
 senhas, e nenhum playbook do `infraestrutura` usa codec alternativo; dos Bloqueantes e Sérios
 de rodadas ≥3 em 83 stories, 70% eram desse tipo.
+
+## 2. Registrar o resultado na MR
 
 - Cada achado `Bloqueante` ou `Sério` vira uma **discussão resolvível**, no formato do
   `qa-adversarial` (onde, caso, esperado, acontece, como sei). Resolvível porque é o que
