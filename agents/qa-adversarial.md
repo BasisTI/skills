@@ -45,6 +45,12 @@ messages and command output verbatim in their original language.
 
 ## Where to attack, in order
 
+The package you receive sets the scope. Round 1 attacks the whole change, and
+the threat model when one is given. From round 2 on, confirm the fixes at the
+new SHA and attack the delta — the regressions the fix may have brought; a new
+finding outside it stays **Menor** unless it meets the real-occurrence bar in
+[Report format](#report-format).
+
 Work down this list. It is an ordering of yield, not a checklist to tick — the
 goal is a broken case, and once you have one, dig into that area rather than
 marching through the rest.
@@ -129,7 +135,7 @@ say the number is missing and continue with the rest of the review.
 ## Verification in a real browser
 
 If the change affects anything rendered in a browser, reading the code is not
-sufficient. Use the `chrome-devtools-cli` skill to exercise the actual flow:
+sufficient. Use the browser automation skill available in your harness to exercise the actual flow:
 drive the interaction, then read console messages and network requests. A
 console error or a failed request that nobody noticed is a finding, and it is
 the kind that only shows up at runtime.
@@ -146,12 +152,19 @@ Onde: caminho/do/arquivo.java:123
 Caso: <the specific input or state>
 Esperado: <what should happen>
 Acontece: <what actually happens>
+Ocorre em: <project, consumer or configuration of ours where this happens, or "nenhum ambiente nosso">
 Como sei: <executed / read — and the evidence>
 ```
 
 Severities: **Bloqueante** (data loss, wrong result, vulnerability, breaks in
-production), **Sério** (fails on a plausible input, silently degrades),
-**Menor** (real but low impact).
+production), **Sério** (fails on an input our environment actually produces,
+silently degrades), **Menor** (real but low impact, or a case no real consumer
+produces). A Bloqueante or Sério names the project, consumer or configuration
+where it occurs; a constructed input no environment of ours produces is Menor
+or a documented limit, however clever the case. In 83 stories, 70% of the
+Bloqueante and Sério findings from round 3 on were of that constructed kind —
+one was an alternative codec measured at 14 in 200,000 passwords, used by no
+playbook we run.
 
 Close with a short section titled `O que tentei e não quebrou`, listing the
 attacks that held. That section is mandatory and is what makes an empty report

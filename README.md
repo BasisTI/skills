@@ -18,6 +18,19 @@ Agent skills com os padrões de engenharia da [Basis](https://www.basis.com.br) 
 | [`basis-skill-de-sessao`](skills/basis-skill-de-sessao/SKILL.md) | Extrai skill de diagnóstico do registro de uma sessão de agente: localiza o transcript (Claude Code e Codex), monta o dossiê, varre segredo, roteia cada achado ao seu destino e passa pelo portão do "quando **não** escrever". Traz também um modo de triagem para quando não se sabe qual sessão rendeu — procura a mesma correção reaparecendo em sessões diferentes. Traz scripts. |
 | [`eks-upgrade`](skills/eks-upgrade/SKILL.md) | Upgrade de versão do Kubernetes em cluster EKS: pré-voo com upgrade insights, control plane, managed node groups, addons e verificação. Cobre troca de família de AMI (AL2→AL2023, exige nodegroup novo) e drain com operator que gerencia PDB. Recebe `$CLUSTER_NAME` e `$EKS_KUBECTL_CONTEXT` do ambiente. Traz script de coleta e gerador do relatório final por diferença entre snapshots. |
 
+## Agentes
+
+| Agente | Papel |
+|--------|-------|
+| [`qa-adversarial`](agents/qa-adversarial.md) | Revisor adversarial da MR: parte da premissa de que o código quebra e procura o caso concreto que prova. Severidade ancorada no ambiente real e escopo por rodada, conforme a revisão da `basis-ci-gitlab`. Usado como subagente no Claude Code e no opencode. |
+
+O skills CLI não instala agentes. Aponte o diretório de agentes do harness para o arquivo
+do clone, para que um `git pull` traga as mudanças:
+
+```bash
+ln -sf ~/caminho/do/clone/skills/agents/qa-adversarial.md ~/.claude/agents/qa-adversarial.md
+```
+
 ## Instalação
 
 Com [skills CLI](https://github.com/vercel-labs/skills):
