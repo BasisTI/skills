@@ -2,7 +2,7 @@
 
 ## Auditoria proativa
 
-Execute auditoria pelos critérios da `basis-ci-gitlab`; para produção, use cadeia de entrega e `basis-k8s-deploy`. Diferencie aprovação da MR, merge, teste e entrega. Em projetos com fluxo simplificado, use seus critérios declarados. Apresente evidências e execute transições já autorizadas; se faltou autorização, pergunte sobre a transição concreta.
+Execute auditoria pelos critérios da `basis-ci-gitlab`; para produção, use cadeia de entrega e `basis-k8s-deploy`. Diferencie aprovação da MR, merge, teste e entrega. Em projetos com fluxo simplificado, use seus critérios declarados. Apresente evidências e execute transições já autorizadas. As transições automáticas da [configuração](configuracao.md#autonomia-e-transições-automáticas) são executadas quando a evidência é confirmada e registradas no registro da missão e no relatório ao usuário, sem pergunta. As demais seguem como pergunta concreta: "posso mover a TG-xx para X?", com a evidência junto.
 
 Detecte pendências em outro repositório e prepare a story no board que receberá a mudança. Escrita no Taiga segue autorização existente. Após merge, libere dependentes elegíveis.
 

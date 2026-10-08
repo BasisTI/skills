@@ -32,4 +32,14 @@ O worktree já existe, criado pelo `wt` no passo anterior; `herdr workspace crea
 
 Obtenha IDs da resposta; associe pane e agente à missão. Passe argumentos nativos por uma lista explícita, sem montar comandos por concatenação de texto externo.
 
-Confirme agente pronto e entrega do prompt. Não reenvie automaticamente depois de timeout. O pacote contém transições autorizadas; registros de status são feitos pelo responsável indicado nele.
+Confirme agente pronto e entrega do prompt. Não reenvie automaticamente depois de timeout. O pacote contém transições autorizadas; registros de status são feitos pelo responsável indicado nele. Arme a espera antes de encerrar o turno ([acompanhamento](acompanhamento.md#worker-ativo-implica-espera-armada)).
+
+## Aviso ao coordenador
+
+O pacote informa nome e pane do coordenador. Ao gravar o relatório, o worker roda `herdr agent get <coordenador>` e, **somente se estiver `idle` ou `done`**, envia uma vez, sem reenviar:
+
+```bash
+herdr agent prompt <coordenador> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
+```
+
+Coordenador trabalhando não recebe aviso: a espera dele detecta o relatório. Timeout desse comando não prova que o aviso se perdeu. O aviso complementa a espera, não a substitui. Como cada harness trata entrada com o coordenador ocupado ainda não foi testado; por isso o envio fica restrito a `idle`/`done`.
