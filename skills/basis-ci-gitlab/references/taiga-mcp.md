@@ -268,11 +268,14 @@ ser.
 
 ### Atualizar o status
 
-Para mudar o estado de uma story, use `taiga_stories_update` com o `id` do status lido em
-`us_statuses`. Consulte o schema que o servidor MCP expõe no momento da chamada para saber
-como informar a story e o status. Esta referência não fixa nome de parâmetro, ID numérico,
-payload ou capacidade que não estejam comprovados pelo servidor — **não adivinhe esses
-valores**.
+O MCP do Taiga foi desativado em 2026-10-05; a escrita é pela CLI `taiga` (skill
+`taiga-cli`), com o nome do status como o board o grafa:
+
+```sh
+taiga story update <ref> --status "Ready for test" --dry-run   # confere o pedido
+taiga story update <ref> --status "Ready for test"
+taiga story get <ref>                                          # confere o resultado
+```
 
 Antes de atualizar, confirme o projeto e a story corretos. A mudança é visível no board
 compartilhado: **confirme a transição com quem pediu** e, depois, confira o resultado na
@@ -280,7 +283,16 @@ leitura da story.
 
 A exceção é um pacote de tarefa do orquestrador que liste transições explícitas — `In
 progress` ao começar, `In revision` ao devolver, registro de bloqueio ao interromper,
-desbloqueio ao retomar. Essas já vêm autorizadas. Nenhuma outra transição é implícita.
+desbloqueio ao retomar. Também se pré-autorizam, quando o pacote ou a configuração do
+orquestrador as declarar, as transições **derivadas de evento comprovado**:
+
+- `Ready for test` quando staging roda a versão do merge, verificado pela
+  [cadeia de entrega](cadeia-de-entrega.md) (ArgoCD e pods) — em projeto sem staging, pelo
+  ambiente que o projeto declara ([critérios de transição](#critérios-de-transição-quando-mover));
+- `Done` de story com a tag `config`, com a MR mergeada e a pipeline de `develop` verde.
+
+O `Done` das demais continua humano: depende do registro de teste. Nenhuma outra transição é
+implícita.
 
 ## O que existe
 

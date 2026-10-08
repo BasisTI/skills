@@ -205,7 +205,9 @@ chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Story com a ta
 comentário da story (`Ready for test`), e a triagem humana dos achados a leva a `Done`. Story bloqueada é
 desbloqueada por quem a retoma, no começo da rodada, depois de conferir na fonte que a causa
 do `blocked_note` se resolveu. Arquivar é só a pedido. A auditoria compara o status com as evidências e
-reporta; transição se confirma com quem pediu antes de executar.
+reporta; transição se confirma com quem pediu antes de executar, salvo as que o pacote do
+orquestrador pré-autoriza — as mecânicas do executor e as derivadas de evento comprovado
+(`Ready for test` com staging rodando a versão, `Done` de story `config`).
 Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
 cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
 
