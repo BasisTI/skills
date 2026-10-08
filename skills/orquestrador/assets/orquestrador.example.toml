@@ -8,6 +8,12 @@ max_builds_pesados = 1
 min_memoria_disponivel_gib = 4
 retencao_dias = 14
 
+# Autorização permanente: vale para qualquer harness coordenador.
+# Mantenha só o que o usuário autorizou.
+[autonomia]
+modo_autonomo = true
+transicoes_automaticas = ["Ready for test", "Done:config"]
+
 [aliases.implementacao-padrao]
 harness = "claude-code"
 modelo = "claude-opus-5-5"
@@ -67,3 +73,7 @@ taiga_project_id = 0 # substituir pelo ID real
 branch_base = "develop" # conferir no alvo; pode ser main
 memoria_config = "/caminho/da/.ai-memory.toml"
 fluxo = "basis-ci-gitlab" # adaptações ficam nas instruções do alvo
+
+# Sobrescrita por projeto; a lista substitui a global.
+# [projetos.exemplo.autonomia]
+# transicoes_automaticas = ["Done:config"]

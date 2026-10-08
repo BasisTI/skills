@@ -2,6 +2,19 @@
 
 Confira `claude --help` e a configuração efetiva antes de iniciar. Selecione modelo/esforço do alias usando opções suportadas na instalação. Skill local pertence ao coordenador; instruções do alvo pertencem ao worker.
 
+## Espera
+
+O Claude Code acorda o turno quando um comando em background termina. Arme a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) como um comando Bash em background e encerre o turno só depois de armá-la:
+
+```bash
+until [ -s <relatorio> ]; do
+  herdr agent wait <worker> --timeout 60000 && break
+  herdr agent get <worker> >/dev/null || break   # pane sumiu
+done
+```
+
+O laço sai com relatório gravado, worker parado ou pane encerrado; ao acordar, confira qual dos dois e trate o outro como anomalia. Para vigiar merge, acrescente a consulta do estado da MR ao laço. O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: ao receber esse aviso, confira estado e relatório e rearme. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
+
 ## Permissões de worktrees e temporários
 
 A CLI oferece `--add-dir`, `--allowedTools` e `--settings`; confira sintaxe e política vigentes. Configure no escopo do projeto coordenador, com diretórios dos alvos/artefatos explicitamente autorizados. Regras de permissão ficam no perfil do ambiente, não nos aliases de modelo.

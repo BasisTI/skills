@@ -16,6 +16,29 @@ Precedência: escolha explícita atual do usuário → preferência persistente 
 
 Fallback só usa aliases listados e disponíveis. Se nenhum puder cumprir o contrato, reporte bloqueio e peça a escolha que falta. Escalada por ambiguidade ou falhas recorrentes usa a política configurada; não autoriza gasto ou modelo fora das escolhas do usuário.
 
+## Autonomia e transições automáticas
+
+A autorização permanente vive em `[autonomia]`, não na memória de um harness: o Codex coordenador não lê a memória do Claude.
+
+- `modo_autonomo = true`: o coordenador conduz executor → revisão → correções e volta ao usuário só em bloqueio ou término.
+- `transicoes_automaticas`: transições derivadas de evento comprovado que o coordenador executa sem perguntar. Valores: `"Ready for test"` (staging, ou o ambiente declarado pelo projeto, roda a versão do merge, pela cadeia de entrega) e `"Done:config"` (`Done` só para story com a tag `config`, depois do merge, com a primeira pipeline da branch base verde). Os critérios são os da `basis-ci-gitlab`.
+
+`[projetos.<chave>.autonomia]` sobrescreve a global por chave; lista do projeto substitui a global. O `Done` comum continua humano: depende de registro de teste. Merge, aceite funcional, hotspot e deploy não entram aqui.
+
+## Status na sidebar do Herdr
+
+Passo de instalação, feito pelo usuário no `config.toml` do Herdr (`herdr --default-config` mostra o padrão). O coordenador não altera essa configuração. Acrescente uma linha com os tokens às linhas existentes:
+
+```toml
+[ui.sidebar.agents]
+rows = [["state_icon", "machine", "workspace", "tab"], ["agent"], ["$story", "$fase"]]
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace"], ["branch", "git_status"], ["$mrs_prontas"]]
+```
+
+Se houver `[ui.sidebar.agents.rows_by_agent]`, a linha entra também em cada agente listado, porque essas linhas substituem `rows`. Depois, `herdr server reload-config`. A renderização dos tokens próprios ainda não foi testada ao vivo. O que o coordenador publica está em [acompanhamento](acompanhamento.md#status-na-sidebar).
+
 ## Identidade no GitLab
 
 Cada papel pode ter um usuário próprio no GitLab, para que MR, comentários de evidência, achados e respostas mostrem quem é executor e quem é revisor. `[identidades.<papel>]` aponta `glab_config_dir` para um diretório com o `config.yml` do `glab` daquele usuário; o pane do worker recebe `GLAB_CONFIG_DIR` com esse caminho absoluto ([despacho](despacho.md#inicialização)). O token vive só nesse `config.yml` (`600`), e o orquestrador passa o caminho, nunca o valor — `GITLAB_TOKEN` no `--env` deixaria o segredo no comando, no transcript e no estado do Herdr.
