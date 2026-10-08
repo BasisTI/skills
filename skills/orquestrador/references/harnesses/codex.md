@@ -2,6 +2,8 @@
 
 Confira `codex --help` e a configuração efetiva. A CLI instalada pode oferecer `--model`, `--config`, `--cd`, `--add-dir`, `--sandbox` e `--ask-for-approval`; passe somente argumentos suportados. Esforço deve usar a chave reconhecida pela instalação, conferida antes do despacho.
 
+Lance e retome o Codex com `--no-daemon` (`herdr agent start <nome> --kind codex --pane <pane> -- --no-daemon …`; `codex --no-daemon resume <id>`). Desde a 0.157 o Codex atende as janelas num servidor compartilhado que guarda o ambiente do terminal que o iniciou, e hooks e comandos rodam nele: o `HERDR_PANE_ID` aponta para outro pane, o Herdr não registra a sessão do worker e o restart retoma a conversa no pane errado (herdrdev/herdr#4649). Em 2026-10-08 todas as sessões Codex se registravam num pane do argocd-apps, e uma conversa do Odoo foi retomada lá.
+
 ## Espera
 
 O Codex não tem tarefa em background que acorde um turno encerrado. Com worker ativo, a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) é um laço dentro do turno: cada volta roda `herdr agent wait <worker> --timeout 60000` (ou uma espera de 45–60 s), confere relatório e estado da MR e dá uma linha de progresso ao usuário. Worker `done` sem relatório passa pela tolerância de [anomalias](../acompanhamento.md#anomalias) antes de virar anomalia. O turno termina quando o worker termina, bloqueia ou mostra anomalia. Foi assim que a reação caiu de horas para 12–49 s na TG-63.

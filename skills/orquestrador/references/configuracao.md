@@ -37,7 +37,7 @@ rows = [["state_icon", "machine", "workspace", "tab"], ["agent"], ["$story", "$f
 rows = [["state_icon", "workspace"], ["branch", "git_status"], ["$mrs_prontas"]]
 ```
 
-Se houver `[ui.sidebar.agents.rows_by_agent]`, a linha entra também em cada agente listado, porque essas linhas substituem `rows`. Depois, `herdr server reload-config`. A renderização dos tokens próprios ainda não foi testada ao vivo. O que o coordenador publica está em [acompanhamento](acompanhamento.md#status-na-sidebar).
+Se houver `[ui.sidebar.agents.rows_by_agent]`, a linha entra também em cada agente listado, porque essas linhas substituem `rows`. Com a linha a mais, o limite padrão de 36 colunas corta o texto: suba `sidebar_max_width` (e, se quiser, `sidebar_width`) em `[ui]`; a borda da sidebar se arrasta com o mouse até esse limite. Depois, `herdr server reload-config`. A renderização dos tokens próprios ainda não foi testada ao vivo. O que o coordenador publica está em [acompanhamento](acompanhamento.md#status-na-sidebar).
 
 ## Identidade no GitLab
 
