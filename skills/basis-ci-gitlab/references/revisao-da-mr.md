@@ -19,7 +19,7 @@ vêm de quem pediu; se não vieram, pergunte antes de lançar. A escolha da impl
 passa para a revisão sem que alguém a repita.
 
 O `qa-adversarial` é um agente instalado no harness (subagente no Claude Code e no
-opencode). Se o harness escolhido não o tem, pergunte — revisão sem ele é outra revisão.
+opencode), versionado em `agents/qa-adversarial.md` do `BasisTI/skills`. Se o harness escolhido não o tem, pergunte — revisão sem ele é outra revisão.
 
 O pacote do revisor:
 
