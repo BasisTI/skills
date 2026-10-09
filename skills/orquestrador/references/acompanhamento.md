@@ -18,7 +18,7 @@ O Herdr às vezes não reconhece o estado final do Codex; por isso a espera tamb
 
 ## Anomalias
 
-- Worker `idle`/`done` sem relatório é anomalia, não espera — depois de descartar o shell em background. O executor Claude fica `done` enquanto espera a pipeline num shell em background, e a tela mostra "shell still running" (piloto de 2026-09-30). Confira `herdr agent read <worker> --source visible`: com shell rodando, dê 30–60 s e nova volta. Sem shell e sem relatório depois dessa tolerância, é anomalia: leia a saída e decida — pedir o relatório, relançar ou bloquear.
+- Worker `idle`/`done` sem relatório é anomalia, não espera — depois de descartar o shell em background. O executor Claude fica `done` enquanto espera a pipeline num shell em background, e a tela deixou de servir de sinal: o texto muda entre versões ("shell still running" no piloto de 2026-09-30, "Running 1 shell command" na 2.1.295). Confira pelo processo, como no [perfil Claude Code](harnesses/claude-code.md#espera): com shell rodando, dê 30–60 s e nova volta. Sem shell e sem relatório depois dessa tolerância, é anomalia: leia a saída e decida — pedir o relatório, relançar ou bloquear.
 - Revisor Codex encerrado pelo filtro do provedor ("flagged for possible cybersecurity risk") não grava relatório. Relance ou troque de harness pelo fallback configurado e registre o motivo. Não espere o arquivo até o limite: na TG-22 a rodada perdida custou 2 h.
 - Espera morta pelo harness (limite de tempo, falta de memória) não é fim da rodada: confira estado e relatório e rearme.
 
