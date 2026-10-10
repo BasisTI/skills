@@ -10,6 +10,8 @@ Detecte pendências em outro repositório e prepare a story no board que receber
 
 A limpeza integra a missão autorizada. Verifique MR mesclada, nenhum agente/processo usando o diretório, árvore limpa e ausência de trabalho local não incorporado. Confira branch correta, relação com a MR e procedimentos da `basis-ci-gitlab/worktree.md`. Use `wt remove <branch> --yes` a partir do repositório alvo com cwd explícito; releia estado após cada remoção.
 
+Com squash, o `wt remove` remove o worktree, mas recusa apagar a branch ("Branch unmerged"). Confira que o conteúdo da branch está no commit de squash, com `git diff --quiet <head da branch> <squash> -- <pasta do projeto>`, porque fora dela a diferença vem de outros merges no destino. Só então use `git branch -D`.
+
 Árvore suja, MR aberta ou commits locais sem destino conhecido impedem a remoção. Preserve e reporte. Permitir `wt remove` no harness não dispensa essas verificações.
 
 ## Artefatos e panes
@@ -18,7 +20,7 @@ Preserve relatórios, evidências e decisões até a retenção configurada e o 
 
 Prefira um helper de limpeza restrito quando existir e tiver sido validado; esta versão não fornece esse helper. Não conceda acesso genérico a `rm -rf`. Operações de organização independentes podem continuar quando exclusão for bloqueada.
 
-Feche somente panes criados pela missão e sem trabalho pendente. Pane de planejamento com conversa do usuário em andamento continua aberto. Registre recursos removidos/preservados e resultado da verificação.
+Feche somente panes criados pela missão e sem trabalho pendente: agente `idle` ou `done`, conferido logo antes de fechar. O aviso ao coordenador não marca o fim do trabalho. Na TG-225 do convey, a aba do revisor foi fechada com ele ainda `working`, registrando o resultado do aviso. Pane de planejamento com conversa do usuário em andamento continua aberto. Registre recursos removidos/preservados e resultado da verificação.
 
 ## Permissões
 
