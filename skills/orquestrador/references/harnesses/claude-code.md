@@ -13,18 +13,25 @@ shell_em_background() {  # o Claude Code do worker tem um shell filho rodando
   pid=$(jq -r --arg s "$sid" 'select(.sessionId == $s) | .pid' ~/.claude/sessions/*.json 2>/dev/null | head -1)
   [ -n "$sid" ] && [ -n "$pid" ] && pgrep -P "$pid" -f shell-snapshots >/dev/null
 }
+parado_desde=
 until [ -s <relatorio> ]; do
-  if herdr agent wait <worker> --timeout 60000; then
-    sleep 45; [ -s <relatorio> ] && break               # tolerância
-    shell_em_background <worker> || break
-  fi
-  herdr agent get <worker> >/dev/null || break   # pane sumiu
+  st=$(herdr agent get <worker> 2>/dev/null | jq -r '.result.agent.agent_status // empty')
+  [ -z "$st" ] && break                                   # pane sumiu
+  case "$st" in
+    working) parado_desde= ;;
+    blocked) break ;;
+    *) [ -z "$parado_desde" ] && parado_desde=$(date +%s)
+       [ $(( $(date +%s) - parado_desde )) -ge 600 ] && break ;;  # parado 10 min sem relatório
+  esac
+  sleep 30
 done
 ```
 
-O laço sai com relatório gravado, worker parado sem shell em background ([anomalias](../acompanhamento.md#anomalias)) ou pane encerrado; ao acordar, confira qual dos três e trate os dois últimos como anomalia.
+O laço sai com relatório gravado, worker `blocked`, pane sumido ou worker `idle`/`done` sem relatório por 10 min seguidos. A tolerância de 10 min é valor de partida: ela cobre a janela em que o executor está entre um comando e o seguinte, e o contador zera sempre que o worker volta a `working`. Ao acordar, o coordenador confere qual sinal saiu e trata os três últimos (`blocked`, pane sumido, parado) como anomalia ([anomalias](../acompanhamento.md#anomalias)).
 
-O shell em background é conferido pelo processo, não pela tela. A versão 2.1.295 escreve "Running 1 shell command" ou "Ran 1 shell command" no lugar do antigo "shell still running", e o texto muda entre versões: na TG-107 do portal-liven (2026-10-09) a espera acusou anomalia enquanto o executor aguardava a pipeline. O Herdr informa o id da sessão (`agent_session.value`); o Claude Code registra o pid de cada sessão em `~/.claude/sessions/<pid>.json`, e cada comando Bash roda num `zsh`/`bash` filho que carrega um arquivo de `shell-snapshots`. Esses dois detalhes são internos do Claude Code: sem o arquivo da sessão, a função devolve falso e a espera acorda como anomalia, o que só custa uma conferência. Para vigiar merge, acrescente a consulta do estado da MR ao laço. O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: ao receber esse aviso, confira estado e relatório e rearme. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
+A função `shell_em_background` é um atalho opcional: se achar shell em background no processo, o worker não conta como parado. Ela teve falso negativo na Claude Code 2.1.296 (TG-212 do colaboradados, 2026-10-10: duas esperas acordaram como anomalia com o executor ainda no meio da rodada, e ambas voltaram a `working` sozinhas). A causa exata não foi identificada. A hipótese é a janela entre o fim do comando em background e o turno seguinte, ou um comando de espera que não é filho direto do processo da sessão. Por isso o atalho não substitui a tolerância de tempo. Se usá-lo, chame-o no ramo `*)` antes de contar como parado.
+
+O shell em background é conferido pelo processo, não pela tela. A versão 2.1.295 escreve "Running 1 shell command" ou "Ran 1 shell command" no lugar do antigo "shell still running", e o texto muda entre versões: na TG-107 do portal-liven (2026-10-09) a espera acusou anomalia enquanto o executor aguardava a pipeline. O Herdr informa o id da sessão (`agent_session.value`); o Claude Code registra o pid de cada sessão em `~/.claude/sessions/<pid>.json`, e cada comando Bash roda num `zsh`/`bash` filho que carrega um arquivo de `shell-snapshots`. Esses dois detalhes são internos do Claude Code: sem o arquivo da sessão, a função devolve falso. Para vigiar merge, acrescente a consulta do estado da MR ao laço. O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: ao receber esse aviso, confira estado e relatório e rearme. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
 
 ## Permissões de worktrees e temporários
 
