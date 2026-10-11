@@ -27,7 +27,7 @@ A autorização permanente vive em `[autonomia]`, não na memória de um harness
 
 ## Status na sidebar do Herdr
 
-Passo de instalação, feito pelo usuário no `config.toml` do Herdr (`herdr --default-config` mostra o padrão). O coordenador não altera essa configuração. Com a [Central](central.md), `orq plugin configurar` acrescenta as linhas `$orq` e `$orq_mrs`, que o daemon publica, e o resto desta seção não se aplica. Sem ela, acrescente uma linha com os tokens manuais às linhas existentes:
+Passo de instalação, feito pelo usuário no `config.toml` do Herdr (`herdr --default-config` mostra o padrão). O coordenador não altera essa configuração. Com a [Central](central.md), `orq plugin configurar` acrescenta as linhas `$orq` e `$orq_mrs`, que o daemon publica, e o resto desta seção não se aplica; as linhas manuais que já existirem ficam, vazias depois da [migração](central.md#com-ou-sem-central), e removê-las é opcional. Sem ela, acrescente uma linha com os tokens manuais às linhas existentes:
 
 ```toml
 [ui.sidebar.agents]

@@ -29,7 +29,7 @@ MR aprovada aguardando merge humano entra na mesma espera. A cada volta, consult
 
 ## Status na sidebar
 
-Com a [Central](central.md), o daemon do `orq` publica a sidebar e o coordenador não publica nada. Sem ela, a cada mudança de fase, publique o status no pane do worker e as MRs prontas no workspace:
+Com a [Central](central.md), o daemon do `orq` publica a sidebar e o coordenador não publica nada; ao migrar, ele [aposenta](central.md#com-ou-sem-central) os tokens que já tinha publicado. Sem ela, a cada mudança de fase, publique o status no pane do worker e as MRs prontas no workspace:
 
 ```bash
 herdr pane report-metadata <pane> --source orquestrador \
