@@ -27,7 +27,7 @@ A autorização permanente vive em `[autonomia]`, não na memória de um harness
 
 ## Status na sidebar do Herdr
 
-Passo de instalação, feito pelo usuário no `config.toml` do Herdr (`herdr --default-config` mostra o padrão). O coordenador não altera essa configuração. Acrescente uma linha com os tokens às linhas existentes:
+Passo de instalação, feito pelo usuário no `config.toml` do Herdr (`herdr --default-config` mostra o padrão). O coordenador não altera essa configuração. Com a [Central](central.md), `orq plugin configurar` acrescenta as linhas `$orq` e `$orq_mrs`, que o daemon publica, e o resto desta seção não se aplica. Sem ela, acrescente uma linha com os tokens manuais às linhas existentes:
 
 ```toml
 [ui.sidebar.agents]
@@ -47,7 +47,7 @@ A identidade cobre o `glab`. Commit e push continuam com o `git` do usuário: au
 
 ## Cadastro de projetos e ambiente
 
-Cada projeto registra caminho, board Taiga, branch base, instruções de entrega e referência da identidade ai-memory. Leia `workspace`/`project` da configuração real; o cadastro não substitui a resolução de `repo-root`. Repositórios GitHub/main não herdam automaticamente comandos GitLab/develop: explicite adaptações autorizadas do projeto.
+Cada projeto registra caminho, board Taiga, branch base, instruções de entrega e referência da identidade ai-memory. O board tem `taiga_project_id` e `taiga_slug`: a CLI `taiga` recebe o slug (`--project <slug>`), e o slug é o projeto das US na [Central](central.md), que o daemon repassa à `taiga`. Sem `taiga_slug`, leia-o do Taiga pelo id e peça ao usuário para gravá-lo na configuração; não o deduza da chave do projeto, que pode diferir. Leia `workspace`/`project` da configuração real; o cadastro não substitui a resolução de `repo-root`. Repositórios GitHub/main não herdam automaticamente comandos GitLab/develop: explicite adaptações autorizadas do projeto.
 
 Antes do despacho confira CLI, autenticação, papel de revisão, diretórios graváveis, permissões de limpeza e recursos. Use limites globais de executores/revisores e de builds pesados; teste memória/disco disponíveis. Os números do exemplo são conservadores e precisam ser ajustados ao ambiente.
 

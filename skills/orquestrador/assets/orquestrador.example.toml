@@ -70,6 +70,7 @@ qa_adversarial_modo = "nativo" # ou "arquivo", com autorização explícita
 [projetos.exemplo]
 caminho = "/caminho/absoluto/do/repositorio"
 taiga_project_id = 0 # substituir pelo ID real
+taiga_slug = "exemplo" # slug do board: --project da taiga-cli e projeto das US no orq
 branch_base = "develop" # conferir no alvo; pode ser main
 memoria_config = "/caminho/da/.ai-memory.toml"
 fluxo = "basis-ci-gitlab" # adaptações ficam nas instruções do alvo
