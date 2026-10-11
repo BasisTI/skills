@@ -10,7 +10,7 @@ Use a referência `worktree.md` da `basis-ci-gitlab` e a skill `worktrunk` para 
 
 Informe cópia e versão das skills usadas. Se desatualizadas, atualize conforme autorização existente; não atualize todas as skills globais automaticamente. Resolva identidade ai-memory e referências de credenciais sem copiar segredos para prompts.
 
-Preencha o template de implementação. Registre conflitos potenciais entre stories paralelas e atualização da branch após o merge das demais. Dependentes liberadas por um merge podem ser despachadas sem nova pergunta dentro da missão autorizada.
+Preencha o template de implementação. Registre conflitos potenciais entre stories paralelas e atualização da branch após o merge das demais. Dependentes liberadas por um merge podem ser despachadas sem nova pergunta dentro da missão autorizada ([ondas](ondas.md)).
 
 ## Inicialização
 
@@ -42,6 +42,13 @@ O pacote informa nome e pane do coordenador. Ao gravar o relatório, o worker ro
 herdr agent prompt <coordenador> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
 ```
 
-Coordenador trabalhando não recebe aviso: a espera dele detecta o relatório. Timeout desse comando não prova que o aviso se perdeu. O aviso complementa a espera, não a substitui. Como cada harness trata entrada com o coordenador ocupado ainda não foi testado; por isso o envio fica restrito a `idle`/`done`.
+Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) usa o mesmo comando e a mesma restrição, ao abrir e ao considerá-la respondida:
+
+```
+[orq] <projeto> TG-xx pendência P2 aberta: <resumo curto>
+[orq] <projeto> TG-xx pendência P2 respondida
+```
+
+Coordenador trabalhando não recebe aviso: a espera dele detecta o relatório ou a pendência. Timeout desse comando não prova que o aviso se perdeu. O aviso complementa a espera, não a substitui. Como cada harness trata entrada com o coordenador ocupado ainda não foi testado; por isso o envio fica restrito a `idle`/`done`.
 
 Validado nas TG-225 e TG-312 do convey (2026-10-09/10): os avisos do planejador, do executor e do revisor, de Claude Code e de Codex, chegaram ao coordenador como turno novo. Com o coordenador ocupado, o worker não enviou o aviso e a espera detectou o relatório. Depois de enviar, o worker ainda registra o resultado do envio: o aviso não indica que o pane pode ser fechado ([conclusão](conclusao-e-limpeza.md#artefatos-e-panes)).

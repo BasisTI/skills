@@ -6,6 +6,7 @@
 - Entrega: URL completa da MR, SHA, pipeline, versão testada e links.
 - Evidências: testes executados, reproduções, leitura e caminhos persistentes.
 - Decisões: justificativa, origem e autorização; propostas ainda pendentes.
+- Pendências da pessoa: id `P<n>`, tipo (dúvida, autorização, decisão), resumo e se foi respondida.
 - Achados/bloqueios: severidade, causa, recorrências e discussão correspondente.
 - Recursos: processos pendentes, worktree e arquivos a preservar/limpar.
 - Próximo passo concreto.

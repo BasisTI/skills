@@ -17,7 +17,7 @@ Antes de despachar, leia as instruções canônicas do alvo. Recupere decisões 
 
 ## Fluxo e referências
 
-1. Confira story, critérios, branch base e dependências; prepare o pacote e o worktree: [despacho](references/despacho.md).
+1. Confira story, critérios, branch base e dependências; prepare o pacote e o worktree: [despacho](references/despacho.md). Várias stories entregues de uma vez, com autorização declarada, formam uma [onda](references/ondas.md).
 2. Resolva um alias separado para cada papel. Honre escolhas explícitas e preferências persistentes; não pergunte novamente por story.
 3. Se houver planejamento independente, ofereça conversa em outro pane: [planejamento](references/planejamento.md).
 4. Lance e acompanhe a rodada: [acompanhamento](references/acompanhamento.md). Leia a skill `herdr` antes de controlar panes; sem ambiente Herdr ativo, informe a limitação.
