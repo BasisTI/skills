@@ -8,6 +8,7 @@ Antes de despachar, anote no registro da missão e confirme com o usuário o que
 
 - **Stories e ordem.** A ordem de despacho e, quando houver, a ordem de merge.
 - **Até onde ir sem perguntar.** O padrão é MR aprovada, pronta para merge. Merge continua humano, salvo autorização explícita para a onda; transições seguem `[autonomia]` ([configuração](configuracao.md#autonomia-e-transições-automáticas)).
+- **Empilhamento.** Se a pessoa autoriza empilhar stories que tocam o mesmo código ([abaixo](#grafo-e-recursos)). "Deixar as MRs prontas" não é essa autorização.
 - **O que fica de fora.** Escritas externas que dependem da pessoa viram pendência, não bloqueio da onda. Naquela noite, sem escrita no SGO, a verificação da TG-217 ficou pendente e a implementação seguiu com a alternativa segura.
 
 Dentro do contrato, o coordenador despacha a próxima story elegível sem nova pergunta, respeitando os limites de `[coordenador]` (`max_executores`, `max_revisores`, `max_builds_pesados`). Pedido explícito do usuário pode ampliar o limite ou encurtar o fluxo para a onda: na subida para a v1.16.0 (2026-10-05), três stories de três projetos correram com três executores simultâneos, contra `max_executores = 2`, e sem revisão, ambos por escolha do usuário. Anote a mudança no registro.
@@ -16,7 +17,7 @@ Dentro do contrato, o coordenador despacha a próxima story elegível sem nova p
 
 Monte o grafo antes de lançar, com o que cada story toca, não só com as dependências declaradas no Taiga:
 
-- **Mesmo arquivo ou mesma regra, empilhe.** TG-215 e TG-216 reescreviam a mesma constraint; a TG-216 nasceu da branch da TG-215, e a MR dela diz que depende da outra e que precisa de rebase depois do merge.
+- **Mesmo arquivo ou mesma regra, a base é decisão de quem pediu.** Empilhar faz a MR carregar o diff das duas stories até o merge da primeira e torna a revisão dependente dela; por isso a `basis-ci-gitlab` (`references/worktree.md`, base da branch) reserva a escolha a quem pediu. A decisão pode vir uma vez para a onda, no contrato; sem ela, a dependente aguarda a base. Empilhada, a MR diz qual precisa ser mergeada antes e, depois desse merge, passa por rebase e confirmação do revisor. No colaboradados, a TG-216 foi empilhada sobre a TG-215 por decisão do coordenador, a partir do pedido genérico; esta regra corrige isso.
 - **Dependência de conteúdo, espere a aprovação.** A TG-218 precisava dos nomes de coluna da TG-217 e só começou da base depois da MR da TG-217 aprovada.
 - **Recurso numerado, reserve.** Com Flyway `outOfOrder=false`, migração de número menor mesclada depois de uma maior é recusada. Reserve os números no início (TG-215 = V037, TG-216 = V038, TG-217 = V039) e torne a ordem de merge obrigatória.
 - **Recurso pesado, serialize.** `mvn verify` em fila por `flock`, um revisor por vez.
