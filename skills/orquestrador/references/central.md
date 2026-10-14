@@ -27,7 +27,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 |---|---|
 | Início da sessão | `orq coord registrar <chave-projeto> --projeto <taiga_slug>`; confira na saída o pane, que vem de `$HERDR_PANE_ID` e no Codex sem `--no-daemon` é o de outro pane ([Codex](harnesses/codex.md)) |
 | Contrato da [onda](ondas.md#o-contrato) fechado; story isolada é onda de uma US | `orq onda criar "<título>" --us 215,216 --ate mr-pronta\|plano\|merge --ordem estrita\|livre [--depende 216:215]` |
-| Próxima story a despachar | `orq onda proxima [<id>]` (traz `us`, `bloqueadas` e o limite; o id é obrigatório com mais de uma onda aberta) |
+| Próxima story a despachar | `orq onda proxima [<id>]` (traz `us`, `bloqueadas` e o limite, e com a onda no limite o `encerramento`; o id é obrigatório com mais de uma onda aberta) |
 | Planejador aberto | `orq us status <ref> plan --pane <p> --papel planejamento --rodada 1` |
 | Executor despachado ou correção r≥2 | `orq us status <ref> exec --pane <p> --papel implementacao --rodada <n>` |
 | Revisor despachado | `orq us status <ref> rev --pane <p> --papel revisao --rodada <n>` |
@@ -35,10 +35,19 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Limite da onda alcançado | `orq us status <ref> done` |
 | Aviso `pendência Pn aberta` | `orq pend add <ref> --tipo duvida\|autorizacao\|decisao "<resumo>" --pane <p>` |
 | Aviso `pendência Pn respondida` | `orq pend resolver <ref>#P<n> --resposta "<resumo>"` |
+| Onda concluída ([regra](#encerrar-a-onda)) | `orq onda encerrar <id>` |
 
-`done` quer dizer que a US chegou ao `--ate` da onda: plano aprovado (`plano`), MR aprovada pela revisão independente, à espera da pessoa para o merge (`mr-pronta`) ou MR mesclada (`merge`). Depois de uma onda `plano`, encerre-a (`orq onda encerrar <id>`) e crie a de implementação: a US volta a `wait`, porque o `done` valia para o limite anterior.
+`done` quer dizer que a US chegou ao `--ate` da onda: plano aprovado (`plano`), MR aprovada pela revisão independente, à espera da pessoa para o merge (`mr-pronta`) ou MR mesclada (`merge`). Chegar ao limite não encerra a onda: [encerrar a onda](#encerrar-a-onda) é um passo do coordenador.
 
 **Pendências.** A Central numera sozinha, por US, sem reaproveitar; o worker numera na story a partir do próximo id livre do pacote. Para os dois baterem, o pacote leva o próximo id da Central (`orq onda ver`). Antes de cada `pend add` e de cada `pend resolver`, e antes de calcular o próximo id de um pacote, o coordenador confere que a Central tem todas as pendências da US até o número do aviso, do pane ou do relatório. Faltando alguma, porque o aviso de abertura não saiu com o coordenador ocupado, registre-a antes, na ordem, e resolva-a se já foi respondida; sem isso, `pend resolver` dá `nao_encontrado` (exit 5) e o pacote seguinte reusa o id. Story com pendências de antes da Central entra com elas registradas na ordem, e as respondidas já resolvidas.
+
+## Encerrar a onda
+
+Encerre a onda com `orq onda encerrar <id>` quando toda US está em `done`, toda MR da onda está mesclada ou fechada e nenhuma pendência está aberta. Numa onda `mr-pronta` isso vem depois do merge humano e do [pós-merge](conclusao-e-limpeza.md#auditoria-proativa) da última US, que o [vigia de merge](acompanhamento.md#vigia-de-merge) dispara. Pendência aberta sem resposta: resolva-a, ou leve-a para outra onda ou para o Taiga e feche-a com `orq pend resolver <id> --resposta "levada para <destino>"`, registrando no diário da missão antes de encerrar. A onda `plano` não espera MR: com os planos aprovados, encerre-a e crie a de implementação, e a US volta a `wait`, porque o `done` valia para o limite anterior.
+
+Com a onda no limite, `orq onda proxima` aplica esta regra em `encerramento`: com `pronta: true`, rode o `comando` sugerido; senão, `faltam` diz o que impede (MR à espera de merge, MR sem estado conhecido no cache do daemon, que você confere na forja como no vigia, ou pendência aberta), com a chave completa (`projeto/312#P2`), que é o id a usar no `pend resolver`: o curto (`TG-312#P2`) vai ao projeto padrão do coordenador. O `orq` só sugere, nunca encerra; o selo `concluída` na faixa da Central marca a mesma situação. Sem o campo (`orq` anterior à US #8 do projeto `orq`), confira as três condições em `orq onda ver`.
+
+Origem: relato do Cedric em 2026-10-14. Seis ondas terminadas seguiam abertas na Central, uma com três pendências abertas, porque esta referência só mandava encerrar a onda `plano`.
 
 ## Leitura e exibição
 
