@@ -4,7 +4,7 @@ Onda é um conjunto ordenado de stories que o usuário entrega ao coordenador de
 
 ## O contrato
 
-Antes de despachar, confirme com o usuário o que ele não disse e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--ate`, `--ordem` e `--depende`; sem ela, no registro da missão):
+Antes de despachar, confirme com o usuário o que ele não disse e dê à onda um nome e ao pane do coordenador o rótulo e o nome de agente dela ([nomes dos panes](despacho.md#nomes-dos-panes)) e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--ate`, `--ordem` e `--depende`; sem ela, no registro da missão):
 
 - **Stories e ordem.** A ordem de despacho e, quando houver, a ordem de merge.
 - **Até onde ir sem perguntar.** O padrão é MR aprovada, pronta para merge. Merge continua humano, salvo autorização explícita para a onda; transições seguem `[autonomia]` ([configuração](configuracao.md#autonomia-e-transições-automáticas)).

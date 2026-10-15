@@ -1,6 +1,7 @@
 # Pacote de revisão
 
-- Origem (coordenador com nome e pane Herdr), missão, projeto e story com critérios de aceite.
+- Origem (coordenador: rótulo, nome de agente e id do pane), missão, projeto e story com critérios de aceite.
+- Worker: rótulo, nome de agente e id do pane do destinatário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Alias e harness/modelo/esforço resolvidos.
 - Papel qa-adversarial: origem e modo autorizado.
 - MR aberta, SHA a revisar, base, worktree e estado de conflitos.

@@ -51,4 +51,4 @@ Cada projeto registra caminho, board Taiga, branch base, instruções de entrega
 
 Antes do despacho confira CLI, autenticação, papel de revisão, diretórios graváveis, permissões de limpeza e recursos. Use limites globais de executores/revisores e de builds pesados; teste memória/disco disponíveis. Os números do exemplo são conservadores e precisam ser ajustados ao ambiente.
 
-Diretório de artefatos: `<raiz>/<chave-projeto>/TG-<ref>/<papel>/r<rodada>/`. A chave deve ser única no cadastro, inclusive entre boards e workspaces. Pane recebe nome curto único e ID retornado pelo Herdr; ref isolada não identifica uma missão.
+Diretório de artefatos: `<raiz>/<chave-projeto>/TG-<ref>/<papel>/r<rodada>/`. A chave deve ser única no cadastro, inclusive entre boards e workspaces. Pane recebe rótulo, nome de agente ([nomes dos panes](despacho.md#nomes-dos-panes)) e ID retornado pelo Herdr; ref isolada não identifica uma missão.

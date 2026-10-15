@@ -26,7 +26,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Momento | Comando |
 |---|---|
 | Início da sessão | `orq coord registrar <chave-projeto> --projeto <taiga_slug>`; confira na saída o pane, que vem de `$HERDR_PANE_ID` e no Codex sem `--no-daemon` é o de outro pane ([Codex](harnesses/codex.md)) |
-| Contrato da [onda](ondas.md#o-contrato) fechado; story isolada é onda de uma US | `orq onda criar "<título>" --us 215,216 --ate mr-pronta\|plano\|merge --ordem estrita\|livre [--depende 216:215]` |
+| Contrato da [onda](ondas.md#o-contrato) fechado (o título começa pelo [nome da onda](despacho.md#nomes-dos-panes)); story isolada é onda de uma US | `orq onda criar "<onda> — <título>" --us 215,216 --ate mr-pronta\|plano\|merge --ordem estrita\|livre [--depende 216:215]` |
 | Próxima story a despachar | `orq onda proxima [<id>]` (traz `us`, `bloqueadas` e o limite, e com a onda no limite o `encerramento`; o id é obrigatório com mais de uma onda aberta) |
 | Planejador aberto | `orq us status <ref> plan --pane <p> --papel planejamento --rodada 1` |
 | Executor despachado ou correção r≥2 | `orq us status <ref> exec --pane <p> --papel implementacao --rodada <n>` |

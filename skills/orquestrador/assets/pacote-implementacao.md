@@ -1,6 +1,7 @@
 # Pacote de implementação
 
-- Origem: coordenador (nome e pane Herdr), missão e referência da conversa.
+- Origem: coordenador (rótulo, nome de agente e id do pane), missão e referência da conversa.
+- Worker: rótulo, nome de agente e id do pane do destinatário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Alvo: chave do projeto, caminho, board e story, instruções canônicas.
 - Objetivo e critérios de aceite: links e escopo.
 - Plano, dependências incorporadas e decisões relevantes.
