@@ -46,20 +46,20 @@ Todo pane tem dois nomes. O **rótulo** aceita maiúsculas e só aparece na tela
 
 - **Onda:** nome curto e específico, com projeto e assunto: `colaboradados-ferias`, e não `colaboradados`. Tem de ser um nome de agente válido, e o título de `orq onda criar` começa por ele ([Central](central.md#do-fluxo-ao-comando)).
 - **Coordenador:** ao fechar o [contrato da onda](ondas.md#o-contrato), rode `herdr pane rename <pane> <onda>` e `herdr agent rename <pane> <onda>`. Com duas ondas abertas vale o nome da mais recente; ao encerrar uma, volta o da que restou. No Codex, o pane é o que `orq coord registrar` mostra, não `$HERDR_PANE_ID` ([Codex](harnesses/codex.md)).
-- **Worker:** rótulo `TG-<ref>_<Papel>`, com Papel `Executor`, `Revisor` ou `Planejador` (`TG-281_Executor`), e nome de agente igual ao rótulo em minúsculas (`tg-281_executor`), passado em `herdr agent start <nome> --kind <harness> --pane <pane>`. O rótulo vai em `herdr pane rename` ou, na aba nova, em `herdr tab create --label`. Se o nome já estiver vivo (o mesmo ref em outro board), prefixe a chave do projeto, dentro de 32 caracteres. O planejador de várias stories usa `<onda>_Planejador`. Nas rodadas r≥2, o pane e o nome continuam os mesmos.
+- **Worker:** rótulo `TG-<ref>_<Papel>`, com Papel `Executor`, `Revisor` ou `Planejador` (`TG-281_Executor`), e nome de agente igual ao rótulo em minúsculas (`tg-281_executor`), passado em `herdr agent start <nome> --kind <harness> --pane <pane>`. O rótulo vai em `herdr pane rename` ou, na aba nova, em `herdr tab create --label`. Se o nome já estiver vivo (o mesmo ref em outro board), prefixe a chave do projeto (`<projeto>-tg-<ref>_<papel>`). O planejador de várias stories usa `<onda>_Planejador`. O nome derivado cabe em 32 caracteres: abrevie a parte da onda ou do projeto antes do sufixo (a onda cabe em até 21 caracteres para `_planejador`). Nas rodadas r≥2, o pane e o nome continuam os mesmos.
 - **Pacotes:** o coordenador e o worker aparecem com rótulo, nome de agente e id do pane.
 
 Origem: pedido do Cedric em 2026-10-15. O `herdr agent list` do dia mostrava o coordenador do colaboradados como `colaboradados` e workers como `tg281-exec`, `exec-tg99` e `tg236-rev`, sem dizer onda, story nem papel. Comandos conferidos no Herdr 0.9.3 (`herdr pane rename --help`, `agent rename`, `agent start`, `tab create`); `agent rename` recusa maiúscula com `invalid_agent_name`.
 
 ## Aviso ao coordenador
 
-O pacote informa rótulo, nome de agente e id do coordenador. Ao gravar o relatório, o worker roda `herdr agent get <nome-do-coordenador>` (se o nome não resolver, o id) e, **somente se estiver `idle` ou `done`**, envia uma vez, sem reenviar:
+O pacote informa rótulo, nome de agente e id do coordenador. O nome pode deixar de resolver, porque o coordenador renomeia o pane ao abrir outra onda. Ao gravar o relatório, o worker resolve o `<alvo>` uma vez: o nome do coordenador, ou o id se `herdr agent get <nome>` responder `agent_not_found`. Usa esse mesmo `<alvo>` no `agent get` e no `agent prompt`, e **somente se estiver `idle` ou `done`** envia uma vez, sem reenviar:
 
 ```bash
-herdr agent prompt <nome-do-coordenador> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
+herdr agent prompt <alvo> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
 ```
 
-Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) usa o mesmo comando e a mesma restrição, ao abrir e ao considerá-la respondida:
+Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) usa o mesmo `<alvo>`, o mesmo comando e a mesma restrição, ao abrir e ao considerá-la respondida:
 
 ```
 [orq] <projeto> TG-xx pendência P2 aberta: <resumo curto>
