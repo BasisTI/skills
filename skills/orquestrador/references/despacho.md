@@ -12,6 +12,12 @@ Informe cópia e versão das skills usadas. Se desatualizadas, atualize conforme
 
 Preencha o template de implementação. Registre conflitos potenciais entre stories paralelas e atualização da branch após o merge das demais. Dependentes liberadas por um merge podem ser despachadas sem nova pergunta dentro da missão autorizada ([ondas](ondas.md)).
 
+### Fatos de ambiente
+
+Um fato de ambiente que decide para onde uma escrita vai entra no pacote somente se foi conferido na fonte de configuração: overlay, manifest ou values. Exemplos: qual banco, instância ou API cada ambiente usa; se staging e produção compartilham o destino. O pacote registra o caminho, o valor e a data da conferência. Comentário de código, relatório de outra story e memória são pistas: confira antes de repassar. Se não for possível conferir, o pacote marca o fato como "não confirmado" e trata o destino como de produção, para que a guarda seja implementada como se a escrita fora de produção alcançasse dados reais.
+
+Origem: no pacote r1 da TG-232 (colaboradados, 2026-10-14), o coordenador escreveu "staging tem outro Secullum", repetindo um docstring da TG-231. Os dois overlays apontavam para o mesmo banco (`SOURCES__SECULLUM_SOURCE__BANCO = "50911"`). O executor deixou a escrita liberável em staging, a revisão r1 abriu um Bloqueante e a correção custou uma rodada.
+
 ## Inicialização
 
 Leia o perfil do harness e a skill `herdr`.

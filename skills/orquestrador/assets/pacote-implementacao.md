@@ -8,7 +8,7 @@
 - Worktree absoluto, branch, base e MR existente.
 - Autorizações: transições, escrita externa e limites explícitos.
 - Modo autônomo, critérios de bloqueio e histórico de recorrências.
-- Ambiente: credenciais por referência, recursos, locks e conflitos potenciais.
+- Ambiente: credenciais por referência, recursos, locks e conflitos potenciais; destino de cada escrita por ambiente conferido na fonte ([fatos de ambiente](../references/despacho.md#fatos-de-ambiente)).
 - Testes/evidências e contrato de devolução da basis-ci-gitlab.
 - Pendências da story abertas e próximo id livre (`P<n>`): [bloqueios](../references/acompanhamento.md#bloqueios-e-recorrência).
 - Diretório da rodada e caminho do relatório persistente.
