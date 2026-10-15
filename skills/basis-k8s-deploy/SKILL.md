@@ -157,11 +157,33 @@ Referência boa para uma parte do manifesto não é referência boa para o resto
 assim, herdando o Ingress de um app cujo *deployment* servia de exemplo, que nasceram os
 dois erros desta seção.
 
+## 9. Esperar a mudança chegar aos pods
+
+Depois de um push no `argocd-apps`, a prova de que a mudança está no ar é o pod rodando o
+template novo — não o commit, nem o `rollout status` sozinho, que responde "successfully
+rolled out" sobre a versão antiga enquanto o ArgoCD ainda não sincronizou. Espere com o
+script, chamado direto de qualquer shell:
+
+```bash
+scripts/esperar-rollout.sh --context <ctx> --namespace <ns> --deployment <nome> \
+  --configmap-contem '<trecho novo do ConfigMap>'      # e/ou --imagem <tag>
+```
+
+Ele espera o texto aparecer num ConfigMap que o template referencia (volume simples,
+`projected`, `envFrom` ou `valueFrom`) e/ou a imagem com a tag, depois o rollout, e sempre
+imprime o resumo. Saída: 0 no ar, 1 rollout falhou, 2 uso/ambiente, 3 limite de tempo.
+Somente leitura, sem ler Secret. Os motivos de não improvisar o laço estão no cabeçalho do
+script.
+
 ## References disponíveis
 
 - [`references/rabbitmq-topology-pattern.md`](references/rabbitmq-topology-pattern.md) — Padrão Exchange/Queue/Binding limpos + Policy pra DLX/routing-key/TTL, DLX único compartilhado, migração de args→Policy
 - [`references/kustomize-base-example.md`](references/kustomize-base-example.md) — Layout completo de `base/` + overlays, `envs:` em generators, hash suffix vs `disableNameSuffixHash`
 - [`references/operator-secret-cheatsheet.md`](references/operator-secret-cheatsheet.md) — Padrão de Secret para Postgres-Zalando, RabbitMQ topology, Minio, MariaDB, Redis-otk, com snippets de `valueFrom`
 - [`references/argocd-image-updater.md`](references/argocd-image-updater.md) — Application yaml + anotações Image Updater, regex CalVer, fluxo end-to-end e promote
+
+## Scripts
+
+- [`scripts/esperar-rollout.sh`](scripts/esperar-rollout.sh) — Espera a mudança empurrada chegar aos pods do Deployment (§9)
 
 Snippets em `references/` são auto-contidos (cópias, não ponteiros) pra não quebrarem com refactors.
