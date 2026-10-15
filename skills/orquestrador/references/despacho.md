@@ -28,7 +28,7 @@ O layout é um workspace Herdr por projeto alvo, com um pane do coordenador aber
 herdr pane split --current --direction right --cwd <worktree> --no-focus \
   --env GLAB_CONFIG_DIR=<glab_config_dir do papel>
 # aba cheia (panes estreitos demais): aba nova no mesmo workspace
-herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <pane> --no-focus \
+herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <rótulo> --no-focus \
   --env GLAB_CONFIG_DIR=<glab_config_dir do papel>
 ```
 
@@ -36,19 +36,30 @@ O `--env` vem de `[identidades.<papel>]` ([configuração](configuracao.md#ident
 
 O worktree já existe, criado pelo `wt` no passo anterior; `herdr workspace create` e `herdr worktree create/open` abririam um workspace à parte para cada worker, que é justamente o que este layout evita. Story de projeto diferente do workspace atual: pergunte ao usuário onde abrir.
 
-Obtenha IDs da resposta; associe pane e agente à missão. Passe argumentos nativos por uma lista explícita, sem montar comandos por concatenação de texto externo.
+Dê ao pane o rótulo e ao agente o nome de [nomes dos panes](#nomes-dos-panes). Obtenha IDs da resposta; associe pane e agente à missão. Passe argumentos nativos por uma lista explícita, sem montar comandos por concatenação de texto externo.
 
 Confirme agente pronto e entrega do prompt. Não reenvie automaticamente depois de timeout. O pacote contém transições autorizadas; registros de status são feitos pelo responsável indicado nele. Registre o despacho ([Central](central.md#do-fluxo-ao-comando)) e arme a espera antes de encerrar o turno ([acompanhamento](acompanhamento.md#worker-ativo-implica-espera-armada)).
 
+## Nomes dos panes
+
+Todo pane tem dois nomes. O **rótulo** aceita maiúsculas e só aparece na tela; nenhum comando o recebe como alvo. O **nome de agente** segue `[a-z][a-z0-9_-]{0,31}`, é único entre os agentes vivos, é o alvo de `agent get/prompt/wait` e continua valendo depois de `pane move`, quando o id do pane muda. O id serve de alternativa.
+
+- **Onda:** nome curto e específico, com projeto e assunto: `colaboradados-ferias`, e não `colaboradados`. Tem de ser um nome de agente válido, e o título de `orq onda criar` começa por ele ([Central](central.md#do-fluxo-ao-comando)).
+- **Coordenador:** ao fechar o [contrato da onda](ondas.md#o-contrato), rode `herdr pane rename <pane> <onda>` e `herdr agent rename <pane> <onda>`. Com duas ondas abertas vale o nome da mais recente; ao encerrar uma, volta o da que restou. No Codex, o pane é o que `orq coord registrar` mostra, não `$HERDR_PANE_ID` ([Codex](harnesses/codex.md)).
+- **Worker:** rótulo `TG-<ref>_<Papel>`, com Papel `Executor`, `Revisor` ou `Planejador` (`TG-281_Executor`), e nome de agente igual ao rótulo em minúsculas (`tg-281_executor`), passado em `herdr agent start <nome> --kind <harness> --pane <pane>`. O rótulo vai em `herdr pane rename` ou, na aba nova, em `herdr tab create --label`. Se o nome já estiver vivo (o mesmo ref em outro board), prefixe a chave do projeto (`<projeto>-tg-<ref>_<papel>`). O planejador de várias stories usa `<onda>_Planejador`. O nome derivado cabe em 32 caracteres: abrevie a parte da onda ou do projeto antes do sufixo (a onda cabe em até 21 caracteres para `_planejador`). Nas rodadas r≥2, o pane e o nome continuam os mesmos.
+- **Pacotes:** o coordenador e o worker aparecem com rótulo, nome de agente e id do pane.
+
+Origem: pedido do Cedric em 2026-10-15. O `herdr agent list` do dia mostrava o coordenador do colaboradados como `colaboradados` e workers como `tg281-exec`, `exec-tg99` e `tg236-rev`, sem dizer onda, story nem papel. Comandos conferidos no Herdr 0.9.3 (`herdr pane rename --help`, `agent rename`, `agent start`, `tab create`); `agent rename` recusa maiúscula com `invalid_agent_name`.
+
 ## Aviso ao coordenador
 
-O pacote informa nome e pane do coordenador. Ao gravar o relatório, o worker roda `herdr agent get <coordenador>` e, **somente se estiver `idle` ou `done`**, envia uma vez, sem reenviar:
+O pacote informa rótulo, nome de agente e id do coordenador. O nome pode deixar de resolver, porque o coordenador renomeia o pane ao abrir outra onda. Ao gravar o relatório, o worker resolve o `<alvo>` uma vez: o nome do coordenador, ou o id se `herdr agent get <nome>` responder `agent_not_found`. Usa esse mesmo `<alvo>` no `agent get` e no `agent prompt`, e **somente se estiver `idle` ou `done`** envia uma vez, sem reenviar:
 
 ```bash
-herdr agent prompt <coordenador> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
+herdr agent prompt <alvo> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
 ```
 
-Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) usa o mesmo comando e a mesma restrição, ao abrir e ao considerá-la respondida:
+Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) usa o mesmo `<alvo>`, o mesmo comando e a mesma restrição, ao abrir e ao considerá-la respondida:
 
 ```
 [orq] <projeto> TG-xx pendência P2 aberta: <resumo curto>

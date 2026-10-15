@@ -1,6 +1,6 @@
 # Relatório da rodada
 
-- Identidade: missão, projeto, story, papel, rodada e pane.
+- Identidade: missão, projeto, story, papel, rodada e pane (rótulo, nome de agente e id).
 - Execução: alias, harness, modelo, esforço e adaptações autorizadas.
 - Resultado: devolvida/aprovada/com achados/bloqueada/falhou, conforme o papel.
 - Entrega: URL completa da MR, SHA, pipeline, versão testada e links.
