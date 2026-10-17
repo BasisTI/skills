@@ -12,6 +12,16 @@ Informe cópia e versão das skills usadas. Se desatualizadas, atualize conforme
 
 Preencha o template de implementação. Registre conflitos potenciais entre stories paralelas e atualização da branch após o merge das demais. Dependentes liberadas por um merge podem ser despachadas sem nova pergunta dentro da missão autorizada ([ondas](ondas.md)).
 
+### Recursos da US, temporários e Docker
+
+Com o worktree e os panes criados, grave o que o despacho criou, uma vez por US e completando a cada pane novo: `orq recursos gravar <ref> --repo <checkout> --worktree <worktree> --branch <branch> --pane <nome de agente>…` (`--aprovado <url>=<sha>` ao aprovar a revisão). Isso grava `recursos.json` na pasta de trabalho `~/tmp/orquestrador/<projeto>/TG-<ref>`, que é de onde o [`orq limpar`](conclusao-e-limpeza.md#limpeza-depois-do-merge) sabe o que remover. A saída traz o `TMPDIR` e os rótulos Docker abaixo.
+
+- **`TMPDIR`** próprio do worker, `/tmp/orq/<projeto>/TG-<ref>`, passado no `--env TMPDIR=<caminho>` do `herdr pane split`/`tab create` ([inicialização](#inicialização)). O pacote o informa.
+- **Docker:** contêineres, volumes, redes e imagens que o worker criar levam os rótulos `orq.us=<projeto>/<ref>` e `orq.onda=<id da onda>`. Num `docker compose`, o projeto se chama `orq-<projeto>-<ref>`. Sem rótulo, nada é removido: o Docker é compartilhado com outros orquestradores e serviços, e a limpeza nunca usa `prune`.
+- **Testcontainers:** o Ryuk limpa o que ele cria; não o desligue (`TESTCONTAINERS_RYUK_DISABLED=true`). `orq recursos gravar` avisa.
+
+Origem: pedido do Cedric em 2026-10-17 (orq #13), que citou o Docker compartilhado e um possível prefixo da onda.
+
 ### Fatos de ambiente
 
 Um fato de ambiente que decide para onde uma escrita vai entra no pacote somente se foi conferido na fonte de configuração: overlay, manifest ou values. Exemplos: qual banco, instância ou API cada ambiente usa; se staging e produção compartilham o destino. O pacote registra o caminho, o valor e a data da conferência. Comentário de código, relatório de outra story e memória são pistas: confira antes de repassar. Se não for possível conferir, o pacote marca o fato como "não confirmado" e trata o destino como de produção, para que a guarda seja implementada como se a escrita fora de produção alcançasse dados reais.
@@ -26,13 +36,13 @@ O layout é um workspace Herdr por projeto alvo, com um pane do coordenador aber
 
 ```bash
 herdr pane split --current --direction right --cwd <worktree> --no-focus \
-  --env GLAB_CONFIG_DIR=<glab_config_dir do papel>
+  --env GLAB_CONFIG_DIR=<glab_config_dir do papel> --env TMPDIR=<TMPDIR da US>
 # aba cheia (panes estreitos demais): aba nova no mesmo workspace
 herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <rótulo> --no-focus \
-  --env GLAB_CONFIG_DIR=<glab_config_dir do papel>
+  --env GLAB_CONFIG_DIR=<glab_config_dir do papel> --env TMPDIR=<TMPDIR da US>
 ```
 
-O `--env` vem de `[identidades.<papel>]` ([configuração](configuracao.md#identidade-no-gitlab)); papel sem identidade abre sem ele. Antes de iniciar o agente, rode `glab api user | jq -r .username` no pane: a identidade está pronta quando responde o usuário do papel. Responder o usuário humano, ou erro de autenticação, é bloqueio de ambiente — reporte em vez de seguir com a identidade errada.
+O `GLAB_CONFIG_DIR` vem de `[identidades.<papel>]` ([configuração](configuracao.md#identidade-no-gitlab)); papel sem identidade abre sem ele. O `TMPDIR` vai sempre ([recursos](#recursos-da-us-temporários-e-docker)); o planejador sem US própria não o recebe. Antes de iniciar o agente, rode `glab api user | jq -r .username` no pane: a identidade está pronta quando responde o usuário do papel. Responder o usuário humano, ou erro de autenticação, é bloqueio de ambiente — reporte em vez de seguir com a identidade errada.
 
 O worktree já existe, criado pelo `wt` no passo anterior; `herdr workspace create` e `herdr worktree create/open` abririam um workspace à parte para cada worker, que é justamente o que este layout evita. Story de projeto diferente do workspace atual: pergunte ao usuário onde abrir.
 
@@ -68,4 +78,4 @@ Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-reco
 
 Coordenador trabalhando não recebe aviso: a espera dele detecta o relatório ou a pendência. Timeout desse comando não prova que o aviso se perdeu. O aviso complementa a espera, não a substitui. Como cada harness trata entrada com o coordenador ocupado ainda não foi testado; por isso o envio fica restrito a `idle`/`done`.
 
-Validado nas TG-225 e TG-312 do convey (2026-10-09/10): os avisos do planejador, do executor e do revisor, de Claude Code e de Codex, chegaram ao coordenador como turno novo. Com o coordenador ocupado, o worker não enviou o aviso e a espera detectou o relatório. Depois de enviar, o worker ainda registra o resultado do envio: o aviso não indica que o pane pode ser fechado ([conclusão](conclusao-e-limpeza.md#artefatos-e-panes)).
+Validado nas TG-225 e TG-312 do convey (2026-10-09/10): os avisos do planejador, do executor e do revisor, de Claude Code e de Codex, chegaram ao coordenador como turno novo. Com o coordenador ocupado, o worker não enviou o aviso e a espera detectou o relatório. Depois de enviar, o worker ainda registra o resultado do envio: o aviso não indica que o pane pode ser fechado ([conclusão](conclusao-e-limpeza.md#artefatos)).

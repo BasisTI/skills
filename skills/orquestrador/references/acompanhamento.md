@@ -25,7 +25,7 @@ O Herdr às vezes não reconhece o estado final do Codex; por isso a espera tamb
 
 ## Vigia de merge
 
-MR aprovada aguardando merge humano entra na mesma espera. A cada volta, consulte o estado: `glab mr view <url> --output json | jq -r .state` (GitLab) ou `gh pr view <url> --json state -q .state` (GitHub, em maiúsculas). Em `merged`, siga o pós-merge sem esperar aviso: auditoria, transições automáticas configuradas e dependentes ([conclusão](conclusao-e-limpeza.md#auditoria-proativa)). Em `closed`, informe o usuário.
+MR aprovada aguardando merge humano entra na mesma espera. A cada volta, consulte o estado: `glab mr view <url> --output json | jq -r .state` (GitLab) ou `gh pr view <url> --json state -q .state` (GitHub, em maiúsculas). Em `merged`, siga o pós-merge sem esperar aviso: auditoria, transições automáticas configuradas e dependentes ([conclusão](conclusao-e-limpeza.md#auditoria-proativa)); a [limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge) é do daemon, e sem ele você roda `orq limpar`. Em `closed`, informe o usuário.
 
 ## Status na sidebar
 

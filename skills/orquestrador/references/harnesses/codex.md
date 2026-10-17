@@ -16,7 +16,7 @@ No perfil do coordenador, registre os diretórios necessários para worktrees, m
 
 ## wt remove e temporários
 
-Após verificar elegibilidade, execute `wt remove` com cwd explícito. Se o sandbox recusar, use a aprovação disponível com comando concreto e justificativa. Uma regra por prefixo `wt remove`, quando suportada, cobre várias branches; a aprovação do alcance e a política efetiva precisam ser conferidas. A skill não pode criar uma exceção ao classificador.
+Pós-merge, o `orq limpar` cuida disso ([conclusão](../conclusao-e-limpeza.md#limpeza-depois-do-merge)). Fora dele, após verificar elegibilidade, execute `wt remove` com cwd explícito. Se o sandbox recusar, use a aprovação disponível com comando concreto e justificativa. Uma regra por prefixo `wt remove`, quando suportada, cobre várias branches; a aprovação do alcance e a política efetiva precisam ser conferidas. A skill não pode criar uma exceção ao classificador.
 
 Para artefatos, use helper validado restrito ou comandos sobre caminhos enumerados dentro da raiz autorizada. Um prefixo genérico `rm` não limita o diretório de exclusão. Rejeição da revisão automática deve ser reportada com motivo; preserve o resíduo e continue ações independentes.
 
