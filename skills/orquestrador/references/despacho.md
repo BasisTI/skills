@@ -18,6 +18,7 @@ Com o worktree e os panes criados, grave o que o despacho criou, uma vez por US 
 
 - **`TMPDIR`** próprio do worker, `/tmp/orq/<projeto>/TG-<ref>`, passado no `--env TMPDIR=<caminho>` do `herdr pane split`/`tab create` ([inicialização](#inicialização)). O pacote o informa.
 - **Docker:** contêineres, volumes, redes e imagens que o worker criar levam os rótulos `orq.us=<projeto>/<ref>` e `orq.onda=<id da onda>`. Num `docker compose`, o projeto se chama `orq-<projeto>-<ref>`. Sem rótulo, nada é removido: o Docker é compartilhado com outros orquestradores e serviços, e a limpeza nunca usa `prune`.
+- **Reabrir para corrigir:** `orq recursos reabrir <ref>` primeiro, depois recrie o worktree (branch nova, caminho novo com o sufixo da rodada) e grave de novo; a ordem está em [conclusão](conclusao-e-limpeza.md#limpeza-depois-do-merge).
 - **Testcontainers:** o Ryuk limpa o que ele cria; não o desligue (`TESTCONTAINERS_RYUK_DISABLED=true`). `orq recursos gravar` avisa.
 
 Origem: pedido do Cedric em 2026-10-17 (orq #13), que citou o Docker compartilhado e um possível prefixo da onda.

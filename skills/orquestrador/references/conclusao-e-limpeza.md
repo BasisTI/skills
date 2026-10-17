@@ -14,8 +14,10 @@ O `orq limpar` age sobre o que o despacho [gravou em `recursos.json`](despacho.m
 
 - **Com `preservado`** (árvore suja, commit não enviado, agente `working`…), nada é forçado: o motivo está na saída e no `orq diario`, e o daemon tenta de novo a cada 5 min. Resolva a causa (commite e envie, espere o agente) ou, se o resto é descartável, peça à pessoa; não use `wt remove`, `rm -rf` nem `--force` por fora.
 - **Sem Central ou sem daemon** (`orq plugin doctor`): rode `orq limpar <ref>` você mesmo, também sem perguntar. Sem o `orq`, aplique à mão as mesmas conferências: MR mesclada, nenhum agente usando o diretório, árvore limpa, nada fora do remoto (com squash, `git diff --quiet <head da branch> <squash> -- <pasta do projeto>`), e só então `wt remove <branch> --yes` com cwd explícito e `git branch -D`.
-- **Corrigir depois do teste:** recrie worktree e panes a partir da `main`, numa branch nova ([despacho](despacho.md#worktree-e-pacote)), grave os recursos de novo e ligue a MR nova. O `orq limpar` age outra vez no merge seguinte.
+- **Corrigir depois do teste:** rode `orq recursos reabrir <ref>` **antes** de recriar qualquer coisa. Ele espera uma limpeza em andamento terminar (trava da US) e deixa a US reaberta, e então a limpeza recusa até haver MR nova ligada. Só depois recrie worktree e panes a partir da `main`, numa branch nova e num caminho novo (sufixo da rodada), grave-os com `orq recursos gravar` e ligue a MR nova ([despacho](despacho.md#recursos-da-us-temporários-e-docker)). O `orq limpar` age outra vez no merge seguinte. Recriar o worktree antes do `reabrir` deixa uma limpeza em curso apagá-lo.
 - O daemon desligado por `ORQ_LIMPEZA_AUTOMATICA=0` deixa a chamada do `orq limpar` com você.
+
+A lista `--pane` do `recursos.json` é a autoridade de posse dos panes, e o arquivo é confiável no nível do usuário local: o `orq` não o autentica.
 
 Origem: pedido do Cedric em 2026-10-17 (orq #13): "Não perguntar mais antes de fechar o pane de um executor e/ou revisor e limpar branches, worktrees e pastas no ~/tmp e /tmp. Quando o MR relacionado com a US é mesclado, a limpeza tem que ser automática; tudo foi enviado para o remote." Naquele dia havia 21 worktrees, 18 GB em `~/tmp/orquestrador` e um contêiner de revisão rodando havia duas semanas.
 
