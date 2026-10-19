@@ -136,7 +136,7 @@ início fica no histórico da story.
 | `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)). É a barreira até o merge: as idas e voltas entre revisor e executor acontecem dentro dela ([`revisao-da-mr.md`](revisao-da-mr.md)) |
 | `Ready for test` | Staging roda a versão |
 | `Waiting for deployment` *(opcional)* | Staging roda a versão **e** registro de teste presente; produção ainda não roda a versão |
-| `Done` | Registro de teste presente **e** produção roda a versão |
+| `Done` | Registro de teste presente **e** produção roda a versão. Exceção: projeto cuja `[autonomia]` do coordenador lista `Done:main` troca a produção pelo commit na `main`; o registro de teste segue exigido |
 
 "A versão", em todos os critérios, é a da MR `TG-xx` mais recente. Com uma MR aberta, a story
 tem trabalho em andamento, e uma entrega anterior da mesma story não satisfaz `Ready for

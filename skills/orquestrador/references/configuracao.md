@@ -40,7 +40,7 @@ O tipo vem de `branch_base` no [cadastro do projeto](#cadastro-de-projetos-e-amb
 | A pessoa diz que testou | `Waiting for deployment` | `Done` |
 | Commit da US chega à `main` | `Done` (a release `develop` → `main`, que continua humana) | não se aplica |
 
-Hoje têm `branch_base = main` `argocd-apps`, `infraestrutura`, `taiga-cli`, `pulumi-proxmox-vms`, `orq` e `skills`; a fonte é o cadastro, não esta lista. `Done:config` segue como estava. Critérios de cada status, registro de teste e cadeia de entrega são os da `basis-ci-gitlab`; a configuração só diz quais transições o coordenador faz sem perguntar. Board sem o status opcional `Waiting for deployment`: o "testei" não move a story, e o `Done` vem com o commit na `main`.
+Hoje têm `branch_base = main` `argocd-apps`, `infraestrutura`, `taiga-cli`, `pulumi-proxmox-vms`, `orq` e `skills`; a fonte é o cadastro, não esta lista. `Done:config` segue como estava. Critérios de cada status, registro de teste e cadeia de entrega são os da `basis-ci-gitlab`; a configuração só diz quais transições o coordenador faz sem perguntar. Projeto com `develop` e board sem o status opcional `Waiting for deployment`: o "testei" não move a story, mas o registro de teste é gravado do mesmo jeito, para o `Done` que vem com o commit na `main`. Projeto `branch_base = main`: o "testei" leva a `Done`, com ou sem o status opcional. A única exceção a "critérios da `basis-ci-gitlab`" é o `Done:main` ([abaixo](#transicoes_automaticas)).
 
 ### `transicoes_automaticas`
 
@@ -52,7 +52,7 @@ Hoje têm `branch_base = main` `argocd-apps`, `infraestrutura`, `taiga-cli`, `pu
 | `"Done:testado-main"` | projeto com `branch_base = main`; a pessoa diz que testou a US, que está em `Ready for test` | `Done` |
 | `"Done:config"` | story com a tag `config`, MR mesclada e a primeira pipeline da branch base verde | `Done` |
 
-"Testei a US 14" é o evento. Confira que a US existe, está em `Ready for test` e é do projeto certo; grave o registro de teste como a `basis-ci-gitlab` manda, com a frase e a data como evidência, e então mova, sem perguntar. Frase ambígua ("acho que está bom", "testei parte") não é evento: pergunte. Em `Done:main` o evento é o commit na `main`, não o deploy: a cadeia até os pods, que o `Done` comum da `basis-ci-gitlab` pede, não é conferida, por decisão de 2026-10-17. Valor fora da lista é pergunta concreta ("posso mover a TG-xx para X?").
+"Testei a US 14" é o evento. Confira que a US existe, está em `Ready for test` e é do projeto certo; grave o registro de teste como a `basis-ci-gitlab` manda, com a frase e a data como evidência, e então mova, sem perguntar. Frase ambígua ("acho que está bom", "testei parte") não é evento: pergunte. Em `Done:main` o evento é o commit na `main`, não o deploy. Quando `Done:main` está em `transicoes_automaticas`, ele **substitui** o critério de produção do `Done` (a cadeia até os pods, que a `basis-ci-gitlab` pede), por decisão de 2026-10-17. O registro de teste continua exigido: no fluxo develop ele foi gravado na passagem para `Waiting for deployment`, e se faltar, o `Done` não sai. Com `Done:main`, o `Done` não comprova produção rodando a versão, e a auditoria não reabre a story por isso (promote em andamento incluso). Sem o valor na lista, vale o `Done` comum, com a cadeia completa. Esta é a regra canônica; as outras páginas só remetem a ela. Valor fora da lista é pergunta concreta ("posso mover a TG-xx para X?").
 
 ### `merge_automatico`
 

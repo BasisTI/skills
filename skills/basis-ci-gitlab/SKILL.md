@@ -197,7 +197,9 @@ Taiga; `contavinculada` é `conta-vinculada`).
 `Ready for test`. Cada status tem um critério verificável: `In progress` exige o **registro
 de início** (campos customizados, gravados pela API do Taiga enquanto o MCP não os cobre),
 não commits; `Ready for test` exige staging rodando a versão; `Done` exige o **registro de
-teste** e produção rodando a versão — a cadeia completa até os pods, não a tag no registry.
+teste** e produção rodando a versão — a cadeia completa até os pods, não a tag no registry (exceção: projeto cuja `[autonomia]`
+do coordenador lista `Done:main`, em que o commit na `main` basta; skill `orquestrador`,
+`references/configuracao.md`).
 `In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
 status existentes. Story com a tag `config` — mudança sem efeito no comportamento da
 aplicação, nunca código, nem uma classe `@Configuration` — dispensa o teste em staging e
