@@ -37,15 +37,25 @@ Origem: no pacote r1 da TG-232 (colaboradados, 2026-10-14), o coordenador escrev
 
 Leia o perfil do harness e a skill `herdr`.
 
-O layout é um workspace Herdr por projeto alvo, com um pane do coordenador aberto na pasta do orquestrador. Workers e conversas de planejamento nascem nesse mesmo workspace, o do pane do coordenador (`$HERDR_WORKSPACE_ID`), com o worktree como cwd e sem tirar o foco do usuário:
+O layout é um workspace Herdr por projeto alvo, com um pane do coordenador aberto na pasta do orquestrador. Workers e conversas de planejamento nascem nesse mesmo workspace, o do pane do coordenador (`$HERDR_WORKSPACE_ID`). Eles ficam numa **tab de workers da onda**, não na tab do coordenador. O worktree é o cwd, e o foco do usuário não muda.
+
+- **Primeiro worker da onda:** crie a tab `<onda>-workers`.
+- **Workers seguintes:** dividam um pane dessa tab.
 
 ```bash
-herdr pane split --current --direction right --cwd <worktree> --no-focus \
+# primeiro worker da onda: tab nova no mesmo workspace
+herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <onda>-workers --no-focus \
   --env GLAB_CONFIG_DIR=<glab_config_dir do papel> --env TMPDIR=<TMPDIR da US>
-# aba cheia (panes estreitos demais): aba nova no mesmo workspace
-herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd <worktree> --label <rótulo> --no-focus \
+# demais workers: dividir um pane da tab de workers (right para um executor novo, down para o revisor da mesma US)
+herdr pane split --pane <pane da tab de workers> --direction right --cwd <worktree> --no-focus \
   --env GLAB_CONFIG_DIR=<glab_config_dir do papel> --env TMPDIR=<TMPDIR da US>
 ```
+
+No pane criado junto com a tab, o rótulo (`TG-<ref>_<Papel>`) vai em `herdr pane rename`, porque o `--label` do `tab create` nomeia a tab. Se a tab de workers encher, com panes estreitos demais para ler, abra uma segunda (`<onda>-workers-2`).
+
+Para tirar workers já abertos da tab do coordenador, use `herdr pane move <pane> --new-tab` e depois `--tab <tab> --split right`. O nome do agente continua o mesmo. Confira o id do pane na resposta. O `--new-tab` leva o foco junto: devolva-o com `herdr tab focus <tab do coordenador>`.
+
+Origem: pedido do Cedric em 2026-10-19, na onda 48 do colaboradados: "Por que não está criando os panes em uma tab em vez de adicionar nessa tab principal?". A tab do coordenador tinha chegado a 7 panes, e o do revisor da TG-242 ficou com 20 colunas.
 
 O `GLAB_CONFIG_DIR` vem de `[identidades.<papel>]` ([configuração](configuracao.md#identidade-no-gitlab)); papel sem identidade abre sem ele. O `TMPDIR` vai sempre ([recursos](#recursos-da-us-temporários-e-docker)); o planejador sem US própria não o recebe. Antes de iniciar o agente, rode `glab api user | jq -r .username` no pane: a identidade está pronta quando responde o usuário do papel. Responder o usuário humano, ou erro de autenticação, é bloqueio de ambiente — reporte em vez de seguir com a identidade errada.
 
@@ -61,7 +71,7 @@ Todo pane tem dois nomes. O **rótulo** aceita maiúsculas e só aparece na tela
 
 - **Onda:** nome curto e específico, com projeto e assunto: `colaboradados-ferias`, e não `colaboradados`. Tem de ser um nome de agente válido, e o título de `orq onda criar` começa por ele ([Central](central.md#do-fluxo-ao-comando)).
 - **Coordenador:** ao fechar o [contrato da onda](ondas.md#o-contrato), rode `herdr pane rename <pane> <onda>` e `herdr agent rename <pane> <onda>`. Com duas ondas abertas vale o nome da mais recente; ao encerrar uma, volta o da que restou. No Codex, o pane é o que `orq coord registrar` mostra, não `$HERDR_PANE_ID` ([Codex](harnesses/codex.md)).
-- **Worker:** rótulo `TG-<ref>_<Papel>`, com Papel `Executor`, `Revisor` ou `Planejador` (`TG-281_Executor`), e nome de agente igual ao rótulo em minúsculas (`tg-281_executor`), passado em `herdr agent start <nome> --kind <harness> --pane <pane>`. O rótulo vai em `herdr pane rename` ou, na aba nova, em `herdr tab create --label`. Se o nome já estiver vivo (o mesmo ref em outro board), prefixe a chave do projeto (`<projeto>-tg-<ref>_<papel>`). O planejador de várias stories usa `<onda>_Planejador`. O nome derivado cabe em 32 caracteres: abrevie a parte da onda ou do projeto antes do sufixo (a onda cabe em até 21 caracteres para `_planejador`). Nas rodadas r≥2, o pane e o nome continuam os mesmos.
+- **Worker:** rótulo `TG-<ref>_<Papel>`, com Papel `Executor`, `Revisor` ou `Planejador` (`TG-281_Executor`), e nome de agente igual ao rótulo em minúsculas (`tg-281_executor`), passado em `herdr agent start <nome> --kind <harness> --pane <pane>`. O rótulo vai em `herdr pane rename`, inclusive no pane criado junto com a tab de workers. Se o nome já estiver vivo (o mesmo ref em outro board), prefixe a chave do projeto (`<projeto>-tg-<ref>_<papel>`). O planejador de várias stories usa `<onda>_Planejador`. O nome derivado cabe em 32 caracteres: abrevie a parte da onda ou do projeto antes do sufixo (a onda cabe em até 21 caracteres para `_planejador`). Nas rodadas r≥2, o pane e o nome continuam os mesmos.
 - **Pacotes:** o coordenador e o worker aparecem com rótulo, nome de agente e id do pane.
 
 Origem: pedido do Cedric em 2026-10-15. O `herdr agent list` do dia mostrava o coordenador do colaboradados como `colaboradados` e workers como `tg281-exec`, `exec-tg99` e `tg236-rev`, sem dizer onda, story nem papel. Comandos conferidos no Herdr 0.9.3 (`herdr pane rename --help`, `agent rename`, `agent start`, `tab create`); `agent rename` recusa maiúscula com `invalid_agent_name`.
