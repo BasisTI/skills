@@ -136,7 +136,7 @@ início fica no histórico da story.
 | `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)). É a barreira até o merge: as idas e voltas entre revisor e executor acontecem dentro dela ([`revisao-da-mr.md`](revisao-da-mr.md)) |
 | `Ready for test` | Staging roda a versão |
 | `Waiting for deployment` *(opcional)* | Staging roda a versão **e** registro de teste presente; produção ainda não roda a versão |
-| `Done` | Registro de teste presente **e** produção roda a versão |
+| `Done` | Registro de teste presente **e** produção roda a versão. Exceção: projeto cuja `[autonomia]` do coordenador lista `Done:main` troca a produção pelo commit na `main`; o registro de teste segue exigido |
 
 "A versão", em todos os critérios, é a da MR `TG-xx` mais recente. Com uma MR aberta, a story
 tem trabalho em andamento, e uma entrega anterior da mesma story não satisfaz `Ready for
@@ -289,10 +289,13 @@ orquestrador as declarar, as transições **derivadas de evento comprovado**:
 - `Ready for test` quando staging roda a versão do merge, verificado pela
   [cadeia de entrega](cadeia-de-entrega.md) (ArgoCD e pods) — em projeto sem staging, pelo
   ambiente que o projeto declara ([critérios de transição](#critérios-de-transição-quando-mover));
-- `Done` de story com a tag `config`, com a MR mergeada e a pipeline de `develop` verde.
+- `Done` de story com a tag `config`, com a MR mergeada e a pipeline de `develop` verde;
+- as que a `[autonomia]` do coordenador lista a partir do "testei" da pessoa
+  (`Waiting for deployment` no projeto com `develop`, `Done` no projeto `branch_base = main`)
+  e do commit na `main` (`Done` no projeto com `develop`), com o registro de teste gravado.
 
-O `Done` das demais continua humano: depende do registro de teste. Nenhuma outra transição é
-implícita.
+Sem essa configuração, o `Done` das demais continua humano: depende do registro de teste.
+Nenhuma outra transição é implícita.
 
 ## O que existe
 

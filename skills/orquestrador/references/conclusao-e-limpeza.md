@@ -2,7 +2,7 @@
 
 ## Auditoria proativa
 
-Execute auditoria pelos critérios da `basis-ci-gitlab`; para produção, use cadeia de entrega e `basis-k8s-deploy`. Diferencie aprovação da MR, merge, teste e entrega. Em projetos com fluxo simplificado, use seus critérios declarados. Apresente evidências e execute transições já autorizadas. As transições automáticas da [configuração](configuracao.md#autonomia-e-transições-automáticas) são executadas quando a evidência é confirmada e registradas no registro da missão e no relatório ao usuário, sem pergunta. As demais seguem como pergunta concreta: "posso mover a TG-xx para X?", com a evidência junto.
+Execute auditoria pelos critérios da `basis-ci-gitlab`; para produção, use cadeia de entrega e `basis-k8s-deploy`. Diferencie aprovação da MR, merge, teste e entrega; o fluxo de status por tipo de projeto está em [configuração](configuracao.md#fluxo-de-status-por-tipo-de-projeto). Em projeto cuja `[autonomia]` lista `Done:main`, o `Done` pelo commit na `main` não pede produção rodando a versão, e a auditoria não reabre a story por isso ([regra](configuracao.md#transicoes_automaticas)). Em projetos com fluxo simplificado, use seus critérios declarados. Apresente evidências e execute transições já autorizadas. As transições automáticas da [configuração](configuracao.md#autonomia-e-transições-automáticas) são executadas quando a evidência é confirmada e registradas no registro da missão e no relatório ao usuário, sem pergunta. As demais seguem como pergunta concreta: "posso mover a TG-xx para X?", com a evidência junto.
 
 Detecte pendências em outro repositório e prepare a story no board que receberá a mudança. Escrita no Taiga segue autorização existente. Após merge, libere dependentes elegíveis; a [limpeza](#limpeza-depois-do-merge) e, na última MR da onda, o [encerramento](central.md#encerrar-a-onda) são do `orq`.
 
@@ -28,7 +28,10 @@ Com todas as US em `done`, MRs mescladas ou fechadas e sem pendência aberta, o 
 1. `orq onda ver <id>`: onda encerrada e nenhuma US com `preservado` aberto em `orq diario --onda <id>`. Onda ainda aberta: o `encerramento.faltam` de `orq onda proxima` diz o que impede.
 2. Sobras: `orq limpar <ref> --dry-run` de cada US da onda, e `orq limpar --onda <id>` se o daemon não rodou o Docker.
 3. Pendências abertas viram resolvidas, levadas para outra onda ou para o Taiga ([encerrar a onda](central.md#encerrar-a-onda)).
-4. Entregue a tabela de merge da onda ([ondas](ondas.md)).
+4. Servidores órfãos: procure processos de servidor que os workers deixaram, como `python3 -m http.server` e `kubectl port-forward`, cuja linha de comando ou cwd aponta para `~/tmp/orquestrador/<projeto>/TG-<ref>` de uma US da onda, e encerre-os sem perguntar. Liste com `ps -eo pid,etimes,args` e `ls -l /proc/<pid>/cwd`, e ouça o que cada um publica com `ss -ltnp`. Encerre só o que casa com a pasta da onda (nunca por nome de comando), com `kill <pid>` e sem `-9` de início; confira depois que a porta fechou. O que escutar em `0.0.0.0` e apontar para outra pasta não é seu: informe. Os [pacotes](../assets/pacote-implementacao.md) pedem que todo servidor temporário escute em `127.0.0.1` e que o próprio worker o encerre ao terminar; este item pega o que escapou.
+5. Entregue a tabela de merge da onda ([ondas](ondas.md)).
+
+Origem: em 2026-10-18 havia cinco `http.server` órfãos, rodando de 2 a 5 dias e ouvindo em `0.0.0.0`, que publicavam na rede local as pastas de revisão (BASIS-330230, BASIS-330266, portal-liven TG-133 e TG-148, kaizenstat TG-39), quatro delas já apagadas. O Cedric pediu que isso entre no checklist de fim de onda (orq #14).
 
 ## Artefatos
 

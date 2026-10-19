@@ -12,7 +12,24 @@ retencao_dias = 14
 # Mantenha só o que o usuário autorizou.
 [autonomia]
 modo_autonomo = true
-transicoes_automaticas = ["Ready for test", "Done:config"]
+# Transições derivadas de evento comprovado, sem pergunta:
+# - "Ready for test": MR mesclada e o ambiente de teste roda a versão do merge.
+# - "Waiting for deployment:testado": projeto com develop; a pessoa diz que testou.
+# - "Done:main": projeto com develop; o commit da US chegou à main (release).
+# - "Done:testado-main": projeto com branch_base = main; a pessoa diz que testou.
+# - "Done:config": story com a tag config, MR mesclada e pipeline da branch base verde.
+transicoes_automaticas = ["Ready for test", "Waiting for deployment:testado", "Done:main", "Done:testado-main", "Done:config"]
+# Merge automático só quando a MR aponta para uma branch desta lista, com tudo isto
+# conferido no head: revisão independente aprovada nesse SHA, pipeline verde nesse SHA,
+# quality gate do Sonar OK (projeto que usa Sonar), sem Draft, sem discussão bloqueante
+# aberta e sem conflito. Merge na main e em qualquer outra branch (staging) continua humano.
+merge_automatico = ["develop"]
+# Ações sem pergunta:
+# - "limpeza": fechar panes, remover worktree, branches e pastas da US depois do merge.
+# - "tirar-draft": revisão aprovada no head e CI verde.
+# - "rebase-conflito": MR em conflito; o executor faz o rebase e o revisor confirma o delta.
+# - "par-padrao": "despacha" sem executor/revisor usa implementacao-padrao e revisao-padrao.
+acoes_automaticas = ["limpeza", "tirar-draft", "rebase-conflito", "par-padrao"]
 
 [aliases.implementacao-padrao]
 harness = "claude-code"

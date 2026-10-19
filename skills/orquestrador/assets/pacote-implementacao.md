@@ -13,5 +13,6 @@
 - Testes/evidências e contrato de devolução da basis-ci-gitlab.
 - Pendências da story abertas e próximo id livre (`P<n>`): [bloqueios](../references/acompanhamento.md#bloqueios-e-recorrência).
 - `TMPDIR` do worker e rótulos Docker `orq.us`/`orq.onda` ([recursos](../references/despacho.md#recursos-da-us-temporários-e-docker)); o worker usa o `TMPDIR` que recebeu e rotula o que criar no Docker.
+- Servidor temporário (`python3 -m http.server`, `kubectl port-forward` etc.): escuta só em `127.0.0.1` e o próprio worker o encerra ao terminar, antes do relatório ([fim de onda](../references/conclusao-e-limpeza.md#fim-de-onda)).
 - Diretório da rodada e caminho do relatório persistente.
 - Aviso ao coordenador depois de gravar o relatório: [despacho](../references/despacho.md#aviso-ao-coordenador).

@@ -116,5 +116,7 @@ registry. Quem lesse só o `newTag` concluiria que a versão nova não tinha che
 
 **Tag `production-*` no registry com o overlay ainda na versão anterior não é produção.** O
 promote terminou, mas o Image Updater ainda não escreveu, ou escreveu e o ArgoCD não
-sincronizou. A story não é `Done` até os elos 4 e 5 fecharem. O mesmo vale para staging: a
+sincronizou. A story não é `Done` até os elos 4 e 5 fecharem (salvo projeto com `Done:main`
+na `[autonomia]` do coordenador: o `Done` vem do commit na `main` e não comprova produção;
+a auditoria não o reabre por isso). O mesmo vale para staging: a
 CalVer publicada pelo `publish-develop` não move a story para `Ready for test` sozinha.
