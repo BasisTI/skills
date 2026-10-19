@@ -7,7 +7,7 @@ Onda é um conjunto ordenado de stories que o usuário entrega ao coordenador de
 Antes de despachar, confirme com o usuário o que ele não disse e dê à onda um nome e ao pane do coordenador o rótulo e o nome de agente dela ([nomes dos panes](despacho.md#nomes-dos-panes)) e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--ate`, `--ordem` e `--depende`; sem ela, no registro da missão):
 
 - **Stories e ordem.** A ordem de despacho e, quando houver, a ordem de merge.
-- **Até onde ir sem perguntar.** O padrão é MR aprovada, pronta para merge. Merge continua humano, salvo autorização explícita para a onda; transições seguem `[autonomia]` ([configuração](configuracao.md#autonomia-e-transições-automáticas)).
+- **Até onde ir sem perguntar.** O padrão é MR aprovada, pronta para merge; onde `merge_automatico` lista a branch de destino, o merge também entra, e a onda segue até o pós-merge ([condições](configuracao.md#merge_automatico)). Merge em outra branch (`main`, `staging`) continua humano, mesmo com autorização para a onda; transições seguem `[autonomia]` ([configuração](configuracao.md#autonomia-e-transições-automáticas)).
 - **Empilhamento.** Se a pessoa autoriza empilhar stories que tocam o mesmo código ([abaixo](#grafo-e-recursos)). "Deixar as MRs prontas" não é essa autorização.
 - **O que fica de fora.** Escritas externas que dependem da pessoa viram pendência, não bloqueio da onda. Naquela noite, sem escrita no SGO, a verificação da TG-217 ficou pendente e a implementação seguiu com a alternativa segura.
 

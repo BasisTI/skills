@@ -4,7 +4,9 @@ Da MR devolvida ([`ciclo-da-mr.md`](ciclo-da-mr.md)) até ela estar pronta para 
 revisão é uma rodada própria, feita por **outro agente**, com o `qa-adversarial`: o revisor
 parte da premissa de que a MR tem defeito e procura o caso que prova. O valor dele é não
 carregar a intenção de quem escreveu — por isso nunca é o executor revendo o próprio
-trabalho. O merge continua humano.
+trabalho. Quem mescla é a política do projeto ou do coordenador (a `[autonomia]` da skill
+`orquestrador`): merge humano por padrão, automático só na `develop` e só com as condições no
+head. O revisor nunca mescla.
 
 Story com a tag `config` não passa por esta revisão
 ([`taiga-mcp.md`](taiga-mcp.md#mudança-de-configuração-tag-config)). Código que já foi mergeado sem esta revisão se revisa numa story com a tag `review`
@@ -74,8 +76,9 @@ correção no SHA novo — nunca o executor.
 ([`ciclo-da-mr.md`](ciclo-da-mr.md#2-vincular-a-pipeline-ao-sha-revisado)) — a TG-247 foi
 aprovada com o CI vermelho. O revisor tira o Draft
 (`glab mr update <mr> --ready`), e só aqui: é o sinal de que a MR pode ser mesclada. A story
-fica em `In revision` (ou `In progress`, sem esse status), e a MR aguarda o merge humano.
-Aprovar a MR no GitLab e fazer o merge são da pessoa.
+fica em `In revision` (ou `In progress`, sem esse status), e a MR aguarda o merge, que segue
+a política do projeto ou do coordenador (pessoa, ou o coordenador na `develop`). Aprovar a MR
+no GitLab é da pessoa; o revisor não aprova nem mescla.
 
 **Com achados** — ao menos um `Bloqueante` ou `Sério`. A MR **continua em Draft**, onde nasceu
 ([`ciclo-da-mr.md`](ciclo-da-mr.md#1-abrir-a-mr)); se alguém a tirou, o revisor a devolve

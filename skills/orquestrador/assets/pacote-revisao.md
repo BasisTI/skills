@@ -11,8 +11,9 @@
 - Story crítica (segurança, integridade de dados): modelo de ameaça (adversário, por onde a entrada chega) e limites aceitos.
 - Histórico de achados e recorrências por classe.
 - Autorizações para notas, discussões e Draft conforme basis-ci-gitlab.
-- Correções pertencem ao executor; merge/aprovação seguem política humana.
+- Correções pertencem ao executor; o merge segue a [política do coordenador](../references/configuracao.md#merge_automatico), e o revisor não mescla.
 - Pendências da story abertas e próximo id livre (`P<n>`): [bloqueios](../references/acompanhamento.md#bloqueios-e-recorrência).
 - `TMPDIR` do worker e rótulos Docker `orq.us`/`orq.onda` ([recursos](../references/despacho.md#recursos-da-us-temporários-e-docker)); o worker usa o `TMPDIR` que recebeu e rotula o que criar no Docker.
+- Servidor temporário (`python3 -m http.server`, `kubectl port-forward` etc.): escuta só em `127.0.0.1` e o próprio worker o encerra ao terminar, antes do relatório ([fim de onda](../references/conclusao-e-limpeza.md#fim-de-onda)).
 - Diretório da rodada e caminho do relatório persistente.
 - Aviso ao coordenador depois de gravar o relatório: [despacho](../references/despacho.md#aviso-ao-coordenador).

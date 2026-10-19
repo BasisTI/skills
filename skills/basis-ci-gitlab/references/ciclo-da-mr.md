@@ -3,7 +3,8 @@
 Do primeiro push até a MR devolvida para revisão, no worktree da story
 ([`worktree.md`](worktree.md)). O trabalho termina num de dois **desfechos** — devolvida ou
 interrompida — e num relatório. A revisão é de outro agente
-([`revisao-da-mr.md`](revisao-da-mr.md)), e o merge é humano.
+([`revisao-da-mr.md`](revisao-da-mr.md)); o executor nunca mescla, e o merge segue a política
+do projeto ou do coordenador.
 
 ## 1. Abrir a MR
 
@@ -177,7 +178,7 @@ commits locais) e se o registro de início foi feito.
 ## Depois do desfecho
 
 O agente **para**. A revisão é outra rodada, de outro agente, com o `qa-adversarial`
-([`revisao-da-mr.md`](revisao-da-mr.md)); o merge é humano. As transições seguintes — `Ready for test`,
+([`revisao-da-mr.md`](revisao-da-mr.md)); o merge segue a política do projeto ou do coordenador. As transições seguintes — `Ready for test`,
 `Waiting for deployment`, `Done` — são do orquestrador ou de quem acompanha, pelos critérios
 de [`taiga-mcp.md`](taiga-mcp.md) e pela [cadeia de entrega](cadeia-de-entrega.md). Se a
 revisão pedir mudança com a MR ainda aberta, a próxima rodada retoma o mesmo worktree e a

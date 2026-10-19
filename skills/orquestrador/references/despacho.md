@@ -4,6 +4,10 @@
 
 Leia story, critérios, plano, dependências, ADRs e estado atual do remoto. Siga o pré-voo da `basis-ci-gitlab`; uma dependência implementada mas não incorporada à branch base ainda pode impedir o início. Registre o grafo e lance trabalhos independentes dentro do limite de recursos.
 
+## Par padrão
+
+"Despacha a TG-x" sem executor e revisor indicados, com `"par-padrao"` em `acoes_automaticas` ([configuração](configuracao.md#acoes_automaticas)), usa os aliases `implementacao-padrao` e `revisao-padrao`, sem perguntar. Registre o par resolvido. Executor ou revisor citado pela pessoa, ou preferência persistente, vale mais que o padrão; sem `"par-padrao"` na lista, ou sem um dos dois aliases no arquivo, a pergunta é concreta.
+
 ## Worktree e pacote
 
 Use a referência `worktree.md` da `basis-ci-gitlab` e a skill `worktrunk` para operações de `wt`. Confira branch base do cadastro e instruções do alvo, atualize remoto e reconheça worktree/branch/MR existentes antes de criar. O coordenador prepara o worktree; informe caminho absoluto ao executor. `wt switch` em processo filho não garante mudança do cwd: use cwd explícito para as chamadas seguintes.

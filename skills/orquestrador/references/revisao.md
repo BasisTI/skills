@@ -4,7 +4,15 @@ Carregue `basis-ci-gitlab/references/revisao-da-mr.md`: ela define elegibilidade
 
 O pacote delimita a rodada conforme as seções "Severidade ancorada no ambiente real" e "Escopo por rodada" dessa referência: r1 completa; r≥2 confirma as correções e ataca o delta; consumidores e configurações reais como escopo; em story crítica, modelo de ameaça e limites aceitos já na r1. Não copie a regra para o pacote; aponte para ela.
 
-Escolha alias próprio de revisão. A configuração aprovada pelo usuário fornece harness/modelo/esforço sem perguntar a cada story. Antes de lançar, confira MR aberta, conflitos e head atual. Em conflito, mande o executor atualizar a branch e devolvê-la antes da revisão.
+Escolha alias próprio de revisão. A configuração aprovada pelo usuário fornece harness/modelo/esforço sem perguntar a cada story. Antes de lançar, confira MR aberta, conflitos e head atual. Em conflito, siga [conflito](#conflito).
+
+## Conflito
+
+Com `"rebase-conflito"` em `acoes_automaticas` ([configuração](configuracao.md#acoes_automaticas)), MR em conflito não gera pergunta: o coordenador manda o executor, no mesmo pane e worktree, fazer o rebase sobre a branch de destino e empurrar com `--force-with-lease`; o revisor, depois, confirma o delta do rebase no SHA novo (o que o conflito mudou, sem refazer a revisão inteira) e a MR volta ao ritmo normal. A aprovação e a pipeline do SHA antigo não valem para o novo: o `--aprovado` é gravado de novo e o CI roda de novo. Conflito que exige escolher entre dois comportamentos (e não só reaplicar o diff) é decisão da pessoa: pendência, não rebase automático. Sem a ação na lista, a pergunta é concreta.
+
+## Tirar o Draft e mesclar
+
+Com `"tirar-draft"` na lista, o coordenador tira o Draft sem perguntar (`glab mr update <mr> --ready`) quando a revisão aprovou o head atual e o CI está verde nesse head; se o revisor já o tirou, não há o que fazer. Tirar o Draft não é aprovar, e achado `Bloqueante` ou `Sério` aberto mantém o Draft. O merge que vem depois segue [`merge_automatico`](configuracao.md#merge_automatico): só na `develop`, só com todas as condições no head, incluindo o quality gate do Sonar. Fora disso, a MR fica aprovada, sem Draft, à espera da pessoa.
 
 Confira também que a evidência do executor saiu como nota não resolvível, conforme `basis-ci-gitlab/references/ciclo-da-mr.md`. Uma discussão resolvível aberta pelo executor continua segurando o merge mesmo depois de a revisão aprovar e tirar o Draft. Para conferir, use `glab api projects/:id/merge_requests/<iid>/discussions` e filtre por autor, `resolvable` e não resolvida. Havendo, devolva ao executor para resolvê-la antes da revisão. O revisor não resolve discussão do autor. Na TG-232 (colaboradados, 2026-10-15), quatro threads de evidência resolvíveis seguraram `blocking_discussions_resolved=false` depois da aprovação, e custaram uma volta extra ao executor.
 

@@ -158,8 +158,9 @@ Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 **Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
 modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
 Achado `Bloqueante` ou `Sério` mantém a MR em Draft e pede uma nova rodada na mesma MR, com a
-story parada em `In revision`; sem eles, a revisão tira o Draft e a MR aguarda o merge, que é
-humano. Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
+story parada em `In revision`; sem eles, a revisão tira o Draft e a MR aguarda o merge, que segue a política
+do projeto ou do coordenador: humano por padrão, automático na `develop` com as condições no
+head (skill `orquestrador`, `[autonomia]`). Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
@@ -207,7 +208,8 @@ desbloqueada por quem a retoma, no começo da rodada, depois de conferir na font
 do `blocked_note` se resolveu. Arquivar é só a pedido. A auditoria compara o status com as evidências e
 reporta; transição se confirma com quem pediu antes de executar, salvo as que o pacote do
 orquestrador pré-autoriza — as mecânicas do executor e as derivadas de evento comprovado
-(`Ready for test` com staging rodando a versão, `Done` de story `config`).
+(`Ready for test` com staging rodando a versão, `Done` de story `config`, e as que a
+`[autonomia]` do coordenador liste a partir do "testei" da pessoa e do commit na `main`).
 Tabelas, regras e autorização em [`references/taiga-mcp.md`](references/taiga-mcp.md); a
 cadeia em [`references/cadeia-de-entrega.md`](references/cadeia-de-entrega.md).
 

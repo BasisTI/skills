@@ -20,7 +20,7 @@ Antes de despachar, leia as instruções canônicas do alvo. Recupere decisões 
 ## Fluxo e referências
 
 1. Confira story, critérios, branch base e dependências; prepare o pacote e o worktree: [despacho](references/despacho.md). Várias stories entregues de uma vez, com autorização declarada, formam uma [onda](references/ondas.md).
-2. Resolva um alias separado para cada papel. Honre escolhas explícitas e preferências persistentes; não pergunte novamente por story.
+2. Resolva um alias separado para cada papel. Honre escolhas explícitas e preferências persistentes; não pergunte novamente por story. "Despacha" sem par indicado usa o [par padrão](references/despacho.md#par-padrão), sem perguntar.
 3. Se houver planejamento independente, ofereça conversa em outro pane: [planejamento](references/planejamento.md).
 4. Lance e acompanhe a rodada: [acompanhamento](references/acompanhamento.md). Leia a skill `herdr` antes de controlar panes; sem ambiente Herdr ativo, informe a limitação.
 5. Após devolução válida, lance revisão independente e conduza correções: [revisão](references/revisao.md).
@@ -32,7 +32,7 @@ Use `basis-ci-gitlab` para critérios de status, worktree, ciclo da MR e cadeia 
 
 Prepare ações concretas antes de pedir aprovação: faça a auditoria e apresente evidências e transição proposta. Prossiga com ações e transições já autorizadas na sessão ou na política do projeto; registre-as no pacote. Sem autorização para a transição, peça aprovação sobre o resultado auditado.
 
-Modo autônomo e transições automáticas vêm de `[autonomia]` da configuração, com sobrescrita por projeto ([configuração](references/configuracao.md#autonomia-e-transições-automáticas)). No modo autônomo, conduza executor → revisão → correções e retorne ao usuário em bloqueio ou término. Com worker ativo, não encerre o turno sem espera armada ([acompanhamento](references/acompanhamento.md#worker-ativo-implica-espera-armada)). Merge, aceite funcional, hotspot e deploy seguem a política explícita do projeto; o padrão é decisão humana. Um pacote não amplia permissões do harness.
+Modo autônomo e transições automáticas vêm de `[autonomia]` da configuração, com sobrescrita por projeto ([configuração](references/configuracao.md#autonomia-e-transições-automáticas)). No modo autônomo, conduza executor → revisão → correções e retorne ao usuário em bloqueio ou término. Com worker ativo, não encerre o turno sem espera armada ([acompanhamento](references/acompanhamento.md#worker-ativo-implica-espera-armada)). O merge na `develop` é automático quando `merge_automatico` a lista e todas as condições valem no head ([condições](references/configuracao.md#merge_automatico)); sem Sonar OK conferido no head, recuse. Merge em `main`, `staging` ou qualquer outra branch é humano, e o coordenador não o faz sozinho, nem a pedido genérico de "mescla". Aceite funcional, hotspot, tag, publicação e deploy seguem a política explícita do projeto; o padrão é decisão humana. Um pacote não amplia permissões do harness.
 
 ## Bloqueios e encerramento
 
