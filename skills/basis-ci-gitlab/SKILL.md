@@ -7,8 +7,8 @@ description: >-
   "trabalhar em paralelo", "retomar a story", "posso marcar squash?", "devolver a MR",
   "revisar a MR", "revisão geral", "a
   story está no status certo?", "minha pipeline falhou", "o Sonar não comentou na MR", "o
-  quality gate passou mas não testou nada", "criar o projeto no Sonar", "o promote subiu
-  versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
+  quality gate reprovou e não sei por quê", "o quality gate passou mas não testou nada",
+  "criar o projeto no Sonar", "o promote subiu versão velha", "a pipeline da MR aparece skipped", "Project not found or access denied",
   "chave desconhecida no pipeline.toml", "qual ref do ci-templates eu uso", "rodar a
   pipeline na minha máquina", "subir pra produção", "cria a user story", "é só
   configuração". Identidade do projeto vem do `AGENTS.md`; se faltar, pergunte. Prefira à
@@ -484,7 +484,7 @@ Image Updater a detecta e escreve no `kustomization.yaml` do overlay.
 |---|---|---|
 | `glab` | já configurado | MR, pipeline, job, trace, variáveis |
 | `argocd` | `argocd login argocd.basis.com.br --sso` (abre browser, Keycloak) | estado e sync de Application |
-| `sonar` | `sonar auth login` | analisar arquivo, consultar API |
+| `sonar` | `sonar auth login` | por que o gate da MR reprovou (`qg status`), issues fora do diff, consultar API |
 | `kubectl` | contexto de produção | log do Image Updater |
 
 **`glab ci run` não serve para rodar a pipeline de uma MR.** Ele cria pipeline de *branch*, e
