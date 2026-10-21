@@ -76,6 +76,15 @@ da pipeline aceita — vão para o relatório.
 Leia as falhas e as issues do Sonar, corrija, faça commit e push — e **volte ao passo 2 a
 cada push**. A pipeline verde anterior não vale para o SHA novo.
 
+**Quality gate reprovado: a lista vem do servidor, não dos comentários da MR.** O bot só comenta
+issue em linha do diff; o gate conta todas, e cobertura nem vira comentário. Antes de corrigir,
+e de novo antes de cada push, rode
+`sonar qg status -p <chave> --pull-request <iid>` ([CLI](glab-argocd-cli.md#sonar)): ela mostra
+cada condição reprovada com arquivo e linha. O push sai quando essa lista está toda atacada
+— cada rodada de `check-quality` pode custar quase uma hora. Na !474 do `portalliven-painel`
+(2026-10-21), um `java:S6539` ("Monster Class") em `CatalogoConfig.java:63`, linha fora do diff,
+reprovou o gate sem nunca aparecer na MR, e o executor passou a tarde corrigindo às cegas.
+
 Conta como **tentativa registrada** a rodada que empurrou uma correção para a causa e
 terminou reprovada: a causa (o job e a mensagem, ou a regra do Sonar e o arquivo) e o que foi
 mudado. Pipeline de um SHA já superado, ou de um push que não tentava corrigir aquela causa
