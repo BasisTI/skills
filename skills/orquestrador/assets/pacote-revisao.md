@@ -12,7 +12,7 @@
 - Histórico de achados e recorrências por classe.
 - Autorizações para notas, discussões e Draft conforme basis-ci-gitlab.
 - Correções pertencem ao executor; o merge segue a [política do coordenador](../references/configuracao.md#merge_automatico), e o revisor não mescla.
-- Pendências da story abertas e próximo id livre (`P<n>`): [bloqueios](../references/acompanhamento.md#bloqueios-e-recorrência).
+- Pendências da story abertas, com o id da Central (`P<n>`). Pendência nova: pelo arquivo `<diretório da rodada>/pendencias/<slug>.md`, esperando até 30 s pelo `.registrada.json` ou pelo `.erro.txt` e citando o id devolvido; sem resposta do daemon, "pendência não registrada: `<arquivo>`". **Proibido** `orq pend responder` e `orq pend resolver`. [Regra e modelo](../references/acompanhamento.md#abrir-a-pendência-pelo-arquivo); sem o daemon da #15, o pacote traz o próximo id livre.
 - `TMPDIR` do worker e rótulos Docker `orq.us`/`orq.onda` ([recursos](../references/despacho.md#recursos-da-us-temporários-e-docker)); o worker usa o `TMPDIR` que recebeu e rotula o que criar no Docker.
 - Servidor temporário (`python3 -m http.server`, `kubectl port-forward` etc.): escuta só em `127.0.0.1` e o próprio worker o encerra ao terminar, antes do relatório ([fim de onda](../references/conclusao-e-limpeza.md#fim-de-onda)).
 - Diretório da rodada e caminho do relatório persistente.

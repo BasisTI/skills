@@ -84,13 +84,8 @@ O pacote informa rótulo, nome de agente e id do coordenador. O nome pode deixar
 herdr agent prompt <alvo> "[orq] <projeto> TG-xx <papel> r<n> concluída: <caminho do relatório>" --wait --timeout 15000
 ```
 
-Pendência que depende da pessoa ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) usa o mesmo `<alvo>`, o mesmo comando e a mesma restrição, ao abrir e ao considerá-la respondida:
+Pendência que depende da pessoa não tem aviso do worker: o worker grava o arquivo e o daemon avisa o coordenador, ao abrir e ao responder ([pendências](acompanhamento.md#abrir-a-pendência-pelo-arquivo)). O worker não envia `pendência P<n> aberta` nem `respondida`. A exceção é o fluxo antigo, sem o daemon da #15, descrito lá.
 
-```
-[orq] <projeto> TG-xx pendência P2 aberta: <resumo curto>
-[orq] <projeto> TG-xx pendência P2 respondida
-```
-
-Coordenador trabalhando não recebe aviso: a espera dele detecta o relatório ou a pendência. Timeout desse comando não prova que o aviso se perdeu. O aviso complementa a espera, não a substitui. Como cada harness trata entrada com o coordenador ocupado ainda não foi testado; por isso o envio fica restrito a `idle`/`done`.
+Coordenador trabalhando não recebe aviso: a espera dele detecta o relatório ou a pendência respondida. Timeout desse comando não prova que o aviso se perdeu. O aviso complementa a espera, não a substitui. Como cada harness trata entrada com o coordenador ocupado ainda não foi testado; por isso o envio fica restrito a `idle`/`done`.
 
 Validado nas TG-225 e TG-312 do convey (2026-10-09/10): os avisos do planejador, do executor e do revisor, de Claude Code e de Codex, chegaram ao coordenador como turno novo. Com o coordenador ocupado, o worker não enviou o aviso e a espera detectou o relatório. Depois de enviar, o worker ainda registra o resultado do envio: o aviso não indica que o pane pode ser fechado ([conclusão](conclusao-e-limpeza.md#artefatos)).
