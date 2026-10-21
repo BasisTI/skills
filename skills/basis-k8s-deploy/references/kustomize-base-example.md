@@ -188,6 +188,8 @@ images:
 replicas:
   - count: 1
     name: <app>-core
+# Preferencialmente, valores de Secret vão cifrados com SOPS + OpenBao (generator ksops,
+# §10 do SKILL.md) em vez de literals em claro.
 secretGenerator:
   # Credenciais de operadores que NÓS criamos (não gerenciados pelo operator)
   - name: <app>-rabbitmq
