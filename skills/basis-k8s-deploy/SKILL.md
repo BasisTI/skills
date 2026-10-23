@@ -5,9 +5,10 @@ description: >-
   base+overlays layout, ArgoCD with Image Updater, CalVer image tags, operator-managed
   dependencies (Postgres/RabbitMQ/Minio/MariaDB/Redis) and their secret patterns. Activate
   for any change under iac/argocd-apps/manifests/, ArgoCD app definitions, or when wiring
-  secrets/env vars from K8s into a Spring app. Prefer `basis-ci-gitlab` for anything on the
-  GitLab side — pipeline, `ci/pipeline.toml`, Dagger, Sonar, merge requests, branch and
-  commit conventions, and how the image gets built and promoted. The boundary is the image
+  secrets/env vars from K8s into a Spring app (SOPS + OpenBao preferred for secret
+  values). Prefer `basis-ci-gitlab` for anything on the GitLab side — pipeline,
+  `ci/pipeline.toml`, Dagger, Sonar, merge requests, branch and commit conventions, and how
+  the image gets built and promoted. The boundary is the image
   in the registry carrying its production tag; before that, `basis-ci-gitlab`, from there
   on, this skill.
 ---
@@ -174,6 +175,47 @@ Ele espera o texto aparecer num ConfigMap que o template referencia (volume simp
 imprime o resumo. Saída: 0 no ar, 1 rollout falhou, 2 uso/ambiente, 3 limite de tempo.
 Somente leitura, sem ler Secret. Os motivos de não improvisar o laço estão no cabeçalho do
 script.
+
+## 10. Segredos cifrados com OpenBao (preferencial)
+
+Os padrões de Secret das seções 2 e 4 continuam valendo. Quando o valor do Secret precisa ir
+para o `iac/argocd-apps`, prefira cifrá-lo com SOPS usando o transit do OpenBao
+(`https://openbao.basis.com.br`) em vez de deixá-lo em claro num `secretGenerator`. O
+repo-server do Argo CD decifra na renderização via KSOPS; nome estável e
+`disableNameSuffixHash` seguem como antes.
+
+```bash
+export BAO_ADDR=https://openbao.basis.com.br
+bao login -method=oidc                    # namespace root, onde está o transit
+export VAULT_TOKEN=$(bao print token)     # o SOPS lê VAULT_TOKEN
+
+# o .sops.yaml da raiz escolhe a chave pelo caminho do overlay
+sops --encrypt --in-place manifests/<app>/overlays/<env>/<secret>.enc.yaml
+sops manifests/<app>/overlays/<env>/<secret>.enc.yaml           # editar depois
+```
+
+O overlay referencia o arquivo por um generator `ksops`, num `secret-generator.yaml` próprio
+(`generators:` recebe caminhos, não YAML inline). O `kind: ksops` não chega ao cluster: é a
+configuração do plugin que o kustomize executa para decifrar os arquivos de `files:`. Ele não
+tem segredo e vai para o Git junto com `kustomization.yaml` e `<secret>.enc.yaml`:
+
+```yaml
+# overlays/<env>/kustomization.yaml → generators: [secret-generator.yaml]
+apiVersion: viaduct.ai/v1
+kind: ksops
+metadata:
+  name: ksops
+  annotations:
+    config.kubernetes.io/function: |
+      exec:
+        path: ksops
+files:
+  - ./<secret>.enc.yaml
+```
+
+Antes do commit, `git diff` deve mostrar só `ENC[...]` nos valores. Chaves, políticas, quem
+pode cifrar, renderização local e erros comuns estão em `manifests/openbao/README.md` e na
+seção "Segredos cifrados" do `AGENTS.md` do `argocd-apps`.
 
 ## References disponíveis
 

@@ -180,6 +180,10 @@ secretGenerator:
       key: password
 ```
 
+> Preferencialmente, quando o valor de um Secret que NÓS criamos vai para o Git, cifre-o com
+> SOPS + OpenBao (`<secret>.enc.yaml` no overlay e generator `ksops`, ver §10 do `SKILL.md`)
+> em vez de `literals` em claro. Nome e `disableNameSuffixHash` continuam iguais.
+
 ## Princípio de design
 
 Quando o operator GERENCIA o Secret (Postgres, Minio, MariaDB nativo): só consumimos. Nome do Secret é determinístico — referência fica no `base/`.
