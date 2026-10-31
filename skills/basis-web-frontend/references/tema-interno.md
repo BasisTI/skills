@@ -332,8 +332,13 @@ document.addEventListener('submit', evento => {
 // (botão parar, Esc do navegador, falha de rede).
 const liberarEspera = () => { document.getElementById('espera-de-tela').hidden = true; };
 window.addEventListener('pageshow', liberarEspera);
-window.navigation?.addEventListener('navigateerror', liberarEspera);
+window.navigation?.addEventListener('navigateerror', liberarEspera);   // com download na tela, ver abaixo
 ```
+
+GET pesado (`a[data-carregando]`) e download (`a[data-baixar]`) usam a mesma camada e as
+mesmas guardas. O download troca o `liberarEspera` e o listener de `navigateerror` acima, porque
+a Navigation API dispara um `navigateerror` do download na navegação seguinte: ver
+[`espera-e-alertas.md`](espera-e-alertas.md#espera-em-toda-operação-que-demora).
 
 - **`evento.defaultPrevented` primeiro.** Validação HTML inválida e `onsubmit` que devolve
   `false` (um `confirm()` cancelado) não podem deixar a camada aberta.
@@ -346,8 +351,8 @@ window.navigation?.addEventListener('navigateerror', liberarEspera);
 - **`alt=""` na marca do loader** é decorativo e correto. Teste que proíbe texto cravado em
   `alt`/`title`/`aria-label` precisa aceitar o valor vazio, senão reprova justamente o caso
   certo.
-- **Não use a camada na navegação comum.** Ela existe para a ação que demora; em troca de tela
-  ela só atrasa a fila.
+- **Não use a camada na navegação rápida.** Ela existe para a ação que demora, medida; em troca
+  de tela rápida ela só pisca e atrasa a fila. GET pesado entra por `a[data-carregando]`.
 
 ## Checklist
 
@@ -359,5 +364,5 @@ window.navigation?.addEventListener('navigateerror', liberarEspera);
 - [ ] Botão sem variante visível sobre `base-200` e sobre a linha zebrada
 - [ ] Menu navy com logo branco; item ativo por `aria-current="page"`
 - [ ] Laranja só em marca, foco e espera, nunca como texto (texto laranja é `#B35A00`)
-- [ ] Ações lentas com `data-carregando`; Ctrl+clique, Enter duplo, Voltar e parar testados
+- [ ] Ações lentas com `data-carregando` (POST e GET) ou `data-baixar` (download); Ctrl+clique, Enter duplo, Voltar e parar testados
 - [ ] `prefers-reduced-motion` desliga o giro do loader

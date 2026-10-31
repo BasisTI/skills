@@ -113,6 +113,13 @@ Formulário longo se divide em seções com título, não em uma pilha de 20 cam
 
 `gap-3` no `label` do checkbox/toggle é o que evita o rótulo colado no controle.
 
+**Campo de mês com o seletor do jSuites nasce `yyyy-MM-01`, não `yyyy-MM`.** O jSuites completa
+`yyyy-MM` com o dia de hoje, e o mês que não tem esse dia fica em branco: num dia 31, fevereiro,
+abril, junho, setembro e novembro. O defeito depende da data, por isso passa em teste num dia e
+falha no outro. Com o dia 01 todo mês existe; o seletor reescreve o valor como `yyyy-MM`, e o
+servidor aceita as duas formas (os 7 primeiros caracteres), para a página sem JavaScript não
+quebrar. Visto no colaboradados (TG-297).
+
 ## Validação
 
 A regra real está no servidor (Bean Validation). `required`/`maxlength` no HTML são conveniência de UX e não substituem nada.
