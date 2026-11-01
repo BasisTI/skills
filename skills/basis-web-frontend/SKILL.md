@@ -3,14 +3,16 @@ name: basis-web-frontend
 description: >-
   Use when building or changing the web UI of a Basis application — Thymeleaf + HTMX +
   Tailwind v4 + DaisyUI, listing tables with pinned header/footer where only the rows
-  scroll, forms aligned with Tailwind utilities, and a custom error page so the user never
-  hits the Whitelabel Error Page. Covers both visual identities, both following the
+  scroll (plus full-screen and compact density), forms aligned with Tailwind utilities, a
+  wait layer over every slow action including GET and downloads, error/success alerts that
+  close in 15 s, and a custom error page so the user never hits the Whitelabel Error Page. Covers both visual identities, both following the
   institutional site (navy, orange, Carlito and Inter Tight, measured WCAG contrast), and
   which one applies — the `basis-interno` theme with a navy sidebar and navy primary action
   for internal authenticated systems, and the `basis-publico` theme with an orange primary
   action in a single centred column for public login-free applications such as candidacy or
   citizen-facing forms. Activate for new screens, templates and fragments,
-  table/listing work, form layout, error pages, theme/branding/colour choices, accessibility
+  table/listing work, form layout, error pages, loading/wait indicators, alerts and flash
+  messages, theme/branding/colour choices, accessibility
   and contrast questions, or the Tailwind/DaisyUI build.
 ---
 
@@ -143,8 +145,9 @@ Ver [`references/layout.md`](references/layout.md) — template completo comenta
 - **Ordenação/filtro client-side** com List.js: `data-sort` nas `th`, `valueNames` no init, e `htmx.process(list.list)` no evento `updated` — sem isso os `hx-*` das linhas reordenadas param de funcionar
 - **Volume grande é paginação server-side**, não `overflow` com 10 mil linhas no DOM. Sob paginação, `ORDER BY` precisa de **ordem total**: ordenar só por um campo que admite empate faz o banco não prometer ordem entre as linhas empatadas, e a mesma linha aparece em duas páginas ou em nenhuma. Desempate pela chave (`ORDER BY nome, id`)
 - **Ação por linha** com ícone `btn-ghost btn-sm btn-square` na última coluna, alinhada à direita, com `th:title` explicando
+- **Listagem longa ganha tela cheia e densidade compacta (xs)**, por um fragmento só, com os botões na barra de baixo (a que a tela cheia mantém). A densidade fica num cookie **lido pelo servidor**, que já manda a tabela com a classe e a primeira pintura não pisca; Esc sai da tela cheia e devolve o foco ao botão
 
-Ver [`references/tabelas.md`](references/tabelas.md) — tabela completa com `tfoot` fixo, barra de paginação, List.js e variantes.
+Ver [`references/tabelas.md`](references/tabelas.md) — tabela completa com `tfoot` fixo, barra de paginação, List.js, tela cheia e densidade compacta.
 
 ## 5. Formulários
 
@@ -274,7 +277,8 @@ Ver [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.
 - Fragmento Thymeleaf servido por Controller dedicado, retornando **só o pedaço** (`~{::fragmento}`), com `hx-target` apontando para o id do contêiner
 - `hx-target="#modal-root"` para modal; o fragmento traz o `<dialog>`/`modal` inteiro
 - Indicador de carregamento com `.htmx-indicator` (regras no `input.css`) em toda ação que chama o servidor
-- **Ação lenta em POST comum** (IA, sincronização, envio a sistema externo) usa a espera de tela do layout, com `data-carregando="<mensagem>"` no `<form>`. O script precisa tratar envio em outra aba, envio duplo, Voltar e navegação interrompida: ver [`references/tema-interno.md`](references/tema-interno.md#espera-de-tela-nas-ações-lentas)
+- **Toda operação que demora mostra a espera de tela do layout**, não só o POST: `data-carregando="<mensagem>"` no `<form>` (POST lento, Pesquisar por GET) ou no `<a>` (menu, paginação pesada), e `data-baixar="<mensagem>"` no link de download. Modificador ou `target` não arma (a resposta vai para outra aba) e o 2º clique é engolido. Download não troca a página: a camada sai quando o arquivo chega com um cookie que leva o token **no nome**, validado no servidor. Camada e script do POST em [`references/tema-interno.md`](references/tema-interno.md#espera-de-tela-nas-ações-lentas); GET, download, servidor, hotspot do Sonar e as armadilhas da Navigation API em [`references/espera-e-alertas.md`](references/espera-e-alertas.md#espera-em-toda-operação-que-demora)
+- **Alerta de erro e de sucesso tem sempre o botão X e fecha sozinho em 15 s** (`data-alerta`; um `MutationObserver` cobre o que o HTMX troca; mouse, foco e texto selecionado seguram). Aviso que explica o estado da tela não leva o atributo: vale enquanto o estado vale. Ver [`references/espera-e-alertas.md`](references/espera-e-alertas.md#alertas-que-fecham-sozinhos)
 - Depois de qualquer manipulação de DOM feita por JS (List.js, por exemplo), chamar `htmx.process(elemento)`
 - Com Spring Security, o token CSRF precisa acompanhar as requisições HTMX (meta tag + `hx-headers`, ou `hx-vals`) — POST de HTMX falhando com 403 é quase sempre isso
 
@@ -297,7 +301,8 @@ src/main/resources/templates/
 ## References disponíveis
 
 - [`references/layout.md`](references/layout.md) — `layout.html` completo: sidebar, navbar, cadeia de altura, `@ControllerAdvice` de `appVersion`/`currentUser`, sidebar retrátil
-- [`references/tabelas.md`](references/tabelas.md) — listagem com `thead`/`tfoot` fixos, List.js, ações por linha, paginação
+- [`references/tabelas.md`](references/tabelas.md) — listagem com `thead`/`tfoot` fixos, List.js, ações por linha, paginação, tela cheia e densidade compacta
+- [`references/espera-e-alertas.md`](references/espera-e-alertas.md) — espera em GET pesado e download (cookie com o token no nome, `DownloadConcluido`, `java:S3330`, Navigation API, teste contra o servidor real) e alertas `data-alerta` que fecham em 15 s
 - [`references/formularios.md`](references/formularios.md) — campo padrão, grid responsivo, erros de validação, upload, formulário em modal
 - [`references/i18n.md`](references/i18n.md) — convenção de nome de chave, texto em atributo, os quatro comportamentos de inlining em `<script>` medidos, `spring.messages`, `MessageFormat`, checklist
 - [`references/paginas-de-erro.md`](references/paginas-de-erro.md) — `error.html`, `@ExceptionHandler` com traceId, erros de HTMX
