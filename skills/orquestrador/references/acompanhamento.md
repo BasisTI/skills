@@ -39,7 +39,7 @@ herdr workspace report-metadata "$HERDR_WORKSPACE_ID" --source orquestrador \
   --token "mrs_prontas=argocd-apps!323 colaboradados!331"
 ```
 
-Os valores são só exibição: até 80 caracteres e somem quando o servidor do Herdr reinicia. A fonte de verdade é o registro da missão; republique a partir dele quando faltar. Sem as linhas `$story`, `$fase` e `$mrs_prontas` na configuração do Herdr, nada aparece ([configuração](configuracao.md#status-na-sidebar-do-herdr)).
+Os valores são só exibição: até 80 caracteres (o que não couber, corte e termine com `+N`) e somem quando o servidor do Herdr reinicia. A fonte de verdade é o registro da missão; republique a partir dele quando faltar. Sem as linhas `$story`, `$fase` e `$mrs_prontas` na configuração do Herdr, nada aparece ([configuração](configuracao.md#status-na-sidebar-do-herdr)).
 
 ## Pipeline e persistência
 

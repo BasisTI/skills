@@ -21,7 +21,7 @@ trava que impede o merge antes de a revisão aprovar. Quem o tira é a revisão 
 ([`revisao-da-mr.md`](revisao-da-mr.md#3-os-dois-desfechos)); com a tag `config`, que não passa
 por revisão, a devolução (passo 4).
 
-Guarde a URL que o `glab mr create` imprime: é ela, e não o `!N`, que vai na resposta, no
+Guarde a URL que o `glab mr create` imprime: é ela, com `<projeto>!<iid>` como texto do link (nunca `!N` sozinho), que vai na resposta, no
 relatório e nos comentários (ver "A MR se cita pelo link" na `SKILL.md`).
 
 **Retomada:** se há MR `TG-xx` **aberta**, a rodada continua nela — só `git push`. Uma
