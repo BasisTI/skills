@@ -15,11 +15,13 @@ Dentro do contrato, o coordenador despacha a próxima story elegível (`orq onda
 
 ## Acrescentar story à onda aberta
 
-Story que surge no meio da onda (uma menor descoberta ao trabalhar em outra) e que o usuário manda "adicionar à onda atual" entra na onda existente, sem criar onda nova nem encerrar a atual. Confirme com o usuário a onda e, se importar, o ponto da ordem; sem ponto, ela vai para o fim. Com a [Central](central.md#do-fluxo-ao-comando), use `orq onda adicionar <id> <ref>… [--apos <ref>]`: a story entra em `wait`, o diário registra `onda.adicionar`, e `orq onda proxima` e a regra de [encerramento](central.md#encerrar-a-onda) passam a contar com ela, o que tira a onda do estado de pronta para encerrar até a story chegar ao limite.
+Story que surge no meio da onda (uma menor descoberta ao trabalhar em outra) e que o usuário manda "adicionar à onda atual" entra na onda existente, sem criar onda nova nem encerrar a atual. Confirme com o usuário a onda e, se importar, o ponto da ordem; sem ponto, ela vai para o fim. Com a [Central](central.md#do-fluxo-ao-comando), use `orq onda adicionar <id> <ref>… [--apos <ref>]`: a story entra em `wait` (ou guarda o status, se veio de onda encerrada de mesmo limite), o diário registra `onda.adicionar`, e `orq onda proxima` e a regra de [encerramento](central.md#encerrar-a-onda) passam a contar com ela, o que tira a onda do estado de pronta para encerrar até a story chegar ao limite.
 
 - **A autorização é a da onda.** A story herda `--ate`, `--ordem` e o contrato; se ela pede limite diferente, é onda à parte.
+- **Exige o binário novo.** O `orq` anterior à US #42 do projeto `orq` não conhece o subcomando: imprime a ajuda de `orq onda` e sai com 0, sem adicionar nada. Confira sempre com `orq onda ver <id>` que a story entrou, e o comando aparece em `orq onda --help` só no binário novo.
+- **Em onda estrita, `--apos` pode passar à frente de story em andamento.** Com a 1 em `done`, a 2 em `exec` e a 3 em `wait`, `adicionar … --apos 1` faz `orq onda proxima` devolver a nova com a 2 ainda em `exec`: duas em paralelo numa onda estrita. Para ficar atrás de tudo, não use `--apos`.
 - **Dependências não vêm junto.** O comando não cria dependência. Se a nova depende de outra, ou outra dela, e a ordem for `estrita`, use `--apos` para pô-la depois da base e registre a dependência no contrato.
-- **Recusas.** Onda encerrada (`onda_encerrada`): crie outra com `orq onda criar`. Story em outra onda aberta (`us_em_outra_onda`): encerre aquela onda ou decida com o usuário de qual ela é. Story já nesta onda (`us_ja_na_onda`): nada a fazer. Story vinda de onda encerrada com limite diferente volta a `wait`.
+- **Recusas.** Onda encerrada (`onda_encerrada`): crie outra com `orq onda criar`. Story em outra onda aberta (`us_em_outra_onda`): encerre aquela onda ou decida com o usuário de qual ela é. Story já nesta onda (`us_ja_na_onda`): nada a fazer. Story vinda de onda encerrada com o mesmo limite guarda o status que tinha; com limite diferente volta a `wait`.
 - **Sem a Central**, acrescente a story à lista do registro da missão e ao contrato, com a data.
 
 ## Grafo e recursos
