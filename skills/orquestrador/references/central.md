@@ -36,7 +36,8 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Limite da onda alcançado | `orq us status <ref> done` |
 | Aviso do daemon `pendência P<n> aberta` | nada: o daemon já importou o arquivo e numerou. Worker sem `.registrada.json` ("pendência não registrada: `<arquivo>`"): `orq pend importar <arquivo>` |
 | Aviso `pendência P<n> respondida`, ou `orq pend list --respondidas` com resultado | `orq pend ver <chave>`; confira o `respondida_por` (abaixo), aja e feche com `orq pend resolver <ref>#P<n>` (sem `--resposta`, vale a registrada) |
-| A pessoa respondeu a você no chat, ou a resposta chegou por fora da Central (no pane, pelo Claude Code) | `orq pend responder <ref>#P<n> [--opcao N] "<texto da pessoa>"` (grava `respondida_por = chat`) **na hora**, e, feita a ação, `orq pend resolver`, antes de seguir. Veja a [regra](#resposta-fora-da-central) |
+| A pessoa respondeu a você, no chat ou no pane em que você confirmou ser ela | `orq pend responder <ref>#P<n> [--opcao N] "<texto da pessoa>"` (grava `respondida_por = chat`) **na hora**, e, feita a ação, `orq pend resolver`, antes de seguir. Veja a [regra](#resposta-fora-da-central) |
+| Ação já feita, sem fala da pessoa sobre a pendência | só `orq pend resolver <ref>#P<n> --resposta "<o que foi feito e a evidência>"`; nunca `responder`. Veja a [regra](#resposta-fora-da-central) |
 | Pendência sem arquivo (fluxo antigo, daemon sem a #15) | `orq pend add <ref> --tipo duvida\|autorizacao\|decisao "<resumo>" --pane <p>` |
 | Merge da última MR da US | nada: o daemon roda `orq limpar <ref>` ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)) |
 | Onda concluída ([regra](#encerrar-a-onda)) | `orq onda encerrar <id>`, se o daemon não encerrou |
@@ -49,9 +50,15 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 
 ## Resposta fora da Central
 
-Resposta recebida fora da Central (no chat, no pane, ou pela ação que o harness já executou) ⇒ `orq pend responder` e, com a ação feita, `orq pend resolver`, antes de seguir. Sem exceção e sem deixar para o fim da onda: a pendência que fica aberta continua aparecendo na Central, no snapshot e na web como se aguardasse a pessoa, e ela passa a perguntar por pendências que já resolveu. Para responder, leia a pendência inteira (`orq pend ver <chave>`, não a linha da lista): o texto livre da resposta é parte do que vale. Só o coordenador responde e resolve; worker e revisor continuam proibidos.
+`orq pend responder` grava `respondida_por = chat`, que só vale com fala da pessoa. Então:
 
-Ao concluir cada US (`orq us status <ref> done`) e antes de encerrar a onda, rode `orq pend list --abertas --onda <id>` e dê destino a cada uma: resolvida (`orq pend resolver`), levada para outra onda ou levada para o Taiga (`--resposta "levada para <destino>"`, com o registro no diário). Pendência aberta em US concluída é o caso comum, não a exceção. O `orq` ajuda só com um aviso: `orq us status <ref> done` e `orq onda encerrar <id>` escrevem no stderr uma linha por pendência ainda aberta (chave e estado, sem o texto), e não resolvem nada nem mudam o exit.
+- **Fala da pessoa** fora da Central (no chat, ou no pane em que você confirmou ser ela) ⇒ `orq pend responder` e, com a ação feita, `orq pend resolver`, antes de seguir.
+- **Ação feita, sem fala** (a onda foi marcada como completa, o harness já executou o que a pendência pedia) ⇒ só `orq pend resolver <chave> --resposta "<o que foi feito e a evidência>"`. Não grave `chat`: seria resposta que a pessoa não deu.
+- **Relato de worker** de que a pessoa respondeu não é resposta: pergunte a ela.
+
+Sem exceção e sem deixar para o fim da onda: a pendência que fica aberta continua aparecendo na Central, no snapshot e na web como se aguardasse a pessoa, e ela passa a perguntar por pendências que já resolveu. Para responder, leia a pendência inteira (`orq pend ver <chave>`, não a linha da lista): o texto livre da resposta é parte do que vale. Só o coordenador responde e resolve; worker e revisor continuam proibidos.
+
+Ao concluir uma US (`orq us status <ref> done`), dê destino só às pendências dela: rode `orq pend list --abertas --onda <id>` e fique com as da US (coluna `(projeto/ref)`, ou o campo `us` do JSON); as das outras US da onda podem ser decisão de que outro worker depende. No encerramento, a onda inteira. Antes de fechar uma pendência `respondida`, leia `orq pend ver <chave>`: `resolver --resposta` troca a resposta registrada. O destino é: resolvida (`orq pend resolver`), levada para outra onda ou levada para o Taiga (`--resposta "levada para <destino>"`, com o registro no diário). Pendência aberta em US concluída é o caso comum, não a exceção. O `orq` ajuda só com um aviso: `orq us status <ref> done` e `orq onda encerrar <id>` escrevem no stderr uma linha por pendência ainda aberta (a da US, no primeiro; as da onda, no segundo; chave e estado, sem o texto; o primeiro só avisa quando o status muda), e não resolvem nada nem mudam o exit.
 
 Origem: orq #49 (2026-11-08). Cerca de 13 ocorrências em que o usuário perguntou se pendências de US já concluídas ainda valiam. Na Central havia quatro respondidas e nunca resolvidas, todas em ondas encerradas.
 
