@@ -80,6 +80,9 @@ fica em `In revision` (ou `In progress`, sem esse status), e a MR aguarda o merg
 a política do projeto ou do coordenador (pessoa, ou o coordenador na `develop`). Aprovar a MR
 no GitLab é da pessoa; o revisor não aprova nem mescla.
 
+Aprovada, a MR sai do Draft **se a pré-condição está cumprida**; do contrário vale
+[Pronta não convive com Draft](#pronta-não-convive-com-draft).
+
 **Com achados** — ao menos um `Bloqueante` ou `Sério`. A MR **continua em Draft**, onde nasceu
 ([`ciclo-da-mr.md`](ciclo-da-mr.md#1-abrir-a-mr)); se alguém a tirou, o revisor a devolve
 (`glab mr update <mr> --draft`). O GitLab recusa o merge de MR em Draft, e é isso que impede
@@ -92,6 +95,31 @@ há correção pendente. A próxima rodada
 do executor retoma o mesmo worktree e a mesma MR ([`worktree.md`](worktree.md#retomar)),
 corrige, devolve de novo pelo [`ciclo-da-mr.md`](ciclo-da-mr.md), e a revisão roda outra
 vez sobre o SHA novo.
+
+## Pronta não convive com Draft
+
+Regra sem exceção: **MR ou PR anunciada como pronta não pode estar em Draft.** Vale para código
+e IaC, com merge humano ou automático. "Pronta" é o que se diz à pessoa ("aprovada, pode
+mesclar"), no relatório, no comentário do Taiga e na Central; se o Draft ainda está lá, a
+pessoa pergunta se é para mesclar mesmo (a !541 do `vault-assistente`, 2026-11-08) ou tira o
+Draft e mescla por conta própria (a !507). Cerca de 8 ocorrências em 7 sessões.
+
+1. **Aprovada e com a pré-condição cumprida:** tire o Draft. Quem anuncia confere `draft=false`
+   **imediatamente antes** de anunciar, na forja e não no que se lembra de ter feito:
+   `glab mr view <mr> --output json | jq .draft` (GitLab), `gh pr view <pr> --json isDraft`
+   (GitHub). Veio `true`, não anuncie: tire o Draft (`glab mr update <mr> --ready`,
+   `gh pr ready <pr>`) e confira de novo.
+2. **Depende de algo ainda não cumprido** (outra MR a mesclar, release, janela, confirmação da
+   pessoa): a MR **fica em Draft** e a **primeira linha da descrição** diz `Mesclar depois de
+   <o quê>`. Ela não é anunciada como pronta; é anunciada como "aprovada, em Draft até
+   <pré-condição>". O coordenador acompanha, tira o Draft quando a pré-condição valer, confere
+   `draft=false` e só então avisa. Cumprida a pré-condição, a primeira linha sai da descrição.
+3. **Série empilhada:** só a próxima da fila fica pronta; as demais ficam em Draft, cada uma
+   com `Mesclar depois de <MR anterior>`. Mesclada uma, o coordenador tira o Draft da seguinte
+   (depois do rebase e da confirmação do delta, quando a onda os pede).
+4. **Revisão de IaC não é exceção:** aprovada e sem pré-condição pendente, a MR sai do Draft
+   como qualquer outra. Depender da pessoa para mesclar não é pré-condição: é o merge humano
+   que a política já prevê, e acontece com a MR pronta.
 
 **Recorrência se conta por classe**, não pelo caso: outro encoding escapando da mesma máscara
 é a mesma classe. Na **2ª** ocorrência, o pacote de correção pede a classe — o executor

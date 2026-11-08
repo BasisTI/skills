@@ -19,7 +19,9 @@ glab mr create --target-branch develop --squash-before-merge --remove-source-bra
 A MR nasce em **Draft** e fica nele durante este ciclo e as rodadas de revisão: o Draft é a
 trava que impede o merge antes de a revisão aprovar. Quem o tira é a revisão aprovada
 ([`revisao-da-mr.md`](revisao-da-mr.md#3-os-dois-desfechos)); com a tag `config`, que não passa
-por revisão, a devolução (passo 4).
+por revisão, a devolução (passo 4). Sair do Draft é o que torna a MR "pronta", e a MR anunciada
+como pronta não pode estar em Draft ([regra](revisao-da-mr.md#pronta-não-convive-com-draft)). Se
+a MR depende de algo ainda não cumprido, abra a descrição com `Mesclar depois de <o quê>`.
 
 Guarde a URL que o `glab mr create` imprime: é ela, e não o `!N`, que vai na resposta, no
 relatório e nos comentários (ver "A MR se cita pelo link" na `SKILL.md`).
@@ -100,7 +102,9 @@ Sonar (abaixo), e o que [Antes de devolver](#antes-de-devolver) pede. Status →
 o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
 A MR **continua em Draft**: devolver é pedir revisão, não liberar o merge. A exceção é a
 story com a tag `config`, que não tem revisão: aí a devolução tira o Draft
-(`glab mr update <mr> --ready`) e a MR vai direto ao merge humano.
+(`glab mr update <mr> --ready`) e a MR vai direto ao merge humano. Antes de anunciar a MR como
+pronta, confira `draft=false` na forja (`glab mr view <mr> --output json | jq .draft`). Com
+pré-condição pendente, ela fica em Draft com `Mesclar depois de …` na primeira linha.
 
 **Interrompida** — a **mesma causa** aparece em 3 tentativas registradas, ou há um
 impedimento externo: acesso, ambiente, dúvida de especificação, dependência de story não

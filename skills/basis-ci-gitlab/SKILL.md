@@ -162,6 +162,12 @@ story parada em `In revision`; sem eles, a revisão tira o Draft e a MR aguarda 
 do projeto ou do coordenador: humano por padrão, automático na `develop` com as condições no
 head (skill `orquestrador`, `[autonomia]`). Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
+**Pronta não convive com Draft.** MR ou PR anunciada como pronta (código ou IaC, merge humano
+ou automático) não pode estar em Draft, e quem anuncia confere `draft=false` na forja
+imediatamente antes. Com a pré-condição pendente, a MR fica em Draft e a primeira linha da
+descrição diz `Mesclar depois de …`; em série empilhada, só a próxima da fila fica pronta.
+Regra completa em [`references/revisao-da-mr.md`](references/revisao-da-mr.md#pronta-não-convive-com-draft).
+
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
 auditoria de produção consultam.
@@ -573,6 +579,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 - [ ] Revisão `qa-adversarial` por outro agente, sobre o SHA atual da MR, com desfecho `aprovada`
 - [ ] Draft retirado só por essa revisão aprovada (ou, com a tag `config`, na devolução)
 - [ ] Discussões dos achados resolvidas pela revisão que confirmou a correção
+- [ ] Anunciada como pronta só com `draft=false` conferido na forja agora; pré-condição pendente: Draft com `Mesclar depois de …` na primeira linha; série empilhada: só a próxima da fila pronta
 
 **Antes de promover para `main`:**
 
