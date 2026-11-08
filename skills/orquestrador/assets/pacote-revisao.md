@@ -4,7 +4,7 @@
 - Worker: rótulo, nome de agente e id do pane do destinatário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Alias e harness/modelo/esforço resolvidos.
 - Papel qa-adversarial: origem e modo autorizado.
-- MR aberta, SHA a revisar, base, worktree e estado de conflitos.
+- MR aberta (formato de [como citar](../SKILL.md#como-citar-uma-mr-ou-pr)), SHA a revisar, base, worktree e estado de conflitos.
 - Relatório do executor, evidências, pipeline e suspeitas Sonar.
 - Escopo da rodada: r1 completa; r≥2 confirma as correções no SHA novo e ataca o delta, nunca "procure quebras novas". Regra em `basis-ci-gitlab/references/revisao-da-mr.md`.
 - Consumidores e configurações reais que delimitam a severidade.

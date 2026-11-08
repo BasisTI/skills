@@ -24,7 +24,7 @@ não passa por revisão, sai na devolução (passo 4). Sair do Draft é o que to
 como pronta não pode estar em Draft ([regra](revisao-da-mr.md#pronta-não-convive-com-draft)). Se
 a MR depende de algo ainda não cumprido, abra a descrição com `Mesclar depois de <o quê>`.
 
-Guarde a URL que o `glab mr create` imprime: é ela, e não o `!N`, que vai na resposta, no
+Guarde a URL que o `glab mr create` imprime: é ela, com `<projeto>!<iid>` como texto do link (nunca `!N` sozinho), que vai na resposta, no
 relatório e nos comentários (ver "A MR se cita pelo link" na `SKILL.md`).
 
 **Retomada:** se há MR `TG-xx` **aberta**, a rodada continua nela — só `git push`. Uma
