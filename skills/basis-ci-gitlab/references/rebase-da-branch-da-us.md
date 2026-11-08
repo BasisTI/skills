@@ -4,7 +4,7 @@ A branch da US fica atrás da base (`develop` no GitLab, `main` no GitHub) quand
 mexe nos mesmos arquivos e é mesclada primeiro. O rebase local exige
 `git push --force-with-lease`, e o harness pede confirmação a cada um. Há três caminhos, na
 ordem em que valem. Os dois primeiros não usam force push; se o harness pede confirmação neles
-depende do modo: em modo auto, não; em modo default, depende de o comando estar no `allow`
+depende do modo: em modo auto passaram nas medições, e o classificador decide caso a caso; em modo default, depende de o comando estar no `allow`
 (`glab` costuma estar, `gh pr update-branch`, `git reset --hard` e `git push` podem não estar).
 
 Validado em 2026-11-08 (orq #50) num repositório local descartável com remoto bare (git
@@ -134,8 +134,10 @@ por prefixo de argumentos, **sem curinga**: não existe `TG-*`. Ponto decisivo: 
 genérico de `git push`, "sem regra" vira **allow** e só os `forbidden` valem: refspec para
 branch protegida (`TG-50:main`, `HEAD:main`), `+TG-50` e `release/1.0` **passam**. Quem tem
 essa linha só fica protegido contra o que o `forbidden` enumera. **Recomendação à pessoa:**
-remover esse allow genérico; sem ele, o que não casa pede confirmação (medido só com o
-documento isolado).
+remover esse allow genérico; sem ele, o que não casa fica sem regra, e o que o Codex faz então
+depende de `approval_policy` e do sandbox, e não foi medido. Custo da recomendação: sem o
+`allow` genérico, o `git push` comum dos workers em Codex passa a depender do sandbox,
+inclusive em worktree, e pode aumentar as confirmações.
 
 ```python
 prefix_rule(pattern=["git","push","--force-with-lease","origin","TG-50"], decision="allow", justification="rebase da US 50")

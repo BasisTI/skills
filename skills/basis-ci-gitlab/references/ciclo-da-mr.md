@@ -76,7 +76,7 @@ da pipeline aceita — vão para o relatório.
 Leia as falhas e as issues do Sonar, corrija, faça commit e push — e **volte ao passo 2 a
 cada push**. A pipeline verde anterior não vale para o SHA novo.
 
-Branch atrás da base: sem conflito, rebase no servidor (`glab mr rebase <iid>`); com conflito,
+Branch atrás da base, quando quem pediu mandar trazer a base: sem conflito, rebase no servidor (`glab mr rebase <iid>`); com conflito,
 merge da base se a MR for mesclada com squash, ou rebase com `--force-with-lease` se não for
 (MR de release: decisão da pessoa).
 O critério e as autorizações do harness estão em
