@@ -90,14 +90,20 @@ conflito mudou). É esse o delta que o revisor confirma no SHA novo.
 O SHA mudou: a aprovação e a pipeline do SHA antigo não valem para o novo; o CI roda de novo
 e o revisor confirma o delta no SHA novo.
 
+Com a ação `rebase-conflito` do orquestrador, o coordenador manda trazer a base em toda MR atrás
+dela, com ou sem conflito, por estes caminhos. A MR de release (`develop` → `main`) fica fora:
+ali, a decisão é da pessoa.
+
 ## Autorizar o caminho 3 no harness
 
 A pessoa aplica; o agente não edita essas configurações. Cada harness casa o comando por
 texto, e nenhum restringe de verdade a "branches de US": abaixo está o que foi **medido com
 o snippet final somado à configuração real desta máquina** (2026-11-08) e o que é só
 leitura. O que vale em outra máquina depende do que ela já tem em `allow`.
-`BasisTI/skills` e `BasisTI/orq` não têm proteção de `main` no servidor, então a regra local
-é a única barreira ali; no GitLab da `colaboradados`, `main` e `develop` têm
+`BasisTI/skills` e `BasisTI/orq` têm, desde 2026-11-08, o ruleset ativo "Proteção main" na
+branch padrão, com `deletion` e `non_fast_forward`, sem bypass: barra force push e exclusão
+da `main`, não exige PR, e não cobre `develop` nem `staging`, onde a regra local segue sendo
+a única barreira; no GitLab da `colaboradados`, `main` e `develop` têm
 `allow_force_push:false`.
 
 **Claude Code** — `permissions` em `~/.claude/settings.json` (ou `.claude/settings.json`);

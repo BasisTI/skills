@@ -27,7 +27,7 @@ merge_automatico = ["develop"]
 # Ações sem pergunta:
 # - "limpeza": fechar panes, remover worktree, branches e pastas da US depois do merge.
 # - "tirar-draft": revisão aprovada no head e CI verde.
-# - "rebase-conflito": MR em conflito; o executor faz o rebase e o revisor confirma o delta.
+# - "rebase-conflito": MR atrás da base, com ou sem conflito; o executor traz a base e o revisor confirma o delta.
 # - "par-padrao": "despacha" sem executor/revisor usa implementacao-padrao e revisao-padrao.
 acoes_automaticas = ["limpeza", "tirar-draft", "rebase-conflito", "par-padrao"]
 
