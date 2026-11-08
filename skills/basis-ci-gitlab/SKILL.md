@@ -133,6 +133,10 @@ O teste é completar a frase **"Aplicar esse commit vai…"**. Se não completar
 está descrevendo o que você fez, não o que o commit faz — e é a segunda que serve a quem lê
 o log depois.
 
+**Achados de regras antes da MR:** em projeto Java com Sonar, o passo é o scanner Maven na
+branch, descrito na skill `basis-java-code-standards`; módulo sem Sonar dispensa, e ele não
+substitui o quality gate da pipeline. `sonar analyze` não serve para isso.
+
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**, e abra em
 **Draft**. O Draft quer dizer "ainda não pode mesclar": o GitLab recusa o merge, e ele só sai
 quando as rodadas de revisão terminam com `aprovada`. Com a MR aberta pronta, um humano mescla

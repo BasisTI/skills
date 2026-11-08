@@ -30,15 +30,18 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     **Cobertura** é a outra metade do gate e a que reprova em silêncio: código novo bem escrito
     e sem teste derruba a MR. Só o `verify` com `jacoco.xml` a mede.
 
-  - **Para ter o que o `check-quality` teria antes da MR, rode o scanner na sua branch.** É o
-    mesmo scanner da pipeline, com bytecode, classpath e o `jacoco.xml` que o `verify` acabou de
-    escrever — e por isso pega as regras de fluxo de dados que a análise local não alcança:
+  - **Para ver os achados de regras antes da MR, rode o scanner Maven na sua branch.** É o
+    caminho documentado para isso no nosso servidor, já que `sonar analyze` não serve. Rode
+    **antes do commit final ou de abrir a MR**, em projeto Java que usa Sonar (módulo sem Sonar
+    dispensa o passo). É o mesmo scanner da pipeline, com bytecode, classpath e o `jacoco.xml`
+    que o `verify` acabou de escrever — e por isso pega as regras de fluxo de dados, que
+    precisam de bytecode. **Não substitui o quality gate da pipeline.**
 
     ```bash
     ./mvnw clean verify
     ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
       -Dsonar.host.url=https://codequality.basis.com.br -Dsonar.token="$SONAR_TOKEN" \
-      -Dsonar.projectKey=<chave> -Dsonar.branch.name=$(git branch --show-current)
+      -Dsonar.projectKey=<chave> -Dsonar.branch.name=<branch da US, ex.: TG-123>
     ```
 
     Duas coisas a não errar. O plugin **não** está declarado no pom (nem precisa: quem invoca na
@@ -46,8 +49,11 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     `No plugin found for prefix 'sonar'`. E **`-Dsonar.branch.name` não é opcional**: sem ele a
     análise entra como a branch principal do projeto e passa a valer como o retrato oficial dele.
 
-    Isso **escreve no servidor compartilhado** — cria (ou atualiza) a branch no Sonar. Numa branch
-    de feature é barato e some com ela; combine antes de fazer em `develop` ou `main`.
+    **Isso publica uma análise no servidor compartilhado** — cria (ou atualiza) a branch no
+    Sonar. Numa branch de feature é barato e some com ela; combine antes de fazer em `develop`
+    ou `main`. Os achados saem por `sonar list issues -p <chave> --branch <branch>` (ver `basis-ci-gitlab`, referência de
+    CLIs). Este passo foi documentado na orq #46, mas **não foi executado** lá, para não
+    publicar no servidor.
 
     Depois da análise, a conta sai por API:
 
