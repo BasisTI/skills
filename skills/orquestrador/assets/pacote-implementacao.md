@@ -6,7 +6,7 @@
 - Objetivo e critérios de aceite: links e escopo.
 - Plano, dependências incorporadas e decisões relevantes.
 - Alias e harness/modelo/esforço resolvidos; skills e versões.
-- Worktree absoluto, branch, base e MR existente.
+- Worktree absoluto, branch, base e MR existente (no formato de [como citar](../SKILL.md#como-citar-uma-mr-ou-pr)).
 - Autorizações: transições, escrita externa e limites explícitos.
 - Modo autônomo, critérios de bloqueio e histórico de recorrências.
 - Ambiente: credenciais por referência, recursos, locks e conflitos potenciais; destino de cada escrita por ambiente conferido na fonte ([fatos de ambiente](../references/despacho.md#fatos-de-ambiente)).
