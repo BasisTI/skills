@@ -78,11 +78,11 @@ Confira `state: merged` depois e siga o pós-merge ([auditoria](conclusao-e-limp
 | Valor | O coordenador faz, sem perguntar |
 |---|---|
 | `"limpeza"` | Fechar panes do executor e do revisor e remover worktree, branches e pastas em `~/tmp` e `/tmp` da US depois do merge; reabrir pane e worktree para corrigir depois do teste ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)). |
-| `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head ([revisão](revisao.md)). |
+| `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head, e só se não houver pré-condição pendente (`Mesclar depois de …` na descrição) ([revisão](revisao.md)). |
 | `"rebase-conflito"` | MR em conflito: o executor faz o rebase e o revisor confirma o delta ([revisão](revisao.md#conflito)). |
 | `"par-padrao"` | "Despacha" sem executor e revisor indicados usa `implementacao-padrao` e `revisao-padrao` ([despacho](despacho.md#par-padrão)). |
 
-Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação; `rebase-conflito` não vale para a MR de release.
+Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação nem vale para MR com pré-condição pendente; `rebase-conflito` não vale para a MR de release.
 
 ## Status na sidebar do Herdr
 

@@ -14,7 +14,7 @@ Use a referência `worktree.md` da `basis-ci-gitlab` e a skill `worktrunk` para 
 
 Informe cópia e versão das skills usadas. Se desatualizadas, atualize conforme autorização existente; não atualize todas as skills globais automaticamente. Resolva identidade ai-memory e referências de credenciais sem copiar segredos para prompts.
 
-Preencha o template de implementação. Registre conflitos potenciais entre stories paralelas e atualização da branch após o merge das demais. Dependentes liberadas por um merge podem ser despachadas sem nova pergunta dentro da missão autorizada ([ondas](ondas.md)).
+Quem redige o pacote não instrui "fica em Draft; quem mescla é a pessoa" (nem "deixe em Draft") para MR a ser aprovada: aprovada e sem pré-condição pendente, a MR sai do Draft e a pessoa mescla com ela pronta ([regra](../../basis-ci-gitlab/references/revisao-da-mr.md#pronta-não-convive-com-draft)). Origem: o pacote de revisão da !541 (`basis/iac/argocd-apps`) dizia "deixe em Draft; quem mescla é a pessoa", e a MR chegou aprovada em Draft. Preencha o template de implementação. Registre conflitos potenciais entre stories paralelas e atualização da branch após o merge das demais. Dependentes liberadas por um merge podem ser despachadas sem nova pergunta dentro da missão autorizada ([ondas](ondas.md)).
 
 ### Recursos da US, temporários e Docker
 

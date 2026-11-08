@@ -10,7 +10,7 @@
 - Consumidores e configurações reais que delimitam a severidade.
 - Story crítica (segurança, integridade de dados): modelo de ameaça (adversário, por onde a entrada chega) e limites aceitos.
 - Histórico de achados e recorrências por classe.
-- Autorizações para notas, discussões e Draft conforme basis-ci-gitlab.
+- Autorizações para notas, discussões e Draft conforme basis-ci-gitlab. Aprovada e com a pré-condição cumprida, o Draft sai (o revisor o tira; se não, quem o pacote indicar) e confere-se `draft=false` na forja antes de anunciar. Com pré-condição pendente, a MR fica em Draft com `Mesclar depois de …` na primeira linha da descrição, escrita por quem constata a pré-condição. MR anunciada como pronta nunca está em Draft, em código ou IaC ([regra](../../basis-ci-gitlab/references/revisao-da-mr.md#pronta-não-convive-com-draft)).
 - Correções pertencem ao executor; o merge segue a [política do coordenador](../references/configuracao.md#merge_automatico), e o revisor não mescla.
 - Pendências da story abertas, com o id da Central (`P<n>`). Pendência nova: pelo arquivo `<diretório da rodada>/pendencias/<slug>.md`, esperando até 30 s pelo `.registrada.json` ou pelo `.erro.txt` e citando o id devolvido; sem resposta do daemon, "pendência não registrada: `<arquivo>`". **Proibido** `orq pend responder` e `orq pend resolver`. [Regra e modelo](../references/acompanhamento.md#abrir-a-pendência-pelo-arquivo); sem o daemon da #15, o pacote traz o próximo id livre.
 - `TMPDIR` do worker e rótulos Docker `orq.us`/`orq.onda` ([recursos](../references/despacho.md#recursos-da-us-temporários-e-docker)); o worker usa o `TMPDIR` que recebeu e rotula o que criar no Docker.
