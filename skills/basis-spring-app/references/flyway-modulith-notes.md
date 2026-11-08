@@ -113,23 +113,23 @@ Regra (decisão da US orq #67, spike em módulo real com Modulith 2.1, Flyway 12
 ### Como ligar
 
 - `spring.modulith.runtime.flyway-enabled=true` **e** a dependência `org.springframework.modulith:spring-modulith-runtime` (gerenciada pelo BOM, não vem no `spring-modulith-starter-core`). Sem a dependência, a flag não faz nada: nenhum erro e nenhum aviso, e o Flyway segue com um histórico só `[TESTADO]`. Ponha um teste que falhe se `flyway_schema_history_<módulo>` não existir depois da subida.
-- Pastas `db/migration/<módulo>` e `db/migration/__root`. Cada módulo com arquivos ganha o histórico `flyway_schema_history_<módulo>`; o `__root` usa `flyway_schema_history`.
-- A ordem de execução é a topológica das dependências entre módulos.
+- Pastas `db/migration/<módulo>` e `db/migration/__root`. Cada módulo com arquivos ganha o histórico `flyway_schema_history_<módulo>`; o `__root` usa `flyway_schema_history` `[TESTADO]`. **Com a flag ligada, arquivo direto em `db/migration` é ignorado em silêncio** `[DOC]` (o `__root` lê só `db/migration/__root`); isso vale também para a "Setup básico" acima e para o `SKILL.md` §4.
+- A ordem de execução é a topológica das dependências entre módulos `[TESTADO]`.
 
 ### Gotchas testados
 
 - **`__root` roda sempre primeiro.** Arquivo nele que toque tabela de módulo (FK, `alter`, view) falha com `relation ... does not exist`. Deixe no `__root` só o que não tem dono: extensões, schema, tabelas de base.
-- **Migração Java `@Component` roda em todos os históricos**, uma vez por histórico. Evite; se precisar, torne-a idempotente ou ache-a por varredura de `db.migration.<módulo>` `[DOC]`.
+- **Migração Java `@Component` roda em todos os históricos**, uma vez por histórico. Evite; se precisar, ela tem de ser idempotente **e tolerar a ausência da tabela**: roda também no `__root`, o primeiro, antes de o módulo existir, e idempotência sozinha não evita `relation ... does not exist` `[TESTADO]`. Alternativa: achá-la por varredura de `db.migration.<módulo>` `[DOC]`.
 - **`baselineOnMigrate` não protege banco existente.** O baseline `0` de um histórico novo sobre schema já povoado faz as migrações do módulo rodarem de novo (`relation ... already exists`).
 - **Ids de tabela de referência mudam na instalação limpa.** A ordem por módulo reordena os `insert`; teste que assume ids fixos quebra. Em produção os ids existentes não mudam.
 - **`spring.flyway.locations` extras (testes)** ganham `/<módulo>` em cada location; migração de teste fora da subpasta do módulo é ignorada em silêncio.
 - **Limpeza de banco nos ITs** não pode truncar `flyway_schema_history_<módulo>`: filtre por `not like 'flyway_schema_history%'`.
-- **FK sem dependência declarada no código** não entra na ordem `[DOC]`: declare o módulo em `allowedDependencies` ou use-o no código.
-- Dois arquivos de mesma versão em módulos diferentes não colidem; dentro do mesmo módulo colidem, então o sufixo da US (orq #45) continua valendo e funciona dentro dos módulos (`V…_70__x` vira a versão `….70`).
+- **FK sem dependência declarada no código** não entra na ordem `[DOC]`: só dependência **usada no código** entra na ordem; `allowedDependencies` sozinho não cria aresta.
+- Dois arquivos de mesma versão em módulos diferentes não colidem; dentro do mesmo módulo colidem, então o sufixo da US na versão continua valendo e funciona dentro dos módulos (`V…_70__x` vira a versão `….70`) `[TESTADO]`. Convenção da orq #45, em [Naming](#naming).
 
 ### Para quem precisar converter
 
-Script SQL único, rodado antes do deploy: cria `flyway_schema_history_<módulo>` (`like ... including all`), insere o baseline `0`, copia do histórico antigo as linhas das versões que foram para o módulo (com checksum, mais as migrações Java) e as apaga do histórico do `__root`. Deploy e script têm de ser atômicos, não há volta simples para a imagem antiga, e o ensaio é em cópia do banco de produção. Sem converter, o `__root` reprova no validate com `Detected applied migration not resolved locally`.
+Script SQL único, rodado antes do deploy: cria `flyway_schema_history_<módulo>` (`like ... including all`), insere o baseline `0`, copia do histórico antigo as linhas das versões que foram para o módulo (com checksum, renumerando `installed_rank`) e apaga do histórico do `__root` as versões movidas; as migrações Java **ficam nos dois lados**: copiadas para cada módulo e mantidas no `__root` `[TESTADO]`. Apagá-las do `__root` não foi testado; pelo validate do Flyway deve falhar com `Detected resolved migration not applied` `[DOC]`. Riscos (análise, não teste): deploy e script têm de ser atômicos, não há volta simples para a imagem antiga, e o ensaio é em cópia do banco de produção. Sem converter, o `__root` reprova no validate com `Detected applied migration not resolved locally` `[TESTADO]`.
 
 ## Baseline em sistemas legados
 
