@@ -116,14 +116,14 @@ O resto do ciclo de vida da Application é `basis-k8s-deploy`.
 
 ## `sonar`
 
-CLI v1.9.0. **O comando é `sonar auth login`** — subcomando, não um executável
+Testado com a CLI v1.11.0. **O comando é `sonar auth login`** — subcomando, não um executável
 `sonar-auth-login`. O token fica no keychain do sistema, então o agente usa a sessão de quem
 fez o login, sem token em arquivo nem em variável.
 
 ```bash
 sonar auth login                 # autentica
 sonar auth status                # confere sem tentar adivinhar
-sonar analyze --file <arquivo>   # analisa um arquivo contra as regras
+sonar analyze --file <arquivo>   # só a varredura de segredos, local; não analisa regras (ver abaixo)
 sonar api GET "api/<endpoint>"   # chamada autenticada à Web API
 
 # por que o quality gate da MR reprovou: condição a condição, com arquivo e linha
@@ -131,6 +131,12 @@ sonar qg status -p <chave> --pull-request <iid>
 # todas as issues abertas da MR, inclusive as fora do diff, que o bot não comenta
 sonar list issues -p <chave> --pull-request <iid> --statuses OPEN
 ```
+
+**`sonar analyze` não analisa regras no nosso servidor.** O SonarQube Server é Community (25.8):
+a parte de regras do `analyze` (Vortex, server-side) devolve `404 Resource not found`, e só a
+varredura de segredos roda, local. Não use o comando para antecipar achados antes do commit.
+Os achados de regras vêm da pipeline (`check-quality`): leia-os com `sonar qg status` e
+`sonar list issues` depois do push.
 
 `sonar auth status` é o que um agente deve rodar antes de assumir que há sessão — é barato e
 evita interpretar um 401 como problema de configuração. Um `curl` anônimo na Web API devolve
