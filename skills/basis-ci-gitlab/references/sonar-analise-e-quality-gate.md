@@ -57,7 +57,7 @@ nenhum.
 Diagnóstico:
 
 ```bash
-sonar api GET "api/project_pull_requests/list?project=<chave>"
+sonar api GET "/api/project_pull_requests/list?project=<chave>"
 ```
 
 Se voltar `{"pullRequests":[]}`, a análise entrou como **branch**, não como PR. Do ponto de
@@ -86,7 +86,7 @@ Um projeto recém-integrado, com 0% de cobertura e nenhum teste, fica verde na p
 análise. Confirmar antes de comemorar:
 
 ```bash
-sonar api GET "api/project_analyses/search?project=<chave>"
+sonar api GET "/api/project_analyses/search?project=<chave>"
 ```
 
 Uma análise só na lista significa que o verde não tem conteúdo.

@@ -135,6 +135,10 @@ O teste é completar a frase **"Aplicar esse commit vai…"**. Se não completar
 está descrevendo o que você fez, não o que o commit faz — e é a segunda que serve a quem lê
 o log depois.
 
+**Achados de regras:** só depois que a pipeline analisa a MR, lidos pela CLI `sonar`, com os
+comandos de [`references/glab-argocd-cli.md`](references/glab-argocd-cli.md#sonar); antes da MR não há leitura de regras, e o gate é o
+`check-quality`. `sonar analyze` não serve para isso.
+
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**, e abra em
 **Draft**. O Draft quer dizer "ainda não pode mesclar": o GitLab recusa o merge, e ele só sai
 com as rodadas de revisão terminadas em `aprovada` e a pré-condição cumprida

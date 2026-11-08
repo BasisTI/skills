@@ -20,46 +20,33 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     ordem de import e import não usado de uma vez. A configuração completa, os erros que o
     rascunho óbvio comete e como implantar num projeto que ainda não tem estão em **§2.1 e
     §2.2** — não improvise um `<plugin>` novo.
-  - **Antes de empurrar, rode a análise no que está no índice:** `git add` e depois
-    `sonar analyze --staged` (CLI `sonar`, autenticada com `sonar auth login`). São segundos, e
-    pega de graça o que seria uma MR reprovada.
+  - **Os achados de regras só existem depois que a pipeline analisa a MR.** Antes da MR não há
+    leitura de regras disponível: o gate é o `check-quality` da pipeline. `sonar analyze`
+    (inclusive `--staged`) **não serve para regras** no nosso SonarQube Server (Community 25.8):
+    a parte de regras (Vortex) devolve `404` com saída 1, ou "Vortex analysis skipped" com saída
+    0 quando falta `-p`, e só a varredura de segredos roda. Um "sem achados" dali não diz nada
+    sobre o gate; não o use como passo antes do commit nem do push.
 
-    **Mas "No issues found" ali não é o gate.** A análise local roda sem compilar e sem
-    classpath — é a diferença entre 200 ms e o `check-quality` inteiro —, e sem bytecode as
-    regras que dependem de fluxo de dados não têm como rodar. Medido neste projeto: um arquivo
-    que o CLI declarou limpo chegou à MR com dois `java:S2259` ("A NullPointerException could be
-    thrown") e um `java:S7467`. Use-a como filtro, nunca como aval.
-
-    **E ela não mede cobertura**, que é a outra metade do gate e a que reprova em silêncio:
-    código novo bem escrito e sem teste passa no `analyze` e derruba a MR.
-
-  - **Para ter o que o `check-quality` teria, rode a análise de verdade na sua branch.** É o
-    mesmo scanner da pipeline, com bytecode, classpath e o `jacoco.xml` que o `verify` acabou de
-    escrever — e por isso pega as regras de fluxo de dados que a análise local não alcança:
+    Com a MR analisada, leia pela CLI `sonar` (sessão do keychain, sem token em variável):
 
     ```bash
-    ./mvnw clean verify
-    ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-      -Dsonar.host.url=https://codequality.basis.com.br -Dsonar.token="$SONAR_TOKEN" \
-      -Dsonar.projectKey=<chave> -Dsonar.branch.name=$(git branch --show-current)
+    sonar qg status -p <chave> --pull-request <iid>
+    sonar list issues -p <chave> --pull-request <iid>              # a MR inteira
+    sonar list issues -p <chave> --pull-request <iid> --file <caminho>   # um arquivo
     ```
 
-    Duas coisas a não errar. O plugin **não** está declarado no pom (nem precisa: quem invoca na
-    pipeline é o orchestrator), então vai pelo nome completo — `sonar:sonar` por prefixo falha com
-    `No plugin found for prefix 'sonar'`. E **`-Dsonar.branch.name` não é opcional**: sem ele a
-    análise entra como a branch principal do projeto e passa a valer como o retrato oficial dele.
+    `--file` limita a um arquivo (ou aos arquivos de um diretório), não a uma lista. Detalhes e
+    pegadinhas da CLI em `basis-ci-gitlab`, referência de CLIs.
 
-    Isso **escreve no servidor compartilhado** — cria (ou atualiza) a branch no Sonar. Numa branch
-    de feature é barato e some com ela; combine antes de fazer em `develop` ou `main`.
-
-    Depois da análise, a conta sai por API:
+    **Cobertura** é a outra metade do gate e a que reprova em silêncio: código novo bem escrito
+    e sem teste derruba a MR. Só o `verify` com `jacoco.xml` a mede, na pipeline. Com a MR
+    analisada, a conta sai por `sonar api`:
 
     ```bash
-    curl -sS -u "$SONAR_TOKEN:" "https://codequality.basis.com.br/api/measures/component_tree\
-?component=<chave>&pullRequest=<n>&qualifiers=FIL&metricKeys=new_uncovered_lines,new_uncovered_conditions"
+    sonar api get "/api/measures/component_tree?component=<chave>&pullRequest=<n>&qualifiers=FIL&metricKeys=new_uncovered_lines,new_uncovered_conditions"
     ```
 
-    Ela aponta **arquivo e contagem**; `api/sources/lines?key=<chave>:<caminho>&pullRequest=<n>`
+    Ela aponta **arquivo e contagem**; `/api/sources/lines?key=<chave>:<caminho>&pullRequest=<n>`
     desce à linha, com `isNew`, `lineHits` e `coveredConditions` — que é o que diz qual `if`
     ficou sem teste, em vez de mandar procurar.
   - **`-Xlint:all`** no `maven-compiler-plugin`, sem warning novo. Pega o que é do compilador
@@ -532,11 +519,10 @@ vizinhas serem avaliadas, e o gate reprova por código que "já estava lá". Ao 
 teste, encadeie as ocorrências **daquele arquivo** na mesma passada; é mais barato que descobrir
 na pipeline.
 
-Para conferir sem esperar a pipeline, com um token de API:
+Para conferir numa MR já analisada:
 
 ```bash
-curl -sS -u "$SONAR_TOKEN:" \
-  "https://codequality.basis.com.br/api/issues/search?componentKeys=<chave>&rules=java:S5853&pullRequest=<n>"
+sonar api get "/api/issues/search?componentKeys=<chave>&rules=java:S5853&pullRequest=<n>"
 ```
 
 ## 15. Checklist de revisão
