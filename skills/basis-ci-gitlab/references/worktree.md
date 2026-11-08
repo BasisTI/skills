@@ -151,7 +151,8 @@ worktree criado antes do merge de que precisava: a `TG-xx` não tem o código no
 commits próprios e sem push, `git merge --ff-only origin/develop` a leva até a `develop`
 atual (o `git pull --ff-only` acima não serve: a branch ainda não tem upstream). Com commits
 locais ainda sem push, é `git rebase origin/develop`. Depois do primeiro push, a MR já
-existe, e trazer a `develop` é decisão de quem pediu.
+existe, e trazer a `develop` segue [`rebase-da-branch-da-us.md`](rebase-da-branch-da-us.md);
+empilhar sobre outra story continua sendo decisão de quem pediu.
 
 **MR já mergeada não se retoma.** Se a story voltou depois do merge (teste em staging
 reprovou, story reaberta), os commits da branch já entraram em `develop` pelo squash:
