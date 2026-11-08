@@ -22,7 +22,7 @@ gh pr update-branch <n> --rebase     # GitHub; sem --rebase ele faz merge commit
 ```
 
 O servidor reescreve a branch remota; nenhum force push sai da máquina. Só vale sem
-conflito: com conflito o comando falha e a branch fica como estava, então vale o critério acima
+conflito: com conflito o comando falha e a branch fica como estava, então vale o critério abaixo
 entre o 2 e o 3. (Leitura do `--help`; não foi executado, porque exige MR/PR real e o escopo da US
 proíbe mexer em projeto alheio.)
 
@@ -43,11 +43,13 @@ que dá `=` em cada commit quando o rebase foi limpo.
 
 - **MR mesclada com squash** (feature → `develop`, `--squash-before-merge`): caminho 2. Sem
   force push, sem autorização no harness.
-- **MR mesclada sem squash** (`develop` → `main`, MR de release, PR do GitHub mesclada por
-  merge ou rebase): caminho 3, porque o merge da base ficaria no histórico. Confira como o PR
-  será mesclado antes de escolher.
+- **PR de US no GitHub mesclada sem squash** (por merge ou rebase): caminho 3, porque o merge
+  da base ficaria no histórico. Confira como o PR será mesclado antes de escolher.
+- **MR `develop` → `main` ou MR de release, em conflito:** nenhum dos dois. Não se reescreve a
+  `develop`: o conflito é decisão da pessoa, que escolhe, por exemplo, resolver numa branch
+  própria.
 
-Conflito que exige escolher entre dois comportamentos continua sendo decisão da pessoa.
+Conflito que exige escolher entre dois comportamentos também é decisão da pessoa.
 
 ## 2. Merge da base na branch, sem force
 
@@ -71,7 +73,7 @@ Efeito no revisor, testado:
 - O delta de verdade, quando houve conflito, é a resolução dentro do merge commit:
   `git show --remerge-diff <merge>` (git ≥ 2.36) mostra só ela.
 
-## 3. MR sem squash: rebase local com autorização no harness
+## 3. Branch de US sem squash: rebase local com autorização no harness
 
 ```sh
 git fetch origin && git rebase origin/<base>
@@ -90,18 +92,22 @@ e o revisor confirma o delta no SHA novo.
 
 ## Autorizar o caminho 3 no harness
 
-A pessoa aplica; o agente não edita essas configurações. Nenhuma regra abaixo **restringe de
-verdade** a branches de US: cada harness casa o comando por texto, e o que segue diz até onde
-vai a restrição de cada um. `BasisTI/skills` e `BasisTI/orq` não têm proteção de `main` no
-servidor (verificado em 2026-11-08), então a regra local é a única barreira ali; no GitLab da
-`colaboradados`, `main` e `develop` têm `allow_force_push:false`.
+A pessoa aplica; o agente não edita essas configurações. Cada harness casa o comando por
+texto, e nenhum restringe de verdade a "branches de US": abaixo está o que foi **medido com
+o snippet final somado à configuração real desta máquina** (2026-11-08) e o que é só
+leitura. O que vale em outra máquina depende do que ela já tem em `allow`.
+`BasisTI/skills` e `BasisTI/orq` não têm proteção de `main` no servidor, então a regra local
+é a única barreira ali; no GitLab da `colaboradados`, `main` e `develop` têm
+`allow_force_push:false`.
 
 **Claude Code** — `permissions` em `~/.claude/settings.json` (ou `.claude/settings.json`);
-`deny` vence `allow`. Testado (claude-haiku-5-5, modo default, remoto bare local): negados
-`TG-50:main`, `TG-50 develop`, `main`, `+TG-50`, `TG-50 --force` e `--all`; `refs/heads/main`
-cai em pedir confirmação (não casa com o `allow`); rodam `TG-50` e, **limite**,
-`TG-50:feature-x` (refspec para branch não protegida). Em Claude Code, `*:*` é sintaxe inválida
-(`:*` no fim é prefixo), por isso não há `deny` genérico de refspec.
+`deny` vence `allow`. Medido (claude-haiku-5-5, modo default, remoto bare local, fontes
+`user` + `local`; o `settings.json` real desta máquina não tem regra de `git push`):
+`TG-50:main` negado; `TG-50` rodou; `release/1.0` e `--all` pedem confirmação (não casam
+com o `allow`; em `claude -p` aparecem como negativa). Nas medições anteriores, também
+negados `TG-50 develop`, `main`, `+TG-50` e `TG-50 --force`. **Limite:** `TG-50:feature-x`
+(refspec para branch não protegida) roda. Em Claude Code, `*:*` é sintaxe inválida (`:*` no
+fim é prefixo), por isso não há `deny` genérico de refspec.
 
 ```json
 {
@@ -121,14 +127,15 @@ cai em pedir confirmação (não casa com o `allow`); rodam `TG-50` e, **limite*
 }
 ```
 
-**Codex** — `~/.codex/rules/*.rules`. Testado com `codex execpolicy check --rules <arquivo> <comando…>`
-(codex-cli 0.167.0). A regra casa por prefixo de argumentos, **sem curinga**: não existe
-`TG-*`, e um `allow` genérico em `origin` liberaria qualquer destino. Duas saídas:
-
-- manter só os `forbidden` (abaixo, sem o `allow`): barra o descuido com branch protegida e
-  `--force`, e o `--force-with-lease` em branch de US segue pedindo confirmação, ou
-- um `allow` por branch exata, acrescentado a cada US (`"TG-50"` abaixo). É restritivo, mas
-  manual. Um helper que valide `^TG-[0-9]+$` também serviria; não foi escrito.
+**Codex** — `~/.codex/rules/*.rules`. Medido com `codex execpolicy check --rules <arquivo>
+<comando…>` (codex-cli 0.167.0), com o `default.rules` real desta máquina somado. A regra casa
+por prefixo de argumentos, **sem curinga**: não existe `TG-*`. Ponto decisivo: este
+`default.rules` tem `prefix_rule(pattern=["git","push"], decision="allow")`. Com um allow
+genérico de `git push`, "sem regra" vira **allow** e só os `forbidden` valem: refspec para
+branch protegida (`TG-50:main`, `HEAD:main`), `+TG-50` e `release/1.0` **passam**. Quem tem
+essa linha só fica protegido contra o que o `forbidden` enumera. **Recomendação à pessoa:**
+remover esse allow genérico; sem ele, o que não casa pede confirmação (medido só com o
+documento isolado).
 
 ```python
 prefix_rule(pattern=["git","push","--force-with-lease","origin","TG-50"], decision="allow", justification="rebase da US 50")
@@ -137,27 +144,38 @@ prefix_rule(pattern=["git","push","--force-with-lease","origin","TG-50",["main",
 prefix_rule(pattern=["git","push",["--force","-f"]], decision="forbidden", justification="use --force-with-lease")
 ```
 
-Medido: `origin TG-50` → allow; `origin TG-51` → sem regra; `origin main`, `TG-50 develop` e
-`--force` → forbidden. **Limites:** `TG-50:main`, `HEAD:main` e `+TG-50` ficam sem regra (pedem
-confirmação, não passam), mas `TG-50 feature-x` (argumento extra com outro nome) é allow.
+O `allow` é por branch exata (`"TG-50"`, um por US); sem ele, só os `forbidden`. Medido:
+
+| comando | só o documento | + `default.rules` real |
+|---|---|---|
+| `origin TG-50` | allow | allow |
+| `origin TG-51` | sem regra | allow |
+| `origin main`, `--force`, `TG-50 develop` | forbidden | forbidden |
+| `origin TG-50:main`, `HEAD:main`, `+TG-50`, `release/1.0` | sem regra | **allow** |
 
 **OpenCode** — `permission.bash` em `opencode.json`; a última regra que casa vence, então os
-`deny` vêm depois do `allow`. **Só as regras de `git push`**: sem `"*"`, o resto do shell
-mantém o comportamento atual da configuração. Conferido com `opencode debug agents --standalone`
-(regras efetivas na ordem escrita); a pergunta em si não foi disparada. Mesmos limites do
-Claude Code (`TG-50:feature-x` passa).
+`deny` vêm depois do `allow`. **Só as regras de `git push`**, sem `"*"`: o que não casa com
+nenhuma regra cai no `allow` padrão do agente (a configuração real desta máquina não tem
+bloco `permission`). Um ` *` final é opcional no matcher, então `TG-* *` negaria o próprio
+`TG-50`; o `?*` exige algo depois do espaço. Medido numa reimplementação do matcher lido do
+binário v2.2.5 (não pelo OpenCode): `TG-50` e `TG-50:feature-x` allow; `TG-50:main`,
+`TG-50 develop`, `TG-50 --force`, `TG-50 feature-x`, `--all`, `main` e `+TG-50` deny. **Limite:**
+`feature-x`, `release/1.0` e `HEAD:x` caem no `allow` padrão, isto é, rodam sem perguntar.
+As regras efetivas foram conferidas com `opencode debug agents --standalone`; a pergunta em si
+não foi disparada.
 
 ```json
 {
   "permission": {
     "bash": {
       "git push --force-with-lease origin TG-*": "allow",
-      "git push --force-with-lease origin TG-* *": "deny",
+      "git push --force-with-lease origin TG-* ?*": "deny",
       "git push --force-with-lease origin *main*": "deny",
       "git push --force-with-lease origin *master*": "deny",
       "git push --force-with-lease origin *develop*": "deny",
       "git push --force-with-lease origin *staging*": "deny",
       "git push --force-with-lease origin +*": "deny",
+      "git push --force-with-lease origin -*": "deny",
       "git push --force *": "deny",
       "git push -f *": "deny"
     }

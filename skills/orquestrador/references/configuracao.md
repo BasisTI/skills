@@ -79,7 +79,7 @@ Confira `state: merged` depois e siga o pós-merge ([auditoria](conclusao-e-limp
 |---|---|
 | `"limpeza"` | Fechar panes do executor e do revisor e remover worktree, branches e pastas em `~/tmp` e `/tmp` da US depois do merge; reabrir pane e worktree para corrigir depois do teste ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)). |
 | `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head ([revisão](revisao.md)). |
-| `"rebase-conflito"` | MR atrás da base, com ou sem conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (servidor, merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). |
+| `"rebase-conflito"` | MR em conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). |
 | `"par-padrao"` | "Despacha" sem executor e revisor indicados usa `implementacao-padrao` e `revisao-padrao` ([despacho](despacho.md#par-padrão)). |
 
 Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação; `rebase-conflito` não vale para a MR de release.
