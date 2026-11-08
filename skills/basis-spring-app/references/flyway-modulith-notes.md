@@ -104,6 +104,33 @@ Quando dividir schema:
 
 Pra projeto novo: schema único. Migra se virar dor real.
 
+Isso trata de schema; pasta e histórico de migração por módulo são outra coisa: ver "Migrações Flyway por módulo" abaixo.
+
+## Migrações Flyway por módulo (Modulith 2.0+)
+
+Regra (decisão da US orq #67, spike em módulo real com Modulith 2.1, Flyway 12 e Postgres 12): **projeto novo adota migrações por módulo; projeto existente não adota agora.** Em projeto existente a conversão tem armadilhas e o ganho é pequeno, porque o sufixo da US na versão (orq #45) já trata a colisão. Evidência completa: relatório anexo à US orq #67; aqui ficam só as regras. `[TESTADO]` foi executado; `[DOC]` vem de documentação ou de leitura do bytecode.
+
+### Como ligar
+
+- `spring.modulith.runtime.flyway-enabled=true` **e** a dependência `org.springframework.modulith:spring-modulith-runtime` (gerenciada pelo BOM, não vem no `spring-modulith-starter-core`). Sem a dependência, a flag não faz nada: nenhum erro e nenhum aviso, e o Flyway segue com um histórico só `[TESTADO]`. Ponha um teste que falhe se `flyway_schema_history_<módulo>` não existir depois da subida.
+- Pastas `db/migration/<módulo>` e `db/migration/__root`. Cada módulo com arquivos ganha o histórico `flyway_schema_history_<módulo>`; o `__root` usa `flyway_schema_history`.
+- A ordem de execução é a topológica das dependências entre módulos.
+
+### Gotchas testados
+
+- **`__root` roda sempre primeiro.** Arquivo nele que toque tabela de módulo (FK, `alter`, view) falha com `relation ... does not exist`. Deixe no `__root` só o que não tem dono: extensões, schema, tabelas de base.
+- **Migração Java `@Component` roda em todos os históricos**, uma vez por histórico. Evite; se precisar, torne-a idempotente ou ache-a por varredura de `db.migration.<módulo>` `[DOC]`.
+- **`baselineOnMigrate` não protege banco existente.** O baseline `0` de um histórico novo sobre schema já povoado faz as migrações do módulo rodarem de novo (`relation ... already exists`).
+- **Ids de tabela de referência mudam na instalação limpa.** A ordem por módulo reordena os `insert`; teste que assume ids fixos quebra. Em produção os ids existentes não mudam.
+- **`spring.flyway.locations` extras (testes)** ganham `/<módulo>` em cada location; migração de teste fora da subpasta do módulo é ignorada em silêncio.
+- **Limpeza de banco nos ITs** não pode truncar `flyway_schema_history_<módulo>`: filtre por `not like 'flyway_schema_history%'`.
+- **FK sem dependência declarada no código** não entra na ordem `[DOC]`: declare o módulo em `allowedDependencies` ou use-o no código.
+- Dois arquivos de mesma versão em módulos diferentes não colidem; dentro do mesmo módulo colidem, então o sufixo da US (orq #45) continua valendo e funciona dentro dos módulos (`V…_70__x` vira a versão `….70`).
+
+### Para quem precisar converter
+
+Script SQL único, rodado antes do deploy: cria `flyway_schema_history_<módulo>` (`like ... including all`), insere o baseline `0`, copia do histórico antigo as linhas das versões que foram para o módulo (com checksum, mais as migrações Java) e as apaga do histórico do `__root`. Deploy e script têm de ser atômicos, não há volta simples para a imagem antiga, e o ensaio é em cópia do banco de produção. Sem converter, o `__root` reprova no validate com `Detected applied migration not resolved locally`.
+
 ## Baseline em sistemas legados
 
 Migrando legacy → Basis: começar com `flyway:baseline` apontando pra V0 e iniciar nova numeração:
