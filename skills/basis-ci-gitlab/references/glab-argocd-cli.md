@@ -124,7 +124,7 @@ fez o login, sem token em arquivo nem em variável.
 sonar auth login                 # autentica
 sonar auth status                # confere sem tentar adivinhar
 sonar analyze --file <arquivo>   # só a varredura de segredos, local; não analisa regras (ver abaixo)
-sonar api GET "api/<endpoint>"   # chamada autenticada à Web API
+sonar api GET "/api/<endpoint>"   # chamada autenticada à Web API
 
 # por que o quality gate da MR reprovou: condição a condição, com arquivo e linha
 sonar qg status -p <chave> --pull-request <iid>
@@ -136,7 +136,8 @@ sonar list issues -p <chave> --pull-request <iid> --statuses OPEN
 a parte de regras do `analyze` (Vortex, server-side) devolve `404 Resource not found`, e só a
 varredura de segredos roda, local. Não use o comando para antecipar achados antes do commit.
 Os achados de regras vêm da pipeline (`check-quality`): leia-os com `sonar qg status` e
-`sonar list issues` depois do push.
+`sonar list issues` depois que a pipeline da MR rodar (o `check-quality` só roda em MR com
+destino `develop`).
 
 `sonar auth status` é o que um agente deve rodar antes de assumir que há sessão — é barato e
 evita interpretar um 401 como problema de configuração. Um `curl` anônimo na Web API devolve
@@ -148,8 +149,8 @@ filtre com `sed -n '/^{/,$p'`.
 Endpoints úteis para os diagnósticos de `sonar-analise-e-quality-gate.md`:
 
 ```bash
-sonar api GET "api/project_pull_requests/list?project=<chave>"   # a MR virou PR analysis?
-sonar api GET "api/project_analyses/search?project=<chave>"      # havia análise anterior?
+sonar api GET "/api/project_pull_requests/list?project=<chave>"   # a MR virou PR analysis?
+sonar api GET "/api/project_analyses/search?project=<chave>"      # havia análise anterior?
 ```
 
 ## `kubectl`

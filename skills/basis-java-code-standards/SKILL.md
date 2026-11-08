@@ -20,20 +20,17 @@ Padrões de codificação da Basis para qualquer código Java. Pareada com `basi
     ordem de import e import não usado de uma vez. A configuração completa, os erros que o
     rascunho óbvio comete e como implantar num projeto que ainda não tem estão em **§2.1 e
     §2.2** — não improvise um `<plugin>` novo.
-  - **Antes de empurrar, rode a análise no que está no índice:** `git add` e depois
-    `sonar analyze --staged` (CLI `sonar`, autenticada com `sonar auth login`). São segundos, e
-    pega de graça o que seria uma MR reprovada.
+  - **Não há análise de regras local pela CLI `sonar`.** `sonar analyze` (inclusive `--staged`)
+    não avalia regra nenhuma no nosso SonarQube Server (Community 25.8): a parte de regras
+    (Vortex) devolve `404` com saída 1, ou "Vortex analysis skipped" com saída 0 quando falta
+    `-p`, e só a varredura de segredos roda. Um "sem achados" dali não diz nada sobre o gate.
+    Não o use como passo antes do commit nem do push; os achados vêm do `check-quality`, lidos
+    com `sonar qg status` e `sonar list issues` (ver `basis-ci-gitlab`, referência de CLIs).
 
-    **Mas "No issues found" ali não é o gate.** A análise local roda sem compilar e sem
-    classpath — é a diferença entre 200 ms e o `check-quality` inteiro —, e sem bytecode as
-    regras que dependem de fluxo de dados não têm como rodar. Medido neste projeto: um arquivo
-    que o CLI declarou limpo chegou à MR com dois `java:S2259` ("A NullPointerException could be
-    thrown") e um `java:S7467`. Use-a como filtro, nunca como aval.
+    **Cobertura** é a outra metade do gate e a que reprova em silêncio: código novo bem escrito
+    e sem teste derruba a MR. Só o `verify` com `jacoco.xml` a mede.
 
-    **E ela não mede cobertura**, que é a outra metade do gate e a que reprova em silêncio:
-    código novo bem escrito e sem teste passa no `analyze` e derruba a MR.
-
-  - **Para ter o que o `check-quality` teria, rode a análise de verdade na sua branch.** É o
+  - **Para ter o que o `check-quality` teria antes da MR, rode o scanner na sua branch.** É o
     mesmo scanner da pipeline, com bytecode, classpath e o `jacoco.xml` que o `verify` acabou de
     escrever — e por isso pega as regras de fluxo de dados que a análise local não alcança:
 
