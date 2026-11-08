@@ -27,7 +27,7 @@ Com todas as US em `done`, MRs mescladas ou fechadas e sem pendência aberta, o 
 
 1. `orq onda ver <id>`: onda encerrada e nenhuma US com `preservado` aberto em `orq diario --onda <id>`. Onda ainda aberta: o `encerramento.faltam` de `orq onda proxima` diz o que impede.
 2. Sobras: `orq limpar <ref> --dry-run` de cada US da onda, e `orq limpar --onda <id>` se o daemon não rodou o Docker.
-3. Pendências abertas viram resolvidas, levadas para outra onda ou para o Taiga ([encerrar a onda](central.md#encerrar-a-onda)).
+3. Pendências abertas (`orq pend list --abertas --onda <id>`) viram resolvidas, levadas para outra onda ou para o Taiga ([encerrar a onda](central.md#encerrar-a-onda)); resposta que veio por fora da Central entra antes com `orq pend responder` ([regra](central.md#resposta-fora-da-central)).
 4. Servidores órfãos: procure processos de servidor que os workers deixaram, como `python3 -m http.server` e `kubectl port-forward`, cuja linha de comando ou cwd aponta para `~/tmp/orquestrador/<projeto>/TG-<ref>` de uma US da onda, e encerre-os sem perguntar. Liste com `ps -eo pid,etimes,args` e `ls -l /proc/<pid>/cwd`, e ouça o que cada um publica com `ss -ltnp`. Encerre só o que casa com a pasta da onda (nunca por nome de comando), com `kill <pid>` e sem `-9` de início; confira depois que a porta fechou. O que escutar em `0.0.0.0` e apontar para outra pasta não é seu: informe. Os [pacotes](../assets/pacote-implementacao.md) pedem que todo servidor temporário escute em `127.0.0.1` e que o próprio worker o encerre ao terminar; este item pega o que escapou.
 5. Entregue a tabela de merge da onda ([ondas](ondas.md)).
 
