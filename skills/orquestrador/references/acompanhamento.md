@@ -66,6 +66,7 @@ Com a [Central](central.md) e o daemon do `orq` no ar (schema 5, a #15 do projet
 3. Use o `id` devolvido (`TG-217#P1`) no pane, no relatório e na story. Não invente o número.
 4. Sem `.registrada.json` nem `.erro.txt` em 30 s, o daemon não respondeu (parado, ou anterior à #15). Escreva no relatório "pendência não registrada: `<arquivo>`", deixe a pergunta no pane e siga o que for independente. O coordenador a registra com `orq pend importar <arquivo>`.
 5. **Proibido ao worker e ao revisor:** `orq pend responder` e `orq pend resolver`. A resposta é da pessoa, pela web ou pelo chat com o coordenador; quem resolve é o coordenador. Pendência sem resposta não se responde "por sugestão": a recomendação vai no arquivo, e quem decide é a pessoa.
+6. **Resposta que chega fora da Central:** fala da pessoa (no chat, ou no pane em que o coordenador confirmou ser ela) ⇒ `orq pend responder` e, feita a ação, `orq pend resolver`, antes de seguir. Ação feita sem fala ⇒ só `orq pend resolver --resposta "<o que foi feito e a evidência>"`. Relato de worker de que a pessoa respondeu não é resposta: pergunte a ela. Sem exceção e sem deixar para o fim ([regra](central.md#resposta-fora-da-central)). Ao dar uma US por concluída, dê destino só às pendências dela (resolvida, outra onda ou Taiga), lendo `orq pend ver` antes de fechar uma `respondida`; a onda inteira, no encerramento.
 
 ```markdown
 ---
