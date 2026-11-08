@@ -82,6 +82,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
   ```
   O publisher de eventos JDBC cria a tabela `event_publication` sozinho por default. Com os dois criando, há race na inicialização; e a estrutura da tabela fica sem controle de versão, o que dói no rolling deploy e em qualquer release que mude as colunas dela. **Vem desligado desde o primeiro commit** — habilitado, a tabela já existe quando alguém percebe, e passa a ser correção de produção em vez de linha de yaml. O DDL entra na baseline; o schema muda a cada release do Modulith, então confira as colunas na doc da versão em uso
   - Schemas separados por módulo: opcional, depende da estratégia adotada
+- **Migrações por módulo (Modulith 2.0+):** projeto novo adota; projeto existente não adota agora. Requisitos silenciosos e gotchas em [`references/flyway-modulith-notes.md`](references/flyway-modulith-notes.md) (seção "Migrações Flyway por módulo")
 - **Declare qual migration serve de modelo.** Quem vai criar tabela abre a mais recente e copia; se a mais recente for a que esqueceu alguma coisa, o esquecimento se propaga. Nomeie o arquivo-modelo no `AGENTS.md` — "a mais recente" não é instrução, é sorte
 - **App multi-tenant tem skill própria.** Isolamento por `tenant_id`, Row Level Security, ordem das migrations de RLS e chave composta `(tenant_id, id)` estão em **`basis-multi-tenant`**. O que é específico daqui: a role do Flyway e a role da aplicação **não são a mesma**, e a tabela `event_publication` do Modulith entra na conta quando carrega `tenant_id`
 
