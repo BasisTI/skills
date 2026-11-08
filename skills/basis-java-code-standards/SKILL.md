@@ -519,11 +519,10 @@ vizinhas serem avaliadas, e o gate reprova por código que "já estava lá". Ao 
 teste, encadeie as ocorrências **daquele arquivo** na mesma passada; é mais barato que descobrir
 na pipeline.
 
-Para conferir sem esperar a pipeline, com um token de API:
+Para conferir numa MR já analisada:
 
 ```bash
-curl -sS -u "$SONAR_TOKEN:" \
-  "https://codequality.basis.com.br/api/issues/search?componentKeys=<chave>&rules=java:S5853&pullRequest=<n>"
+sonar api get "/api/issues/search?componentKeys=<chave>&rules=java:S5853&pullRequest=<n>"
 ```
 
 ## 15. Checklist de revisão
