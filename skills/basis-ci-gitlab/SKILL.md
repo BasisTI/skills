@@ -115,6 +115,8 @@ card no Taiga  →  worktree + branch TG-xxx (de origin/develop)  →  commits  
 story no Taiga. Não é estética: existe integração GitLab↔Taiga, e é o nome que costura o
 código ao card.
 
+**Migração Flyway:** o nome leva a ref da story na versão, no comprimento de timestamp que o projeto já usa, para que US em paralelo não colidam; a convenção e o que ela não resolve estão em [`basis-spring-app`](../basis-spring-app/references/flyway-modulith-notes.md#naming).
+
 **Worktree:** um por story, irmão do repositório principal, em `../<repo>.TG-xxx`. É o que
 deixa vários agentes trabalharem no mesmo repositório sem um trocar a branch do outro.
 Começar é `git fetch origin` e `wt switch --create TG-xxx --base origin/develop`; retomar
@@ -133,20 +135,21 @@ O teste é completar a frase **"Aplicar esse commit vai…"**. Se não completar
 está descrevendo o que você fez, não o que o commit faz — e é a segunda que serve a quem lê
 o log depois.
 
-**Achados de regras antes da MR:** em projeto Java com Sonar, o passo é o scanner Maven na
-branch, descrito na skill `basis-java-code-standards`; módulo sem Sonar dispensa, e ele não
-substitui o quality gate da pipeline. `sonar analyze` não serve para isso.
+**Achados de regras:** só depois que a pipeline analisa a MR, lidos pela CLI `sonar` como na
+skill `basis-java-code-standards`; antes da MR não há leitura de regras, e o gate é o
+`check-quality`. `sonar analyze` não serve para isso.
 
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**, e abra em
 **Draft**. O Draft quer dizer "ainda não pode mesclar": o GitLab recusa o merge, e ele só sai
-quando as rodadas de revisão terminam com `aprovada`. Com a MR aberta pronta, um humano mescla
+com as rodadas de revisão terminadas em `aprovada` e a pré-condição cumprida
+([quem tira](references/revisao-da-mr.md#pronta-não-convive-com-draft)). Com a MR aberta pronta, um humano mescla
 no meio da revisão — foi o que aconteceu na !296 do `portal-liven`, mergeada com o
 `qa-adversarial` ainda rodando.
 
 **A MR se cita pelo link.** Em toda mensagem — resposta ao usuário, relatório, comentário no
 Taiga ou na MR — a MR aparece com a URL completa (`https://.../-/merge_requests/N`), e o
-`!N` vai, se for, como texto do link. Um `!N` solto obriga quem lê a descobrir de qual
-projeto ele é e caçar a MR no GitLab. A URL sai do `glab mr create`; numa MR que já existe,
+texto do link é `<projeto>!<iid>` (`argocd-apps!404`), com o projeto da URL da MR, não o da
+story. Um `!N` solto obriga quem lê a descobrir de qual projeto ele é e caçar a MR no GitLab. A URL sai do `glab mr create`; numa MR que já existe,
 `glab mr view TG-xxx --output json | jq -r .web_url`.
 
 **Até devolver a MR:** a pipeline que conta é o `head_pipeline` da MR, e só quando o SHA dela
@@ -162,9 +165,15 @@ Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 **Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
 modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
 Achado `Bloqueante` ou `Sério` mantém a MR em Draft e pede uma nova rodada na mesma MR, com a
-story parada em `In revision`; sem eles, a revisão tira o Draft e a MR aguarda o merge, que segue a política
+story parada em `In revision`; sem eles, e com a pré-condição cumprida, o Draft sai e a MR aguarda o merge, que segue a política
 do projeto ou do coordenador: humano por padrão, automático na `develop` com as condições no
 head (skill `orquestrador`, `[autonomia]`). Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
+
+**Pronta não convive com Draft.** MR ou PR anunciada como pronta (código ou IaC, merge humano
+ou automático) não pode estar em Draft, e quem anuncia confere `draft=false` na forja
+imediatamente antes. Com a pré-condição pendente, a MR fica em Draft e a primeira linha da
+descrição diz `Mesclar depois de …`; em série empilhada, só a próxima da fila fica pronta.
+Regra completa em [`references/revisao-da-mr.md`](references/revisao-da-mr.md#pronta-não-convive-com-draft).
 
 **MR de `develop` para `main`:** **não** marque Squash. Esmagar aqui destruiria o histórico
 de várias features numa entrada só, e é justamente esse histórico que o `promote` e a
@@ -575,8 +584,9 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 **Antes do merge:**
 
 - [ ] Revisão `qa-adversarial` por outro agente, sobre o SHA atual da MR, com desfecho `aprovada`
-- [ ] Draft retirado só por essa revisão aprovada (ou, com a tag `config`, na devolução)
+- [ ] Draft retirado só com essa revisão aprovada e a pré-condição cumprida (ou, com a tag `config`, na devolução)
 - [ ] Discussões dos achados resolvidas pela revisão que confirmou a correção
+- [ ] Anunciada como pronta só com `draft=false` conferido na forja agora; pré-condição pendente: Draft com `Mesclar depois de …` na primeira linha; série empilhada: só a próxima da fila pronta
 
 **Antes de promover para `main`:**
 
@@ -614,5 +624,8 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
   commit do merge até os pods, que provam "staging/produção roda a versão".
 - [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md) — da abertura à devolução:
   pipeline do head, desfechos, falso positivo, evidências e relatório.
+- [`references/rebase-da-branch-da-us.md`](references/rebase-da-branch-da-us.md) — branch
+  atrás da base: rebase no servidor, merge sem force, `--force-with-lease` autorizado no
+  harness e o efeito de cada um no delta do revisor.
 - [`references/revisao-da-mr.md`](references/revisao-da-mr.md) — da devolução ao merge:
   quem lança o `qa-adversarial`, onde vão os achados e os desfechos da revisão.

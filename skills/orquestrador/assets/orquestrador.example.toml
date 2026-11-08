@@ -7,6 +7,8 @@ max_revisores = 1
 max_builds_pesados = 1
 min_memoria_disponivel_gib = 4
 retencao_dias = 14
+# Dono (assigned_to) das US que o coordenador cria; username do Taiga. Sobrescrito por projeto.
+taiga_responsavel_padrao = "cedriclamalle"
 
 # Autorização permanente: vale para qualquer harness coordenador.
 # Mantenha só o que o usuário autorizou.
@@ -27,7 +29,7 @@ merge_automatico = ["develop"]
 # Ações sem pergunta:
 # - "limpeza": fechar panes, remover worktree, branches e pastas da US depois do merge.
 # - "tirar-draft": revisão aprovada no head e CI verde.
-# - "rebase-conflito": MR em conflito; o executor faz o rebase e o revisor confirma o delta.
+# - "rebase-conflito": MR atrás da base, com ou sem conflito; o executor traz a base e o revisor confirma o delta.
 # - "par-padrao": "despacha" sem executor/revisor usa implementacao-padrao e revisao-padrao.
 acoes_automaticas = ["limpeza", "tirar-draft", "rebase-conflito", "par-padrao"]
 
@@ -91,6 +93,7 @@ taiga_slug = "exemplo" # slug do board: --project da taiga-cli e projeto das US 
 branch_base = "develop" # conferir no alvo; pode ser main
 memoria_config = "/caminho/da/.ai-memory.toml"
 fluxo = "basis-ci-gitlab" # adaptações ficam nas instruções do alvo
+# taiga_responsavel_padrao = "outra.pessoa" # opcional: vale no lugar do valor de [coordenador]
 
 # Sobrescrita por projeto; a lista substitui a global.
 # [projetos.exemplo.autonomia]
