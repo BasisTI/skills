@@ -78,11 +78,11 @@ Confira `state: merged` depois e siga o pós-merge ([auditoria](conclusao-e-limp
 | Valor | O coordenador faz, sem perguntar |
 |---|---|
 | `"limpeza"` | Fechar panes do executor e do revisor e remover worktree, branches e pastas em `~/tmp` e `/tmp` da US depois do merge; reabrir pane e worktree para corrigir depois do teste ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)). |
-| `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head ([revisão](revisao.md)). |
+| `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head, e só se não houver pré-condição pendente (`Mesclar depois de …` na descrição) ([revisão](revisao.md)). |
 | `"rebase-conflito"` | MR atrás da base, com ou sem conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (servidor, merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). |
 | `"par-padrao"` | "Despacha" sem executor e revisor indicados usa `implementacao-padrao` e `revisao-padrao` ([despacho](despacho.md#par-padrão)). |
 
-Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação; `rebase-conflito` não vale para a MR de release.
+Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação nem vale para MR com pré-condição pendente; `rebase-conflito` não vale para a MR de release.
 
 ## Status na sidebar do Herdr
 
@@ -107,6 +107,8 @@ A identidade cobre o `glab`. Commit e push continuam com o `git` do usuário: au
 ## Cadastro de projetos e ambiente
 
 Cada projeto registra caminho, board Taiga, branch base, instruções de entrega e referência da identidade ai-memory. O board tem `taiga_project_id` e `taiga_slug`: a CLI `taiga` recebe o slug (`--project <slug>`), e o slug é o projeto das US na [Central](central.md), que o daemon repassa à `taiga`. Sem `taiga_slug`, leia-o do Taiga pelo id e peça ao usuário para gravá-lo na configuração; não o deduza da chave do projeto, que pode diferir. Leia `workspace`/`project` da configuração real; o cadastro não substitui a resolução de `repo-root`. Repositórios GitHub/main não herdam automaticamente comandos GitLab/develop: explicite adaptações autorizadas do projeto.
+
+**Responsável padrão das US.** `taiga_responsavel_padrao` (username do Taiga) em `[coordenador]` é o dono das US que o coordenador cria; `[projetos.<chave>].taiga_responsavel_padrao` o sobrescreve naquele board. Precedência: pedido explícito da pessoa → chave do projeto → chave de `[coordenador]`. Sem nenhuma das duas, pergunte uma vez e peça para gravá-la; não crie a US sem dono nem use o usuário da integração. Uso: [despacho](despacho.md#criar-a-us-com-dono).
 
 Antes do despacho confira CLI, autenticação, papel de revisão, diretórios graváveis, permissões de limpeza e recursos. Use limites globais de executores/revisores e de builds pesados; teste memória/disco disponíveis. Os números do exemplo são conservadores e precisam ser ajustados ao ambiente.
 
