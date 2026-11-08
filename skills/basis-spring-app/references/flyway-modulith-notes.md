@@ -19,13 +19,18 @@ spring:
     enabled: true
 ```
 
-Migrations em `src/main/resources/db/migration/V<N>__<nome>.sql`. Spring Boot auto-configura Flyway pra rodar antes da aplicação subir.
+Migrations em `src/main/resources/db/migration/V<versão>__<nome>.sql`. Spring Boot auto-configura Flyway pra rodar antes da aplicação subir.
 
 ## Naming
 
-Convenção Basis: `V<timestamp>_<ref>__<nome>.sql`, em que `<timestamp>` é `yyyyMMddHHmm` (minuto) e `<ref>` é o número da user story, o mesmo de `TG-xxx` na branch. Exemplo: a TG-259, às 10h20 de 03/11/2026, cria `V202611031020_259__add_chave_ocorrencia.sql`.
+Convenção Basis: `V<timestamp>_<ref>__<nome>.sql`, em que `<ref>` é o número da user story, o mesmo de `TG-xxx` na branch. **O sufixo da US se acrescenta ao formato de timestamp que o projeto já usa, mantendo o mesmo comprimento**: histórico de 12 dígitos (`yyyyMMddHHmm`) segue com 12, histórico de 14 (`yyyyMMddHHmmss`) segue com 14.
 
-O Flyway lê o `_` da parte da versão como `.`, e compara cada parte como número. Então `V202611031020_259` é a versão `202611031020.259`, e duas US que escolham o mesmo minuto geram versões diferentes (`.259` e `.272`), em vez de colidir. Foi o que aconteceu no portal-liven (painel): TG-259 e TG-272 geraram `202611031020` e uma precisou ser renomeada.
+```
+V202611031020_259__add_chave_ocorrencia.sql       12 dígitos  ->  202611031020.259
+V20261108150000_123__add_chave_ocorrencia.sql     14 dígitos  ->  20261108150000.123
+```
+
+O Flyway lê o `_` da parte da versão como `.` e compara cada parte como número. Duas US que escolham o mesmo minuto geram versões diferentes (`.259` e `.272`) em vez de colidir. Foi o que aconteceu no portal-liven (painel): TG-259 e TG-272 geraram `202611031020` e uma precisou ser renomeada.
 
 ```
 V202611031020_259__add_chave_ocorrencia.sql       ->  202611031020.259
@@ -34,11 +39,13 @@ V202611031020_272__create_anexo.sql               ->  202611031020.272
 ```
 
 - **Mais de uma migração na mesma US:** minutos diferentes, ou o contador depois da ref (`_259_2`, `_259_3`). `.259.2` vem depois de `.259` e antes de `.272`.
-- **O sufixo resolve a colisão, não a ordem.** Dentro do mesmo minuto a ordem é a da ref, não a do merge. Se a `.272` já foi aplicada e a `.260` é mesclada depois, o Flyway recusa com `Detected resolved migration not applied`, como em qualquer versão menor que a última aplicada. Gere o timestamp na hora de criar o arquivo e, se a base já tiver versão maior, **renomeie com um minuto posterior à última da branch de destino** antes do merge; nunca ligue `outOfOrder` em produção para contornar.
-- **Migrações já aplicadas ficam como estão.** Não renomeie arquivo aplicado (o checksum e a versão no `flyway_schema_history` mudariam). `V202611031020__x.sql` (sem sufixo) vale `202611031020` e vem **antes** de qualquer `202611031020.<ref>`: as duas formas convivem na mesma pasta, e as antigas não são reaplicadas nem acusadas.
-- **Numeração antiga convive.** `V6` e `V202608131000` continuam antes das novas, pela comparação numérica por partes.
+- **Não encurte o timestamp.** A versão é um número: `202611081500` (12 dígitos) é cerca de 100 vezes menor que `20260726120002` (14). Migração com timestamp mais curto que o do histórico fica menor que as já aplicadas e dá `Detected resolved migration not applied`. No banco limpo ela entra **antes** das antigas, então o teste com Testcontainers passa (um `ALTER` sobre tabela antiga falharia) e a falha só aparece no banco com histórico. Antes de criar a migração, olhe o comprimento da última em `db/migration`.
+- **O sufixo resolve a colisão, não a ordem.** Dentro do mesmo minuto a ordem é a da ref, não a do merge. Se a `.272` já foi aplicada e a `.260` é mesclada depois, o Flyway recusa com `Detected resolved migration not applied`, como em qualquer versão menor que a última aplicada. Para arquivo ainda não aplicado, renomeie com um minuto posterior à última da branch de destino antes do merge; nunca ligue `outOfOrder` em produção para contornar.
+- **Migração aplicada não se renomeia.** O checksum e o histórico não mudam, mas o Flyway deixa de achar o arquivo da versão aplicada e acusa `Detected applied migration not resolved locally` junto com a nova versão pendente.
+- **Migrações já aplicadas ficam como estão.** `V202611031020__x.sql` (sem sufixo) vale `202611031020` e vem **antes** de qualquer `202611031020.<ref>`: as duas formas convivem na mesma pasta, e as antigas não são reaplicadas nem acusadas. `V6` e `V202608131000` também continuam antes das novas, pela comparação numérica por partes.
+- **Projeto com numeração sequencial** (`V068`, `V017`) segue numerado e reserva números por US (skill `orquestrador`, `references/ondas.md`, "Recurso numerado"). A primeira migração em timestamp impede novas numeradas, porque qualquer `V069` ficaria menor que o histórico, e **não há volta**. Adotar é decisão por projeto, de quem pediu.
 
-Conferido no Flyway 13.12.1 (OSS) com Postgres 17: leitura das versões acima, convivência com legado aplicado (`V6`, `V202608131000`, `V202611031020`), ordem `.259`, `.259.2`, `.272`, e a recusa da `.260` tardia. O arranjo está descrito aqui e não precisa ser refeito a cada projeto; refaça se trocar de major do Flyway.
+Conferido com SQL real e Postgres 17 no Flyway 11.14.1 e 12.4.0 (as versões dos projetos, Boot 4.0.5 e 4.1.x) e no 13.12.1: leitura de `_259`, `_259_2` e `_259_10`, ordem `.259`, `.259.2`, `.259.10`, `.272`, convivência com legado aplicado, recusa da `.260` tardia, e o 14 dígitos (`V20261108150000_123`) aplicado e validado sobre histórico de 14 dígitos.
 
 ## Modulith JDBC event publisher: criar a tabela manualmente
 
