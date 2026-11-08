@@ -41,7 +41,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Merge da última MR da US | nada: o daemon roda `orq limpar <ref>` ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)) |
 | Onda concluída ([regra](#encerrar-a-onda)) | `orq onda encerrar <id>`, se o daemon não encerrou |
 
-`done` quer dizer que a US chegou ao `--ate` da onda: plano aprovado (`plano`), MR aprovada pela revisão independente, à espera do merge (`mr-pronta`) ou MR mesclada (`merge`). Chegar ao limite não encerra a onda: [encerrar a onda](#encerrar-a-onda) é um passo do coordenador.
+`done` quer dizer que a US chegou ao `--ate` da onda: plano aprovado (`plano`), MR aprovada pela revisão independente, à espera do merge (`mr-pronta`; o coordenador só marca `done` com a MR sem Draft ou com a pré-condição explícita na descrição, e a Central já mostra o selo `draft` da MR) ou MR mesclada (`merge`). Chegar ao limite não encerra a onda: [encerrar a onda](#encerrar-a-onda) é um passo do coordenador.
 
 **Pendências.** A Central numera sozinha, por US, sem reaproveitar; o worker não escolhe o número: grava o arquivo e usa o id que o daemon devolve ([abrir pelo arquivo](acompanhamento.md#abrir-a-pendência-pelo-arquivo)). Story com pendências de antes da Central entra com elas registradas na ordem, e as respondidas já resolvidas; as pendências antigas, abertas só com o título, aparecem com a marca "sem detalhe".
 

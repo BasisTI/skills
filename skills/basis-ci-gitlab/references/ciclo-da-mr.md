@@ -17,9 +17,10 @@ glab mr create --target-branch develop --squash-before-merge --remove-source-bra
 ```
 
 A MR nasce em **Draft** e fica nele durante este ciclo e as rodadas de revisão: o Draft é a
-trava que impede o merge antes de a revisão aprovar. Quem o tira é a revisão aprovada
-([`revisao-da-mr.md`](revisao-da-mr.md#3-os-dois-desfechos)); com a tag `config`, que não passa
-por revisão, a devolução (passo 4). Sair do Draft é o que torna a MR "pronta", e a MR anunciada
+trava que impede o merge antes de a revisão aprovar. Ele só sai com a revisão aprovada e a
+pré-condição cumprida, e quem o tira está em
+[`revisao-da-mr.md`](revisao-da-mr.md#pronta-não-convive-com-draft); com a tag `config`, que
+não passa por revisão, sai na devolução (passo 4). Sair do Draft é o que torna a MR "pronta", e a MR anunciada
 como pronta não pode estar em Draft ([regra](revisao-da-mr.md#pronta-não-convive-com-draft)). Se
 a MR depende de algo ainda não cumprido, abra a descrição com `Mesclar depois de <o quê>`.
 

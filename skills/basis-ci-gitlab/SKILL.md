@@ -135,7 +135,8 @@ o log depois.
 
 **MR de feature para `develop`:** marque **Delete Branch** e **Squash commits**, e abra em
 **Draft**. O Draft quer dizer "ainda não pode mesclar": o GitLab recusa o merge, e ele só sai
-quando as rodadas de revisão terminam com `aprovada`. Com a MR aberta pronta, um humano mescla
+com as rodadas de revisão terminadas em `aprovada` e a pré-condição cumprida
+([quem tira](references/revisao-da-mr.md#pronta-não-convive-com-draft)). Com a MR aberta pronta, um humano mescla
 no meio da revisão — foi o que aconteceu na !296 do `portal-liven`, mergeada com o
 `qa-adversarial` ainda rodando.
 
@@ -158,7 +159,7 @@ Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 **Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
 modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
 Achado `Bloqueante` ou `Sério` mantém a MR em Draft e pede uma nova rodada na mesma MR, com a
-story parada em `In revision`; sem eles, a revisão tira o Draft e a MR aguarda o merge, que segue a política
+story parada em `In revision`; sem eles, e com a pré-condição cumprida, o Draft sai e a MR aguarda o merge, que segue a política
 do projeto ou do coordenador: humano por padrão, automático na `develop` com as condições no
 head (skill `orquestrador`, `[autonomia]`). Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
@@ -577,7 +578,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 **Antes do merge:**
 
 - [ ] Revisão `qa-adversarial` por outro agente, sobre o SHA atual da MR, com desfecho `aprovada`
-- [ ] Draft retirado só por essa revisão aprovada (ou, com a tag `config`, na devolução)
+- [ ] Draft retirado só com essa revisão aprovada e a pré-condição cumprida (ou, com a tag `config`, na devolução)
 - [ ] Discussões dos achados resolvidas pela revisão que confirmou a correção
 - [ ] Anunciada como pronta só com `draft=false` conferido na forja agora; pré-condição pendente: Draft com `Mesclar depois de …` na primeira linha; série empilhada: só a próxima da fila pronta
 
