@@ -618,5 +618,8 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
   commit do merge até os pods, que provam "staging/produção roda a versão".
 - [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md) — da abertura à devolução:
   pipeline do head, desfechos, falso positivo, evidências e relatório.
+- [`references/rebase-da-branch-da-us.md`](references/rebase-da-branch-da-us.md) — branch
+  atrás da base: rebase no servidor, merge sem force, `--force-with-lease` autorizado no
+  harness e o efeito de cada um no delta do revisor.
 - [`references/revisao-da-mr.md`](references/revisao-da-mr.md) — da devolução ao merge:
   quem lança o `qa-adversarial`, onde vão os achados e os desfechos da revisão.
