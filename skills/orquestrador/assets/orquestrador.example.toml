@@ -7,6 +7,8 @@ max_revisores = 1
 max_builds_pesados = 1
 min_memoria_disponivel_gib = 4
 retencao_dias = 14
+# Dono (assigned_to) das US que o coordenador cria; username do Taiga. Sobrescrito por projeto.
+taiga_responsavel_padrao = "cedriclamalle"
 
 # Autorização permanente: vale para qualquer harness coordenador.
 # Mantenha só o que o usuário autorizou.
@@ -91,6 +93,7 @@ taiga_slug = "exemplo" # slug do board: --project da taiga-cli e projeto das US 
 branch_base = "develop" # conferir no alvo; pode ser main
 memoria_config = "/caminho/da/.ai-memory.toml"
 fluxo = "basis-ci-gitlab" # adaptações ficam nas instruções do alvo
+# taiga_responsavel_padrao = "outra.pessoa" # opcional: vale no lugar do valor de [coordenador]
 
 # Sobrescrita por projeto; a lista substitui a global.
 # [projetos.exemplo.autonomia]

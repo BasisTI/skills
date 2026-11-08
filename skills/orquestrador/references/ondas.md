@@ -13,6 +13,26 @@ Antes de despachar, confirme com o usuário o que ele não disse e dê à onda u
 
 Dentro do contrato, o coordenador despacha a próxima story elegível (`orq onda proxima`, com a Central) sem nova pergunta, respeitando os limites de `[coordenador]` (`max_executores`, `max_revisores`, `max_builds_pesados`). Pedido explícito do usuário pode ampliar o limite ou encurtar o fluxo para a onda: na subida para a v1.16.0 (2026-10-05), três stories de três projetos correram com três executores simultâneos, contra `max_executores = 2`, e sem revisão, ambos por escolha do usuário. Anote a mudança no registro.
 
+## Épico da onda
+
+Quando a onda agrupa as stories sob um épico, ou o usuário pede um épico para ela, o módulo de Epics precisa estar ligado no board. Confira antes de criar ou vincular:
+
+```bash
+taiga api GET projects/<id> --project <slug>    # procure is_epics_activated no JSON
+```
+
+O `<id>` é o do projeto no Taiga (`taiga project list` mostra slug e id). Com `is_epics_activated=false`, `taiga epic list` e `taiga epic link` não funcionam naquele board. Ligar o módulo muda a configuração do board inteiro, não só a onda: **peça permissão ao usuário** (e confirme que ele é admin do projeto) antes de rodar:
+
+```bash
+taiga api PATCH projects/<id> -F is_epics_activated=true
+```
+
+- **Sem `--auto-version`.** O projeto não tem campo de versão: com a flag, o PATCH falha com "resource has no version field". Nas stories e épicos, que têm versão, a flag continua valendo.
+- **Releia depois.** Repita o `GET` e confirme `is_epics_activated=true`; PATCH aceito sem a releitura não prova a mudança.
+- **Board recusado.** Sem permissão de admin o Taiga devolve 403: registre o board como pendência com id ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) e siga com as stories sem épico.
+
+Em 2026-11-08 os 11 boards que estavam sem Epics foram ligados dessa forma, com autorização do usuário (orq #43).
+
 ## Grafo e recursos
 
 Monte o grafo antes de lançar, com o que cada story toca, não só com as dependências declaradas no Taiga:
@@ -28,4 +48,4 @@ Sem relação no grafo, as stories correm em paralelo: TG-215 e TG-217 começara
 
 Pendência ou bloqueio de uma story não para as independentes; só as dependentes esperam. Registre a pendência com id ([bloqueios](acompanhamento.md#bloqueios-e-recorrência)) e siga.
 
-Ao terminar a onda, entregue uma tabela na ordem de merge: story, URL completa da MR, resultado da revisão com os achados restantes, SHA da cabeça, e o que cada merge exige da seguinte (rebase, pipeline nova, confirmação curta do revisor sobre o delta). Em colaboradados, depois de cada merge humano a MR seguinte foi rebaseada, e o revisor confirmou o delta antes do merge seguinte. MR aprovada aguardando merge entra no [vigia de merge](acompanhamento.md#vigia-de-merge). Com a Central, a onda termina com o [encerramento](central.md#encerrar-a-onda), não com a tabela.
+Ao terminar a onda, entregue uma tabela na ordem de merge: story, URL completa da MR, resultado da revisão com os achados restantes, SHA da cabeça, e o que cada merge exige da seguinte (rebase, pipeline nova, confirmação curta do revisor sobre o delta). Se as MRs formam série empilhada (autorizada acima), só a próxima da fila é anunciada como pronta e sai do Draft, e as demais ficam em Draft com `Mesclar depois de <MR anterior>`; MRs independentes não ganham pré-condição ([regra](../../basis-ci-gitlab/references/revisao-da-mr.md#pronta-não-convive-com-draft)). Em colaboradados, depois de cada merge humano a MR seguinte foi rebaseada, e o revisor confirmou o delta antes do merge seguinte. MR aprovada aguardando merge entra no [vigia de merge](acompanhamento.md#vigia-de-merge). Com a Central, a onda termina com o [encerramento](central.md#encerrar-a-onda), não com a tabela.

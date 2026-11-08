@@ -30,16 +30,16 @@ MR aprovada aguardando merge entra na mesma espera: o merge é da pessoa, ou do 
 
 ## Status na sidebar
 
-Com a [Central](central.md), o daemon do `orq` publica a sidebar e o coordenador não publica nada; ao migrar, ele [aposenta](central.md#com-ou-sem-central) os tokens que já tinha publicado. Sem ela, a cada mudança de fase, publique o status no pane do worker e as MRs prontas no workspace:
+Com a [Central](central.md), o daemon do `orq` publica a sidebar e o coordenador não publica nada; ao migrar, ele [aposenta](central.md#com-ou-sem-central) os tokens que já tinha publicado. Sem ela, a cada mudança de fase, publique o status no pane do worker e as MRs prontas no workspace (com o projeto, como em [como citar](../SKILL.md#como-citar-uma-mr-ou-pr)):
 
 ```bash
 herdr pane report-metadata <pane> --source orquestrador \
   --token story=TG-xx --token "fase=revisão r3"
 herdr workspace report-metadata "$HERDR_WORKSPACE_ID" --source orquestrador \
-  --token "mrs_prontas=!323 !331"
+  --token "mrs_prontas=argocd-apps!323 colaboradados!331"
 ```
 
-Os valores são só exibição: até 80 caracteres e somem quando o servidor do Herdr reinicia. A fonte de verdade é o registro da missão; republique a partir dele quando faltar. Sem as linhas `$story`, `$fase` e `$mrs_prontas` na configuração do Herdr, nada aparece ([configuração](configuracao.md#status-na-sidebar-do-herdr)).
+Os valores são só exibição: até 80 caracteres (o que não couber, corte e termine com `+N`) e somem quando o servidor do Herdr reinicia. A fonte de verdade é o registro da missão; republique a partir dele quando faltar. Sem as linhas `$story`, `$fase` e `$mrs_prontas` na configuração do Herdr, nada aparece ([configuração](configuracao.md#status-na-sidebar-do-herdr)).
 
 ## Pipeline e persistência
 
@@ -66,6 +66,7 @@ Com a [Central](central.md) e o daemon do `orq` no ar (schema 5, a #15 do projet
 3. Use o `id` devolvido (`TG-217#P1`) no pane, no relatório e na story. Não invente o número.
 4. Sem `.registrada.json` nem `.erro.txt` em 30 s, o daemon não respondeu (parado, ou anterior à #15). Escreva no relatório "pendência não registrada: `<arquivo>`", deixe a pergunta no pane e siga o que for independente. O coordenador a registra com `orq pend importar <arquivo>`.
 5. **Proibido ao worker e ao revisor:** `orq pend responder` e `orq pend resolver`. A resposta é da pessoa, pela web ou pelo chat com o coordenador; quem resolve é o coordenador. Pendência sem resposta não se responde "por sugestão": a recomendação vai no arquivo, e quem decide é a pessoa.
+6. **Resposta que chega fora da Central:** fala da pessoa (no chat, ou no pane em que o coordenador confirmou ser ela) ⇒ `orq pend responder` e, feita a ação, `orq pend resolver`, antes de seguir. Ação feita sem fala ⇒ só `orq pend resolver --resposta "<o que foi feito e a evidência>"`. Relato de worker de que a pessoa respondeu não é resposta: pergunte a ela. Sem exceção e sem deixar para o fim ([regra](central.md#resposta-fora-da-central)). Ao dar uma US por concluída, dê destino só às pendências dela (resolvida, outra onda ou Taiga), lendo `orq pend ver` antes de fechar uma `respondida`; a onda inteira, no encerramento.
 
 ```markdown
 ---

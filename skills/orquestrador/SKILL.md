@@ -40,6 +40,10 @@ Classifique o bloqueio: dependência, permissão, ambiente, falha técnica ou de
 
 Registre alias e combinação resolvida, pane, worktree, URL completa da MR, SHA, pipeline, relatório e evidências por rodada. Estado `done` do agente não comprova entrega. Informe o que foi confirmado e o que falta, preserve evidências e limpe recursos elegíveis.
 
+## Como citar uma MR ou PR
+
+Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempre com o projeto: `<projeto>!<iid>` no GitLab (`argocd-apps!404`) e `<repo>#<n>` no GitHub (`orq#66`), e, onde o meio aceitar link, com a URL completa. O projeto vem da URL da MR, não do projeto da onda ou da story: uma onda do colaboradados pode ter MR no `argocd-apps`. `!404` sozinho é ambíguo e não se escreve. É a mesma forma que a Central web, o TUI e os tokens do `orq` mostram.
+
 ## Recursos
 
 - [Configuração](references/configuracao.md) e [exemplo TOML](assets/orquestrador.example.toml).
