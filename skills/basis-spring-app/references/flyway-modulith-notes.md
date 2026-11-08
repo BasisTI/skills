@@ -23,19 +23,22 @@ Migrations em `src/main/resources/db/migration/V<N>__<nome>.sql`. Spring Boot au
 
 ## Naming
 
-Convenção Basis: timestamp `V20260424123000__nome.sql` — útil em projetos grandes ou onde múltiplas branches geram migrations em paralelo.
+Convenção Basis: `V<timestamp>_<ref>__<nome>.sql`, em que `<timestamp>` é `yyyyMMddHHmm` (minuto) e `<ref>` é o número da user story, o mesmo de `TG-xxx` na branch. Exemplo: a TG-259, às 10h20 de 03/11/2026, cria `V202611031020_259__add_chave_ocorrencia.sql`.
 
-Exemplo:
+O Flyway lê o `_` da parte da versão como `.`, e compara cada parte como número. Então `V202611031020_259` é a versão `202611031020.259`, e duas US que escolham o mesmo minuto geram versões diferentes (`.259` e `.272`), em vez de colidir. Foi o que aconteceu no portal-liven (painel): TG-259 e TG-272 geraram `202611031020` e uma precisou ser renomeada.
+
 ```
-V20260419080100__create_colaborador.sql
-V20260420095600__create_processo.sql
-V20260420123000__create_event_publication.sql
-V20260420193500__add_dados_pessoais.sql
-V20260421144400__add_chave_ocorrencia_jira.sql
-V20260423123000__remove_bairro_telefone.sql
-V20260424120000__fix_nascimento_sexo_types.sql
-V20260424123000__evolve_processo.sql
+V202611031020_259__add_chave_ocorrencia.sql       ->  202611031020.259
+V202611031020_259_2__backfill_chave.sql           ->  202611031020.259.2
+V202611031020_272__create_anexo.sql               ->  202611031020.272
 ```
+
+- **Mais de uma migração na mesma US:** minutos diferentes, ou o contador depois da ref (`_259_2`, `_259_3`). `.259.2` vem depois de `.259` e antes de `.272`.
+- **O sufixo resolve a colisão, não a ordem.** Dentro do mesmo minuto a ordem é a da ref, não a do merge. Se a `.272` já foi aplicada e a `.260` é mesclada depois, o Flyway recusa com `Detected resolved migration not applied`, como em qualquer versão menor que a última aplicada. Gere o timestamp na hora de criar o arquivo e, se a base já tiver versão maior, **renomeie com um minuto posterior à última da branch de destino** antes do merge; nunca ligue `outOfOrder` em produção para contornar.
+- **Migrações já aplicadas ficam como estão.** Não renomeie arquivo aplicado (o checksum e a versão no `flyway_schema_history` mudariam). `V202611031020__x.sql` (sem sufixo) vale `202611031020` e vem **antes** de qualquer `202611031020.<ref>`: as duas formas convivem na mesma pasta, e as antigas não são reaplicadas nem acusadas.
+- **Numeração antiga convive.** `V6` e `V202608131000` continuam antes das novas, pela comparação numérica por partes.
+
+Conferido no Flyway 13.12.1 (OSS) com Postgres 17: leitura das versões acima, convivência com legado aplicado (`V6`, `V202608131000`, `V202611031020`), ordem `.259`, `.259.2`, `.272`, e a recusa da `.260` tardia. O arranjo está descrito aqui e não precisa ser refeito a cada projeto; refaça se trocar de major do Flyway.
 
 ## Modulith JDBC event publisher: criar a tabela manualmente
 

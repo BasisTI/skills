@@ -10,6 +10,7 @@
 - Autorizações: transições, escrita externa e limites explícitos.
 - Modo autônomo, critérios de bloqueio e histórico de recorrências.
 - Ambiente: credenciais por referência, recursos, locks e conflitos potenciais; destino de cada escrita por ambiente conferido na fonte ([fatos de ambiente](../references/despacho.md#fatos-de-ambiente)).
+- Migração Flyway na US: nome com a ref da story, conforme a [convenção](../../basis-spring-app/references/flyway-modulith-notes.md#naming); o pacote cita, não copia a regra.
 - Testes/evidências e contrato de devolução da basis-ci-gitlab.
 - Pendências da story abertas, com o id da Central (`P<n>`). Pendência nova: pelo arquivo `<diretório da rodada>/pendencias/<slug>.md`, esperando até 30 s pelo `.registrada.json` ou pelo `.erro.txt` e citando o id devolvido; sem resposta do daemon, "pendência não registrada: `<arquivo>`". **Proibido** `orq pend responder` e `orq pend resolver`. [Regra e modelo](../references/acompanhamento.md#abrir-a-pendência-pelo-arquivo); sem o daemon da #15, o pacote traz o próximo id livre.
 - `TMPDIR` do worker e rótulos Docker `orq.us`/`orq.onda` ([recursos](../references/despacho.md#recursos-da-us-temporários-e-docker)); o worker usa o `TMPDIR` que recebeu e rotula o que criar no Docker.
