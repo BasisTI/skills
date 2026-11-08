@@ -74,8 +74,9 @@ correção no SHA novo — nunca o executor.
 
 **Aprovada** — nenhum achado `Bloqueante` nem `Sério`, e a pipeline do SHA revisado aceita
 ([`ciclo-da-mr.md`](ciclo-da-mr.md#2-vincular-a-pipeline-ao-sha-revisado)) — a TG-247 foi
-aprovada com o CI vermelho. O revisor tira o Draft
-(`glab mr update <mr> --ready`), e só aqui: é o sinal de que a MR pode ser mesclada. A story
+aprovada com o CI vermelho. Com a pré-condição cumprida, o Draft sai
+(`glab mr update <mr> --ready`) e nunca antes da aprovação: é o sinal de que a MR pode ser mesclada. Quem o tira e em que condição está em
+[Pronta não convive com Draft](#pronta-não-convive-com-draft). A story
 fica em `In revision` (ou `In progress`, sem esse status), e a MR aguarda o merge, que segue
 a política do projeto ou do coordenador (pessoa, ou o coordenador na `develop`). Aprovar a MR
 no GitLab é da pessoa; o revisor não aprova nem mescla.
@@ -92,6 +93,38 @@ há correção pendente. A próxima rodada
 do executor retoma o mesmo worktree e a mesma MR ([`worktree.md`](worktree.md#retomar)),
 corrige, devolve de novo pelo [`ciclo-da-mr.md`](ciclo-da-mr.md), e a revisão roda outra
 vez sobre o SHA novo.
+
+## Pronta não convive com Draft
+
+Regra sem exceção: **MR ou PR anunciada como pronta não pode estar em Draft.** Vale para código
+e IaC, com merge humano ou automático. "Pronta" é o que se diz à pessoa ("aprovada, pode
+mesclar"), no relatório, no comentário do Taiga e na Central; se o Draft ainda está lá, a
+pessoa pergunta se é para mesclar mesmo (a !541 de `basis/iac/argocd-apps`, mesclada em 2026-11-03) ou tira o
+Draft e mescla por conta própria (a !507). Cerca de 8 ocorrências em 7 sessões.
+
+1. **Aprovada e com a pré-condição cumprida:** o Draft sai. Quem o tira é o revisor ao
+   aprovar; se ele não o fez, o coordenador (com `"tirar-draft"` na lista) ou a pessoa, e
+   sem orquestrador, quem pediu a revisão. Quem anuncia confere `draft=false`
+   **imediatamente antes** de anunciar, na forja e não no que se lembra de ter feito:
+   `glab mr view <mr> --output json | jq .draft` (GitLab), `gh pr view <pr> --json isDraft`
+   (GitHub). Veio `true`, não anuncie: tire o Draft (`glab mr update <mr> --ready`,
+   `gh pr ready <pr>`) e confira de novo.
+2. **Depende de algo ainda não cumprido** (outra MR a mesclar, release, janela, confirmação da
+   pessoa): a MR **fica em Draft** e a **primeira linha da descrição** diz `Mesclar depois de
+   <o quê>`. Ela não é anunciada como pronta; é anunciada como "aprovada, em Draft até
+   <pré-condição>". Quem escreve a linha é quem constata a pré-condição (o executor ao abrir; o
+   revisor, se ela surge na revisão), e quem a retira é quem tira o Draft. O coordenador (ou
+   quem pediu a revisão) acompanha, tira o Draft **só quando a pré-condição estiver cumprida**,
+   confere `draft=false` e só então avisa. Cumprida, a primeira linha sai da descrição.
+3. **Série empilhada** (MRs que tocam o mesmo código e só mesclam em ordem): só a próxima da
+   fila fica pronta; as demais ficam em Draft, cada uma com `Mesclar depois de <MR anterior>`.
+   Mesclada uma, o coordenador tira o Draft da seguinte (depois do rebase e da confirmação do
+   delta, quando a onda os pede). MRs independentes não ganham pré-condição.
+4. **Revisão de IaC não é exceção:** aprovada e sem pré-condição pendente, a MR sai do Draft
+   como qualquer outra. Depender da pessoa para mesclar não é pré-condição: é o merge humano
+   que a política já prevê, e acontece com a MR pronta.
+
+## Recorrência e relançamento
 
 **Recorrência se conta por classe**, não pelo caso: outro encoding escapando da mesma máscara
 é a mesma classe. Na **2ª** ocorrência, o pacote de correção pede a classe — o executor

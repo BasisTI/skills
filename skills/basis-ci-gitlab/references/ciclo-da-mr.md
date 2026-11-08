@@ -17,11 +17,14 @@ glab mr create --target-branch develop --squash-before-merge --remove-source-bra
 ```
 
 A MR nasce em **Draft** e fica nele durante este ciclo e as rodadas de revisão: o Draft é a
-trava que impede o merge antes de a revisão aprovar. Quem o tira é a revisão aprovada
-([`revisao-da-mr.md`](revisao-da-mr.md#3-os-dois-desfechos)); com a tag `config`, que não passa
-por revisão, a devolução (passo 4).
+trava que impede o merge antes de a revisão aprovar. Ele só sai com a revisão aprovada e a
+pré-condição cumprida, e quem o tira está em
+[`revisao-da-mr.md`](revisao-da-mr.md#pronta-não-convive-com-draft); com a tag `config`, que
+não passa por revisão, sai na devolução (passo 4). Sair do Draft é o que torna a MR "pronta", e a MR anunciada
+como pronta não pode estar em Draft ([regra](revisao-da-mr.md#pronta-não-convive-com-draft)). Se
+a MR depende de algo ainda não cumprido, abra a descrição com `Mesclar depois de <o quê>`.
 
-Guarde a URL que o `glab mr create` imprime: é ela, e não o `!N`, que vai na resposta, no
+Guarde a URL que o `glab mr create` imprime: é ela, com `<projeto>!<iid>` como texto do link (nunca `!N` sozinho), que vai na resposta, no
 relatório e nos comentários (ver "A MR se cita pelo link" na `SKILL.md`).
 
 **Retomada:** se há MR `TG-xx` **aberta**, a rodada continua nela — só `git push`. Uma
@@ -76,6 +79,12 @@ da pipeline aceita — vão para o relatório.
 Leia as falhas e as issues do Sonar, corrija, faça commit e push — e **volte ao passo 2 a
 cada push**. A pipeline verde anterior não vale para o SHA novo.
 
+Branch atrás da base, quando quem pediu (ou a ação `rebase-conflito`) mandar trazer a base: sem
+conflito, rebase no servidor (`glab mr rebase <iid>`); com conflito, merge da base se a MR for mesclada com squash, ou rebase com `--force-with-lease` se não for
+(MR de release: decisão da pessoa).
+O critério e as autorizações do harness estão em
+[`rebase-da-branch-da-us.md`](rebase-da-branch-da-us.md).
+
 **Quality gate reprovado: a lista vem do servidor, não dos comentários da MR.** O bot só comenta
 issue em linha do diff; o gate conta todas, e cobertura nem vira comentário. Antes de corrigir,
 e de novo antes de cada push, rode
@@ -100,7 +109,9 @@ Sonar (abaixo), e o que [Antes de devolver](#antes-de-devolver) pede. Status →
 o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
 A MR **continua em Draft**: devolver é pedir revisão, não liberar o merge. A exceção é a
 story com a tag `config`, que não tem revisão: aí a devolução tira o Draft
-(`glab mr update <mr> --ready`) e a MR vai direto ao merge humano.
+(`glab mr update <mr> --ready`) e a MR vai direto ao merge humano. Antes de anunciar a MR como
+pronta, confira `draft=false` na forja (`glab mr view <mr> --output json | jq .draft`). Com
+pré-condição pendente, ela fica em Draft com `Mesclar depois de …` na primeira linha.
 
 **Interrompida** — a **mesma causa** aparece em 3 tentativas registradas, ou há um
 impedimento externo: acesso, ambiente, dúvida de especificação, dependência de story não

@@ -68,7 +68,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
 ## 4. Banco e migrações
 
 - Flyway location: `db/migration`
-- Naming: `V<timestamp>__<descricao_snake>.sql` (timestamp `YYYYMMDDHHmm`)
+- Naming: `V<timestamp>_<ref>__<descricao_snake>.sql`, com a ref da story e o **mesmo comprimento de timestamp do histórico do projeto** (12 ou 14 dígitos); timestamp mais curto dá `Detected resolved migration not applied` só no banco com histórico. Regra completa em [`flyway-modulith-notes.md`](references/flyway-modulith-notes.md#naming)
 - **O Flyway compara versão por partes, numericamente — não como texto.** É o que faz o esquema de timestamp conviver com numeração antiga: `V202608131000` vem depois de `V6` porque 202608131000 > 6, e não pela ordem alfabética, que colocaria `V6` por último. Também é por isso que `V1.10` vem depois de `V1.9`, ao contrário do que a ordenação do `ls` sugere
 - **Flyway é a única fonte de verdade do schema.** Nenhum componente cria tabela em runtime — nem framework, nem `ddl-auto`, nem script de inicialização. Não é preferência: schema criado fora do Flyway não tem versão, não aparece em revisão de MR e não passa pelas regras que as migrations aplicam
 - **Modulith + Flyway** — na criação da aplicação, não depois:
@@ -82,6 +82,7 @@ Padrões da Basis para apps Spring. Pareada com `basis-k8s-deploy` (esta documen
   ```
   O publisher de eventos JDBC cria a tabela `event_publication` sozinho por default. Com os dois criando, há race na inicialização; e a estrutura da tabela fica sem controle de versão, o que dói no rolling deploy e em qualquer release que mude as colunas dela. **Vem desligado desde o primeiro commit** — habilitado, a tabela já existe quando alguém percebe, e passa a ser correção de produção em vez de linha de yaml. O DDL entra na baseline; o schema muda a cada release do Modulith, então confira as colunas na doc da versão em uso
   - Schemas separados por módulo: opcional, depende da estratégia adotada
+- **Migrações por módulo (Modulith 2.0+):** projeto novo adota; projeto existente não adota agora. Requisitos silenciosos e gotchas em [`references/flyway-modulith-notes.md`](references/flyway-modulith-notes.md) (seção "Migrações Flyway por módulo")
 - **Declare qual migration serve de modelo.** Quem vai criar tabela abre a mais recente e copia; se a mais recente for a que esqueceu alguma coisa, o esquecimento se propaga. Nomeie o arquivo-modelo no `AGENTS.md` — "a mais recente" não é instrução, é sorte
 - **App multi-tenant tem skill própria.** Isolamento por `tenant_id`, Row Level Security, ordem das migrations de RLS e chave composta `(tenant_id, id)` estão em **`basis-multi-tenant`**. O que é específico daqui: a role do Flyway e a role da aplicação **não são a mesma**, e a tabela `event_publication` do Modulith entra na conta quando carrega `tenant_id`
 
@@ -254,7 +255,7 @@ Ver [`references/modulith-tests.md`](references/modulith-tests.md) — teste bas
 - [`references/actuator.md`](references/actuator.md) — Health probes (liveness/readiness), integração com K8s, métricas Prometheus
 - [`references/pom-skeleton.md`](references/pom-skeleton.md) — pom multi-módulo + plugins essenciais (jib, frontend-maven-plugin), parent BOM, módulos típicos
 - Build de frontend, layout, tabelas, formulários e páginas de erro: skill **`basis-web-frontend`**
-- [`references/flyway-modulith-notes.md`](references/flyway-modulith-notes.md) — gotchas de schema com Modulith JDBC publisher, naming, baseline em legacy
+- [`references/flyway-modulith-notes.md`](references/flyway-modulith-notes.md) — gotchas de schema com Modulith JDBC publisher, naming das migrations (ref da story), baseline em legacy
 - [`references/logging-e-banner.md`](references/logging-e-banner.md) — banner de startup, DEBUG em entry points e processamento complexo, níveis por ambiente
 - [`references/local-dev-compose.md`](references/local-dev-compose.md) — `compose.yaml`, Keycloak no Postgres da app, `init.sql`, `application-dev.yml` espelhando o compose, export do realm
 - [`references/basis-realm-dev.json`](references/basis-realm-dev.json) — realm `basis` mínimo para import em dev: client `<app>-admin`, client roles, usuários de teste
