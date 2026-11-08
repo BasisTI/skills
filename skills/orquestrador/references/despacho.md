@@ -4,6 +4,24 @@
 
 Leia story, critérios, plano, dependências, ADRs e estado atual do remoto. Siga o pré-voo da `basis-ci-gitlab`; uma dependência implementada mas não incorporada à branch base ainda pode impedir o início. Registre o grafo e lance trabalhos independentes dentro do limite de recursos.
 
+## Criar a US com dono
+
+Toda US que o coordenador cria (a partir de proposta do planejamento, de pedido da pessoa ou de achado de worker) leva o responsável padrão ([configuração](configuracao.md#cadastro-de-projetos-e-ambiente)) como dono:
+
+```bash
+taiga story create --project <taiga_slug> --subject "<título>" --owner-assignee <taiga_responsavel_padrao> …
+```
+
+`--owner-assignee` grava o dono (`assigned_to`), que aparece no card, e o inclui na lista de responsáveis. `--assignee` só preenche essa lista e **não** define o dono: a US sai sem responsável no card. Em 2026-11-08, 23 das 29 US do board `orq` estavam sem dono por esse motivo (orq #51).
+
+Antes do despacho, confira o `assigned_to` da US (`taiga story get <ref> --project <taiga_slug>`). Se estiver vazio, corrija sem recriar:
+
+```bash
+taiga story update <ref> --project <taiga_slug> --owner-assignee <taiga_responsavel_padrao>
+```
+
+US que já tem dono não é trocada por este passo: dono diferente do padrão é escolha da pessoa.
+
 ## Par padrão
 
 "Despacha a TG-x" sem executor e revisor indicados, com `"par-padrao"` em `acoes_automaticas` ([configuração](configuracao.md#acoes_automaticas)), usa os aliases `implementacao-padrao` e `revisao-padrao`, sem perguntar. Registre o par resolvido. Executor ou revisor citado pela pessoa, ou preferência persistente, vale mais que o padrão; sem `"par-padrao"` na lista, ou sem um dos dois aliases no arquivo, a pergunta é concreta.
