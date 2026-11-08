@@ -76,6 +76,10 @@ da pipeline aceita — vão para o relatório.
 Leia as falhas e as issues do Sonar, corrija, faça commit e push — e **volte ao passo 2 a
 cada push**. A pipeline verde anterior não vale para o SHA novo.
 
+Branch atrás da base: sem conflito, peça o rebase ao servidor (`glab mr rebase <iid>`) em
+vez de `git push --force-with-lease`; os caminhos e as autorizações do harness estão em
+[`rebase-da-branch-da-us.md`](rebase-da-branch-da-us.md).
+
 **Quality gate reprovado: a lista vem do servidor, não dos comentários da MR.** O bot só comenta
 issue em linha do diff; o gate conta todas, e cobertura nem vira comentário. Antes de corrigir,
 e de novo antes de cada push, rode
