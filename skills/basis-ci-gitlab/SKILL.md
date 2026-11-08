@@ -115,6 +115,8 @@ card no Taiga  →  worktree + branch TG-xxx (de origin/develop)  →  commits  
 story no Taiga. Não é estética: existe integração GitLab↔Taiga, e é o nome que costura o
 código ao card.
 
+**Migração Flyway:** o nome leva a ref da story na versão, no comprimento de timestamp que o projeto já usa, para que US em paralelo não colidam; a convenção e o que ela não resolve estão em [`basis-spring-app`](../basis-spring-app/references/flyway-modulith-notes.md#naming).
+
 **Worktree:** um por story, irmão do repositório principal, em `../<repo>.TG-xxx`. É o que
 deixa vários agentes trabalharem no mesmo repositório sem um trocar a branch do outro.
 Começar é `git fetch origin` e `wt switch --create TG-xxx --base origin/develop`; retomar

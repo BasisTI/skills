@@ -39,7 +39,7 @@ Monte o grafo antes de lançar, com o que cada story toca, não só com as depen
 
 - **Mesmo arquivo ou mesma regra, a base é decisão de quem pediu.** Empilhar faz a MR carregar o diff das duas stories até o merge da primeira e torna a revisão dependente dela; por isso a `basis-ci-gitlab` (`references/worktree.md`, base da branch) reserva a escolha a quem pediu. A decisão pode vir uma vez para a onda, no contrato; sem ela, a dependente aguarda a base. Empilhada, a MR diz qual precisa ser mergeada antes e, depois desse merge, passa por rebase e confirmação do revisor. No colaboradados, a TG-216 foi empilhada sobre a TG-215 por decisão do coordenador, a partir do pedido genérico; esta regra corrige isso.
 - **Dependência de conteúdo, espere a aprovação.** A TG-218 precisava dos nomes de coluna da TG-217 e só começou da base depois da MR da TG-217 aprovada.
-- **Recurso numerado, reserve.** Com Flyway `outOfOrder=false`, migração de número menor mesclada depois de uma maior é recusada. Reserve os números no início (TG-215 = V037, TG-216 = V038, TG-217 = V039) e torne a ordem de merge obrigatória.
+- **Recurso numerado, reserve.** Com Flyway `outOfOrder=false`, migração de versão menor mesclada depois de uma maior é recusada. Migração Flyway com a ref da story na versão não colide, mas a ordem ainda é a da versão ([convenção](../../basis-spring-app/references/flyway-modulith-notes.md#naming)); para o que continua numerado (TG-215 = V037, TG-216 = V038, TG-217 = V039), reserve os números no início e torne a ordem de merge obrigatória.
 - **Recurso pesado, serialize.** `mvn verify` em fila por `flock`, um revisor por vez.
 
 Sem relação no grafo, as stories correm em paralelo: TG-215 e TG-217 começaram juntas.
