@@ -24,7 +24,8 @@ transicoes_automaticas = ["Ready for test", "Waiting for deployment:testado", "D
 # Merge automático só quando a MR aponta para uma branch desta lista, com tudo isto
 # conferido no head: revisão independente aprovada nesse SHA, pipeline verde nesse SHA,
 # quality gate do Sonar OK (projeto que usa Sonar), sem Draft, sem discussão bloqueante
-# aberta e sem conflito. Merge na main e em qualquer outra branch (staging) continua humano.
+# aberta e sem conflito. MR atrás da base traz a base antes (ação "rebase-conflito") e as
+# condições valem de novo no head novo. Merge na main e em qualquer outra branch (staging) continua humano.
 merge_automatico = ["develop"]
 # Ações sem pergunta:
 # - "limpeza": fechar panes, remover worktree, branches e pastas da US depois do merge.

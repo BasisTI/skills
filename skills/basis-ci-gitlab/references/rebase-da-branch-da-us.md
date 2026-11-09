@@ -91,7 +91,9 @@ O SHA mudou: a aprovação e a pipeline do SHA antigo não valem para o novo; o 
 e o revisor confirma o delta no SHA novo.
 
 Com a ação `rebase-conflito` do orquestrador, o coordenador manda trazer a base em toda MR atrás
-dela, com ou sem conflito, por estes caminhos. A MR de release (`develop` → `main`) fica fora:
+dela, com ou sem conflito, por estes caminhos, e isso vem antes de qualquer merge automático: o
+head novo precisa de revisão confirmando o delta, pipeline verde e Sonar OK antes de a MR ser
+mesclada. A MR de release (`develop` → `main`) fica fora:
 ali, a decisão é da pessoa.
 
 ## Autorizar o caminho 3 no harness

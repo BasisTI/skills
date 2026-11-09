@@ -63,7 +63,9 @@ Lista de branches de destino; hoje só `["develop"]`. O coordenador mescla a MR 
 3. quality gate do Sonar OK nesse SHA, quando o projeto usa Sonar. Gate reprovado, ausente, em andamento ou não conferido é recusa: pipeline verde sem análise não prova o gate ([Sonar](../../basis-ci-gitlab/references/sonar-analise-e-quality-gate.md));
 4. sem Draft;
 5. sem discussão bloqueante: `blocking_discussions_resolved` verdadeiro e nenhuma discussão resolvível aberta, a de evidência do executor inclusa ([revisão](revisao.md));
-6. sem conflito: `has_conflicts` falso e `detailed_merge_status` que permita mesclar.
+6. sem conflito e não atrás da base: `has_conflicts` falso, `detailed_merge_status` que permita mesclar e `diverged_commits_count` zero (`glab mr view <mr> --output json`). Estar mesclável não basta: MR atrás da base não tem CI na base nova.
+
+**Atrás da base, o merge espera.** MR atrás da base, com ou sem conflito, traz a base antes de qualquer merge automático: com `"rebase-conflito"` em `acoes_automaticas`, o executor a traz ([ação](#acoes_automaticas)); sem a ação, a pergunta é concreta, e o merge segue humano. O head muda, então as condições 1 a 3 voltam a valer no head novo: revisão confirmando o delta nesse SHA, pipeline verde nele e Sonar OK. Só com todas as condições nesse head o merge sai. MR de release (`develop` → `main`) fica fora, como o merge dela.
 
 Faltou uma, não mescle e diga qual. Gate reprovado volta ao executor como correção, pelo ciclo normal de revisão; gate não conferido, leia-o você, no SHA do head, e só peça a pessoa se não houver acesso ao Sonar. Mescle atando ao SHA conferido, para o GitLab recusar se houve push entre a leitura e o merge:
 
@@ -79,7 +81,7 @@ Confira `state: merged` depois e siga o pós-merge ([auditoria](conclusao-e-limp
 |---|---|
 | `"limpeza"` | Fechar panes do executor e do revisor e remover worktree, branches e pastas em `~/tmp` e `/tmp` da US depois do merge; reabrir pane e worktree para corrigir depois do teste ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)). |
 | `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head, e só se não houver pré-condição pendente (`Mesclar depois de …` na descrição) ([revisão](revisao.md)). |
-| `"rebase-conflito"` | MR atrás da base, com ou sem conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (servidor, merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). |
+| `"rebase-conflito"` | MR atrás da base, com ou sem conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (servidor, merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). Vem antes do merge automático ([precedência](#merge_automatico)). |
 | `"par-padrao"` | "Despacha" sem executor e revisor indicados usa `implementacao-padrao` e `revisao-padrao` ([despacho](despacho.md#par-padrão)). |
 
 Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação nem vale para MR com pré-condição pendente; `rebase-conflito` não vale para a MR de release.
