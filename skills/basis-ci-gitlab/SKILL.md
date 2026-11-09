@@ -376,7 +376,7 @@ Template anotado em [`references/template-gitlab-ci.md`](references/template-git
 
 ## 5. Rodar a pipeline na sua máquina
 
-A pipeline é um programa, e é por isso que se escolheu Dagger. As sete funções do
+A pipeline é um programa, e é por isso que se escolheu Dagger. As oito funções do
 orchestrator:
 
 ```bash
@@ -384,12 +384,23 @@ dagger call -m github.com/BasisTI/daggerverse/orchestrator@<versão> \
   --source . --config-path ci/pipeline.toml <função>
 ```
 
-`validate` · `sonar-project-keys` · `check-quality` · `security-check` · `publish-all` ·
-`check-images` · `promote`
+`validate` · `sonar-project-keys` · `check-quality` · `security-check` · `check-flyway-migrations` ·
+`publish-all` · `check-images` · `promote`
 
 `security-check` entrou no `3.13.0` e é irmã de `check-quality`, sem Sonar e sem detecção de
 mudanças: varre **todos** os targets Maven, porque o target parado há meses é o mais provável
 de ter apodrecido e o diff o deixaria de fora. A chave do NVD nela é obrigatória, não opcional.
+
+`check-flyway-migrations` (`--base-branch`, padrão `origin/develop`) reprova a migração Flyway
+**nova** da branch cuja versão repete uma já existente ou é menor que a última da branch-alvo.
+Compara por diretório: `db/migration` e, com Spring Modulith, `db/migration/<módulo>`. A
+mensagem diz o arquivo, a versão e a última versão da branch-alvo. A ordem é a do Flyway
+(`V1_1` = `V1.1`, zeros à esquerda não contam), então versões antigas sem sufixo e timestamps
+convivem. Para corrigir, dê rebase na branch-alvo e renumere a migração para depois da última;
+migração já aplicada não se renomeia. Ficam de fora a migração Java e as `R__`/`U__`. **Nenhum
+template do CI a chama ainda**: hoje só roda à mão, e a adoção é decisão à parte. Mesmo
+adotada, o resultado vale para o momento da pipeline, e uma MR já verde não roda de novo quando
+outra entra antes na branch-alvo.
 
 Na prática, `validate` é a que se usa toda hora e a que mais economiza ciclo.
 
