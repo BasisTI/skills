@@ -67,9 +67,9 @@ Lista de branches de destino; hoje só `["develop"]`. O coordenador mescla a MR 
 
 <a id="atras-da-base"></a>**Atrás da base, o merge espera a vez.** MR atrás da base (`diverged_commits_count` maior que zero), com ou sem conflito, não é mesclada automaticamente: a base entra antes, o head muda e as condições 1 a 3 voltam a valer no head novo, com os mesmos qualificadores acima (projeto sem Sonar, story `config`). Esta é a regra canônica; as outras páginas só remetem a ela.
 
-- **Só a próxima da fila traz a base**, e só quando as demais condições (todas menos o estar atrás) já valem nela. As outras esperam a vez, sem rebase antecipado. Em conflito, trata-se o conflito quando chegar a vez.
+- **Só a próxima da fila traz a base.** A fila é, por branch de destino, a ordem da onda ou do despacho; a próxima é a **primeira MR, nessa ordem, que cumpre todas as demais condições** (de 1 a 5; a 6 fica de fora, porque é a que a base resolve, e o Draft de MR de série empilhada não conta, porque sai depois da base). MR que não cumpre (pipeline vermelha, achado aberto, pendência, story `config`) não segura as que cumprem e fica para quando cumprir; MR que depende de outra na onda espera por ela. As outras esperam a vez, sem rebase antecipado. Em conflito, trata-se o conflito quando chegar a vez.
 - **Quem traz:** com `"rebase-conflito"` em `acoes_automaticas`, o executor ([ação](#acoes_automaticas)); sem a ação, a pergunta é concreta, e, autorizada a base, o merge automático segue valendo no head novo.
-- **Antes da r1:** se a MR já está atrás ao lançar o revisor ([revisão](revisao.md)), a base entra antes dele, para não pagar a r1 e depois um delta.
+- **Antes da r1** (exceção às condições acima, que ainda não valem): se a MR já está atrás ao lançar o revisor ([revisão](revisao.md)), a base entra antes dele, para não pagar a r1 e depois um delta.
 - **Parada:** depois de **3 voltas** sem mesclar porque a base andou de novo, vira pergunta concreta à pessoa.
 - **Fora:** MR de release (`develop` → `main`) e merge fora da lista, que seguem humanos.
 
