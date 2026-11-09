@@ -77,7 +77,7 @@ correção no SHA novo — nunca o executor.
 aprovada com o CI vermelho. Com a pré-condição cumprida, o Draft sai
 (`glab mr update <mr> --ready`) e nunca antes da aprovação: é o sinal de que a MR pode ser mesclada. Quem o tira e em que condição está em
 [Pronta não convive com Draft](#pronta-não-convive-com-draft). A story
-fica em `In revision` (ou `In progress`, sem esse status), e a MR aguarda o merge, que segue
+segue em `In progress`, e a MR aguarda o merge, que segue
 a política do projeto ou do coordenador (pessoa, ou o coordenador na `develop`). Aprovar a MR
 no GitLab é da pessoa; o revisor não aprova nem mescla.
 
@@ -87,9 +87,9 @@ no GitLab é da pessoa; o revisor não aprova nem mescla.
 alguém de mergear a MR antes da correção. Na US #15 do `plataforma-iac`, a MR !27 foi
 mergeada com dois achados `Sério` em aberto, e a correção pronta ficou sem MR onde entrar; na
 !296 do `portal-liven` (TG-53), aberta sem Draft, o merge veio com a revisão ainda rodando.
-A story **fica em `In revision`**: o status é a barreira entre a devolução e o merge, e as
-idas e voltas entre revisor e executor acontecem dentro dela — o Draft da MR é o que diz que
-há correção pendente. A próxima rodada
+A story **segue em `In progress`**: as idas e voltas entre revisor e executor acontecem
+dentro dela, e o Draft da MR é a barreira entre a devolução e o merge e o que diz que há
+correção pendente. Que a US está em revisão, e em qual rodada, a Central mostra. A próxima rodada
 do executor retoma o mesmo worktree e a mesma MR ([`worktree.md`](worktree.md#retomar)),
 corrige, devolve de novo pelo [`ciclo-da-mr.md`](ciclo-da-mr.md), e a revisão roda outra
 vez sobre o SHA novo.

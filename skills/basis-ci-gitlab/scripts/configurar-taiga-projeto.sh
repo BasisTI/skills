@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prepara o board de um projeto no Taiga para o fluxo da story desta skill:
-# os status opcionais `In revision` e `Waiting for deployment` e os campos
+# o status opcional `Waiting for deployment` e os campos
 # customizados de User Story que guardam o registro de início e o de teste
 # (references/taiga-mcp.md).
 #
@@ -96,7 +96,6 @@ tem_attr()   { jq -e --arg n "$1" 'any(.[]; (.name | ascii_downcase) == ($n | as
 
 # Status novo | cor | slug do status existente depois do qual ele entra.
 STATUS_NOVOS=(
-  "In revision|#5178D3|in-progress"
   "Waiting for deployment|#40A8E4|ready-for-test"
 )
 

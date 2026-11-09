@@ -105,8 +105,9 @@ decide o desfecho.
 
 **Devolvida para revisão** — pipeline aceita no SHA atual (passo 2: pipeline e
 `check-quality` verdes), **ou** reprovada exclusivamente por suspeitas de falso positivo do
-Sonar (abaixo), e o que [Antes de devolver](#antes-de-devolver) pede. Status → `In revision`, se
-o board tiver; senão a story continua `In progress`. Relatório com desfecho `devolvida`.
+Sonar (abaixo), e o que [Antes de devolver](#antes-de-devolver) pede. A story continua em
+`In progress`: execução, revisão e correção acontecem nesse status, e quem mostra se a US
+está em execução ou em revisão, e em qual rodada, é a Central. Relatório com desfecho `devolvida`.
 A MR **continua em Draft**: devolver é pedir revisão, não liberar o merge. A exceção é a
 story com a tag `config`, que não tem revisão: aí a devolução tira o Draft
 (`glab mr update <mr> --ready`) e a MR vai direto ao merge humano. Antes de anunciar a MR como
