@@ -109,9 +109,8 @@ registro por tag ou por texto na descrição: reporte e pergunte.
 
 ### Preparar o board de um projeto
 
-`scripts/configurar-taiga-projeto.sh <project_id>` cria o que o fluxo espera: os status
-opcionais `In revision` (depois de `In progress`) e `Waiting for deployment` (depois de
-`Ready for test`), pelo `userstory-statuses`, e os seis campos da tabela acima, pelo
+`scripts/configurar-taiga-projeto.sh <project_id>` cria o que o fluxo espera: o status
+opcional `Waiting for deployment` (depois de `Ready for test`), pelo `userstory-statuses`, e os seis campos da tabela acima, pelo
 `userstory-custom-attributes`. Sem `--apply` ele só mostra o plano; com `--apply` grava,
 reordena os status e relê o resultado da API. É idempotente: o que já existe com o mesmo
 nome fica como está. Aplicado primeiro no `plataforma-iac` (id 90) em 2026-09-27: status 657
@@ -132,9 +131,8 @@ início fica no histórico da story.
 |---|---|
 | `New` | A ideia existe; a especificação ainda precisa ser fechada |
 | `Ready` | Especificação concluída: critérios de aceitação presentes |
-| `In progress` | O executor começou de fato: registro de início feito. Commits não são exigidos |
-| `In revision` *(opcional)* | MR devolvida para revisão ([`ciclo-da-mr.md`](ciclo-da-mr.md)). É a barreira até o merge: as idas e voltas entre revisor e executor acontecem dentro dela ([`revisao-da-mr.md`](revisao-da-mr.md)) |
-| `Ready for test` | Staging roda a versão |
+| `In progress` | O executor começou de fato: registro de início feito. Commits não são exigidos. A story fica aqui durante a execução, a revisão e a correção ([`ciclo-da-mr.md`](ciclo-da-mr.md), [`revisao-da-mr.md`](revisao-da-mr.md)), e só sai quando o deploy em staging termina |
+| `Ready for test` | Staging roda a versão: o `publish-develop` e o deploy no ArgoCD terminaram. Enquanto não terminarem, a story segue em `In progress` |
 | `Waiting for deployment` *(opcional)* | Staging roda a versão **e** registro de teste presente; produção ainda não roda a versão |
 | `Done` | Registro de teste presente **e** produção roda a versão. Exceção: projeto cuja `[autonomia]` do coordenador lista `Done:main` troca a produção pelo commit na `main`; o registro de teste segue exigido |
 
@@ -155,12 +153,12 @@ vai a `Ready for test` quando produção roda a versão, e a `Done` com o regist
 `AGENTS.md` sem a linha `Staging` não diz nem uma coisa nem outra: pergunte, e aponte no
 relatório a linha que falta.
 
-**Sem os opcionais.** Boards que não têm `In revision` nem `Waiting for deployment` — é o
-caso comum hoje — caem nos status existentes: `In progress` vai até staging rodar a versão,
-e `Ready for test` vai até `Done`. Todo critério tem para onde ir.
+**Sem o opcional.** Boards que não têm `Waiting for deployment` — é o caso comum hoje —
+caem nos status existentes: `In progress` vai até staging rodar a versão, e `Ready for test`
+vai até `Done`. Todo critério tem para onde ir.
 
 **Transição pendente.** Entre o merge e staging rodar a versão, a story fica no status
-anterior (`In revision`, ou `In progress` sem ele). Não é um estado novo; a auditoria reporta
+anterior (`In progress`). Não é um estado novo; a auditoria reporta
 "transição pendente: aguardando staging".
 
 **`Done`, fechado e arquivado são coisas diferentes, e o board decide duas delas.** Cada
@@ -226,8 +224,8 @@ branch `TG-xx` para escrever, sem commits e sem MR.
 | `Ready for test` | Relatório publicado na story; aguarda a triagem |
 | `Done` | Triagem feita: cada achado tem destino no comentário da triagem — story criada (link), agrupado em outra, ou descartado com o motivo |
 
-Registro de teste, staging e produção não se aplicam, e `In revision` e `Waiting for
-deployment` não são usados. O worktree de leitura sai com `git worktree remove` quando o
+Registro de teste, staging e produção não se aplicam, e `Waiting for
+deployment` não é usado. O worktree de leitura sai com `git worktree remove` quando o
 relatório é publicado.
 
 ### Regras de auditoria (conferir se o status está certo)
@@ -236,7 +234,7 @@ Auditar é comparar o status atual da story com o que as evidências dizem que e
 ser.
 
 - **Precedência.** Avalie do mais avançado para o menos: `Done`, `Waiting for deployment`,
-  `Ready for test`, `In revision`, `In progress`, `Ready`, `New`. O primeiro critério
+  `Ready for test`, `In progress`, `Ready`, `New`. O primeiro critério
   satisfeito é o status esperado. Status opcional que o board não tem sai da lista.
 - **Story com a tag `config`** segue a tabela da seção dela: sem registro de teste nem
   staging, e `Done` pela MR mergeada com a pipeline de `develop` verde.
@@ -282,7 +280,7 @@ compartilhado: **confirme a transição com quem pediu** e, depois, confira o re
 leitura da story.
 
 A exceção é um pacote de tarefa do orquestrador que liste transições explícitas — `In
-progress` ao começar, `In revision` ao devolver, registro de bloqueio ao interromper,
+progress` ao começar, registro de bloqueio ao interromper,
 desbloqueio ao retomar. Também se pré-autorizam, quando o pacote ou a configuração do
 orquestrador as declarar, as transições **derivadas de evento comprovado**:
 

@@ -165,7 +165,7 @@ Detalhe em [`references/ciclo-da-mr.md`](references/ciclo-da-mr.md).
 **Depois de devolver:** outro agente revisa a MR com o `qa-adversarial`, lançado com harness,
 modelo e esforço escolhidos como os da implementação — vêm de quem pediu, ou se pergunta.
 Achado `Bloqueante` ou `Sério` mantém a MR em Draft e pede uma nova rodada na mesma MR, com a
-story parada em `In revision`; sem eles, e com a pré-condição cumprida, o Draft sai e a MR aguarda o merge, que segue a política
+story em `In progress`; sem eles, e com a pré-condição cumprida, o Draft sai e a MR aguarda o merge, que segue a política
 do projeto ou do coordenador: humano por padrão, automático na `develop` com as condições no
 head (skill `orquestrador`, `[autonomia]`). Detalhe em [`references/revisao-da-mr.md`](references/revisao-da-mr.md).
 
@@ -213,7 +213,7 @@ não commits; `Ready for test` exige staging rodando a versão; `Done` exige o *
 teste** e produção rodando a versão — a cadeia completa até os pods, não a tag no registry (exceção: projeto cuja `[autonomia]`
 do coordenador lista `Done:main`, em que o commit na `main` basta; skill `orquestrador`,
 `references/configuracao.md`).
-`In revision` e `Waiting for deployment` são opcionais, e sem eles os critérios caem nos
+`Waiting for deployment` é opcional, e sem ele os critérios caem nos
 status existentes. Story com a tag `config` — mudança sem efeito no comportamento da
 aplicação, nunca código, nem uma classe `@Configuration` — dispensa o teste em staging e
 chega a `Done` com a MR mergeada e a pipeline de `develop` verde. Story com a tag `review`
@@ -601,7 +601,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
 | `scripts/esperar-pipeline-mr.sh <mr>` | Não | Espera a pipeline do head da MR terminar e diz se serve de aceite (0 aceita, 1 não serve, 3 limite de tempo, 4 verde sem análise). Use-o em vez de montar laço de espera |
 | `source scripts/taiga-env.sh <arquivo>` | Não | Carrega a credencial do Taiga de um `compose.yaml` ou `.env` sem imprimir valor |
-| `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board os status `In revision` e `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
+| `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board o status `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
 
 ## References
 
