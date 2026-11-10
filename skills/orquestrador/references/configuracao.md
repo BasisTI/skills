@@ -63,7 +63,15 @@ Lista de branches de destino; hoje só `["develop"]`. O coordenador mescla a MR 
 3. quality gate do Sonar OK nesse SHA, quando o projeto usa Sonar. Gate reprovado, ausente, em andamento ou não conferido é recusa: pipeline verde sem análise não prova o gate ([Sonar](../../basis-ci-gitlab/references/sonar-analise-e-quality-gate.md));
 4. sem Draft;
 5. sem discussão bloqueante: `blocking_discussions_resolved` verdadeiro e nenhuma discussão resolvível aberta, a de evidência do executor inclusa ([revisão](revisao.md));
-6. sem conflito: `has_conflicts` falso e `detailed_merge_status` que permita mesclar.
+6. sem conflito e não atrás da base: `has_conflicts` falso, `detailed_merge_status` que permita mesclar e `diverged_commits_count` zero (`glab mr view <mr> --output json`). Estar mesclável não basta: MR atrás da base não tem CI na base nova.
+
+<a id="atras-da-base"></a>**Atrás da base, o merge espera a vez.** MR atrás da base (`diverged_commits_count` maior que zero), com ou sem conflito, não é mesclada automaticamente: a base entra antes, o head muda e as condições 1 a 3 voltam a valer no head novo, com os mesmos qualificadores acima (projeto sem Sonar, story `config`). Esta é a regra canônica; as outras páginas só remetem a ela.
+
+- **Só a próxima da fila traz a base.** A fila é, por branch de destino, a ordem da onda ou do despacho; a próxima é a **primeira MR, nessa ordem, que cumpre todas as demais condições** (de 1 a 5; a 6 fica de fora, porque é a que a base resolve, e o Draft de MR de série empilhada não conta, porque sai depois da base). MR que não cumpre (pipeline vermelha, achado aberto, pendência, story `config`) não segura as que cumprem e fica para quando cumprir; MR que depende de outra na onda espera por ela. As outras esperam a vez, sem rebase antecipado. Em conflito, trata-se o conflito quando chegar a vez. A MR que trouxe a base **mantém a vez** enquanto aguarda as condições 1 a 3 no head novo, e só a libera ao ser mesclada ou ao falhar de verdade (pipeline vermelha, achado no delta, gate reprovado): há uma MR por vez.
+- **Quem traz:** com `"rebase-conflito"` em `acoes_automaticas`, o executor ([ação](#acoes_automaticas)); sem a ação, a pergunta é concreta, e, autorizada a base, o merge automático segue valendo no head novo.
+- **Antes da r1** (exceção às condições acima, que ainda não valem): se a MR já está atrás ao lançar o revisor ([revisão](revisao.md)), a base entra antes dele, para não pagar a r1 e depois um delta.
+- **Parada:** depois de **3 voltas** sem mesclar porque a base andou de novo, vira pergunta concreta à pessoa.
+- **Fora:** MR de release (`develop` → `main`) e merge fora da lista, que seguem humanos.
 
 Faltou uma, não mescle e diga qual. Gate reprovado volta ao executor como correção, pelo ciclo normal de revisão; gate não conferido, leia-o você, no SHA do head, e só peça a pessoa se não houver acesso ao Sonar. Mescle atando ao SHA conferido, para o GitLab recusar se houve push entre a leitura e o merge:
 
@@ -79,7 +87,7 @@ Confira `state: merged` depois e siga o pós-merge ([auditoria](conclusao-e-limp
 |---|---|
 | `"limpeza"` | Fechar panes do executor e do revisor e remover worktree, branches e pastas em `~/tmp` e `/tmp` da US depois do merge; reabrir pane e worktree para corrigir depois do teste ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)). |
 | `"tirar-draft"` | Tirar o Draft da MR (`glab mr update <mr> --ready`) com a revisão aprovada no head e o CI verde nesse head, e só se não houver pré-condição pendente (`Mesclar depois de …` na descrição) ([revisão](revisao.md)). |
-| `"rebase-conflito"` | MR atrás da base, com ou sem conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (servidor, merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). |
+| `"rebase-conflito"` | MR atrás da base, com ou sem conflito: o executor traz a base pelo caminho da `basis-ci-gitlab` (servidor, merge ou rebase) e o revisor confirma o delta ([revisão](revisao.md#conflito)). Quando e em que ordem: [atrás da base](#atras-da-base). Story `config` não tem revisão. |
 | `"par-padrao"` | "Despacha" sem executor e revisor indicados usa `implementacao-padrao` e `revisao-padrao` ([despacho](despacho.md#par-padrão)). |
 
 Cada ação cobre só o que a linha diz. `limpeza` não apaga o que o `orq limpar` recusa; `tirar-draft` não substitui a aprovação nem vale para MR com pré-condição pendente; `rebase-conflito` não vale para a MR de release.

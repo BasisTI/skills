@@ -118,8 +118,9 @@ Draft e mescla por conta própria (a !507). Cerca de 8 ocorrências em 7 sessõe
    confere `draft=false` e só então avisa. Cumprida, a primeira linha sai da descrição.
 3. **Série empilhada** (MRs que tocam o mesmo código e só mesclam em ordem): só a próxima da
    fila fica pronta; as demais ficam em Draft, cada uma com `Mesclar depois de <MR anterior>`.
-   Mesclada uma, o coordenador tira o Draft da seguinte (depois do rebase e da confirmação do
-   delta, quando a onda os pede). MRs independentes não ganham pré-condição.
+   Mesclada uma, se a seguinte ficou atrás da base, o coordenador traz a base e confirma o delta
+   ([regra](../../orquestrador/references/configuracao.md#atras-da-base)); só depois tira o Draft
+   dela, e a barreira vale durante o rebase e o delta. MRs independentes não ganham pré-condição.
 4. **Revisão de IaC não é exceção:** aprovada e sem pré-condição pendente, a MR sai do Draft
    como qualquer outra. Depender da pessoa para mesclar não é pré-condição: é o merge humano
    que a política já prevê, e acontece com a MR pronta.
