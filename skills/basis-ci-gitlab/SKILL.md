@@ -302,6 +302,7 @@ include:
 |---|---|---|
 | `validate-pipeline-config` | check | MR que toca `ci/pipeline.toml` |
 | `check-quality` | check | MR com destino `develop` |
+| `check-flyway-migrations` | check | MR que toca `db/migration/` (qualquer destino); a partir da tag do ci-templates que fixa o orchestrator `3.22.0` |
 | `publish-develop` | build | push em `develop` |
 | `sonar-branch-develop` | pre-prod | push em `develop`, depois do publish |
 | `sonar-branch-full` | check | agendamento com `SONAR_FULL_SCAN=true` |
