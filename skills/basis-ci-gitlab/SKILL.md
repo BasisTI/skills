@@ -302,7 +302,7 @@ include:
 |---|---|---|
 | `validate-pipeline-config` | check | MR que toca `ci/pipeline.toml` |
 | `check-quality` | check | MR com destino `develop` |
-| `check-flyway-migrations` | check | MR que toca `db/migration/` (qualquer destino); a partir da tag do ci-templates que fixa o orchestrator `3.22.0` |
+| `check-flyway-migrations` | check | MR que toca `db/migration/` (qualquer destino); a partir do `ref` `v1.22.0` do ci-templates (orchestrator `3.22.0`) |
 | `publish-develop` | build | push em `develop` |
 | `sonar-branch-develop` | pre-prod | push em `develop`, depois do publish |
 | `sonar-branch-full` | check | agendamento com `SONAR_FULL_SCAN=true` |
@@ -400,8 +400,8 @@ mensagem diz o arquivo, a versão e a última versão da branch-alvo. A ordem é
 convivem. Para corrigir, dê rebase na branch-alvo e renumere a migração para depois da última;
 migração já aplicada não se renomeia. Ficam de fora a migração Java e as `R__`/`U__`. O template do CI a
 chama no job `check-flyway-migrations` (stage `check`), só em MR que toca `db/migration/`, com
-`--base-branch origin/<alvo da MR>`; vale a partir da tag do ci-templates que fixa o orchestrator
-`3.22.0` (a ref é definida depois do merge da TG-437, e cada projeto sobe o seu `ref`). Projeto
+`--base-branch origin/<alvo da MR>`; vale a partir do `ref` `v1.22.0` do ci-templates (orchestrator
+`3.22.0`), e cada projeto sobe o seu `ref`. Projeto
 preso a orchestrator anterior, ou com módulo próprio sem a função, pula o job com `AVISO` no log.
 O resultado vale para o momento da pipeline, e uma MR já verde não roda de novo quando outra
 entra antes na branch-alvo.
