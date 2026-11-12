@@ -22,7 +22,7 @@ Antes de despachar, leia as instruções canônicas do alvo. Recupere decisões 
 1. Confira story, critérios, branch base e dependências; prepare o pacote e o worktree: [despacho](references/despacho.md). Várias stories entregues de uma vez, com autorização declarada, formam uma [onda](references/ondas.md).
 2. Resolva um alias separado para cada papel. Honre escolhas explícitas e preferências persistentes; não pergunte novamente por story. "Despacha" sem par indicado usa o [par padrão](references/despacho.md#par-padrão), sem perguntar.
 3. Se houver planejamento independente, ofereça conversa em outro pane: [planejamento](references/planejamento.md).
-4. Lance e acompanhe a rodada: [acompanhamento](references/acompanhamento.md). Leia a skill `herdr` antes de controlar panes; sem ambiente Herdr ativo, informe a limitação.
+4. Lance e acompanhe a rodada: [acompanhamento](references/acompanhamento.md). Lance, avise e consulte workers pelo [`scripts/herdr-workers.sh`](scripts/herdr-workers.sh) (`start`, `prompt`, `estado`; sempre JSON), não por comando montado na hora. Leia a skill `herdr` antes de controlar panes; sem ambiente Herdr ativo, informe a limitação.
 5. Após devolução válida, lance revisão independente e conduza correções: [revisão](references/revisao.md).
 6. Execute auditoria e limpeza: [conclusão](references/conclusao-e-limpeza.md).
 
