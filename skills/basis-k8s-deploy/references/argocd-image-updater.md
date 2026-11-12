@@ -123,8 +123,13 @@ kubectl -n argocd logs deploy/argocd-image-updater --tail=100 | grep <app>
 argocd app sync <app>-<env>
 ```
 
-Para esperar o app ficar `Synced` + `Healthy` no commit empurrado, não escreva laço:
-use `scripts/espera-argocd-sync.sh` (ver §9 do `SKILL.md`).
+Para esperar a mudança chegar aos pods depois de um push de imagem, **não** use o sync: o
+SHA que você conhece é o do repositório da aplicação, e o commit do `argocd-apps` é feito
+pelo Image Updater, que você não conhece (esse SHA nunca aparece em
+`status.sync.revision`). Espere pela imagem com
+`scripts/esperar-rollout.sh --context <ctx> --namespace <ns> --deployment <nome> --imagem <tag>`
+(§9 do `SKILL.md`). `scripts/espera-argocd-sync.sh` serve para um commit direto no
+`argocd-apps`, com `--revisao` e `--repo`.
 
 ## Anti-padrões
 

@@ -176,20 +176,22 @@ imprime o resumo. Saída: 0 no ar, 1 rollout falhou, 2 uso/ambiente, 3 limite de
 Somente leitura, sem ler Secret. Os motivos de não improvisar o laço estão no cabeçalho do
 script.
 
-Antes disso, para saber se o próprio ArgoCD já sincronizou o commit empurrado, use
-`scripts/espera-argocd-sync.sh` (também chamado direto de qualquer shell, em
-`run_in_background` no Claude Code):
+Para saber se o próprio ArgoCD já sincronizou um commit do repositório que ele observa
+(o `argocd-apps`), use `scripts/espera-argocd-sync.sh` (chamado direto de qualquer shell,
+em `run_in_background` no Claude Code):
 
 ```bash
-scripts/espera-argocd-sync.sh --context <ctx> --app <app>-<env> --revisao <sha do commit>
+scripts/espera-argocd-sync.sh --context <ctx> --app <app>-<env> \
+  --revisao <sha no argocd-apps> --repo <clone do argocd-apps>
 ```
 
-Ele espera a Application `Synced` + `Healthy` na revisão (SHA inteiro ou prefixo de 7+).
-Saída: 0 sincronizado e saudável na revisão, 1 Degraded (além da carência) ou sync
-falhou, 2 saudável mas em outra revisão até o limite, 3 limite de tempo, 64 uso/ambiente.
-Sempre passe `--revisao`: sem ela, um app `Synced`+`Healthy` na revisão anterior conta como
-pronto. Nunca monte `kubectl` numa variável (`K="kubectl --context ..."; $K get ...`): o zsh
-do Bash tool não separa as palavras e dá "command not found".
+Com `--repo`, vale "a revisão do app contém o commit" (o app costuma avançar para commits
+de outros apps); sem `--repo`, vale igualdade. Códigos de saída, carência e limites estão no
+cabeçalho do script. **Não** passe o SHA do repositório da aplicação: no fluxo do Image
+Updater o commit do `argocd-apps` é dele, e quem espera aguarda a imagem com
+`esperar-rollout.sh --imagem`. Nunca monte `kubectl` numa variável
+(`K="kubectl --context ..."; $K get ...`): o zsh do Bash tool não separa as palavras e dá
+"command not found".
 
 ## 10. Segredos cifrados com OpenBao (preferencial)
 
