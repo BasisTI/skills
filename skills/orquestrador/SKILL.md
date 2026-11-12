@@ -32,7 +32,7 @@ Use `basis-ci-gitlab` para critérios de status, worktree, ciclo da MR e cadeia 
 
 Prepare ações concretas antes de pedir aprovação: faça a auditoria e apresente evidências e transição proposta. Prossiga com ações e transições já autorizadas na sessão ou na política do projeto; registre-as no pacote. Sem autorização para a transição, peça aprovação sobre o resultado auditado.
 
-Modo autônomo e transições automáticas vêm de `[autonomia]` da configuração, com sobrescrita por projeto ([configuração](references/configuracao.md#autonomia-e-transições-automáticas)). No modo autônomo, conduza executor → revisão → correções e retorne ao usuário em bloqueio ou término. Com worker ativo, não encerre o turno sem espera armada ([acompanhamento](references/acompanhamento.md#worker-ativo-implica-espera-armada)). O merge na `develop` é automático quando `merge_automatico` a lista e todas as condições valem no head ([condições](references/configuracao.md#merge_automatico)); sem Sonar OK conferido no head, recuse. Merge em `main`, `staging` ou qualquer outra branch é humano, e o coordenador não o faz sozinho, nem a pedido genérico de "mescla". Aceite funcional, hotspot, tag, publicação e deploy seguem a política explícita do projeto; o padrão é decisão humana. Um pacote não amplia permissões do harness.
+Modo autônomo e transições automáticas vêm de `[autonomia]` da configuração, com sobrescrita por projeto ([configuração](references/configuracao.md#autonomia-e-transições-automáticas)). No modo autônomo, conduza executor → revisão → correções e retorne ao usuário em bloqueio ou término. Com worker ativo, não encerre o turno sem espera armada, e arme-a com o `scripts/espera-onda.sh`, sem reescrever o laço ([acompanhamento](references/acompanhamento.md#worker-ativo-implica-espera-armada)). O merge na `develop` é automático quando `merge_automatico` a lista e todas as condições valem no head ([condições](references/configuracao.md#merge_automatico)); sem Sonar OK conferido no head, recuse. Merge em `main`, `staging` ou qualquer outra branch é humano, e o coordenador não o faz sozinho, nem a pedido genérico de "mescla". Aceite funcional, hotspot, tag, publicação e deploy seguem a política explícita do projeto; o padrão é decisão humana. Um pacote não amplia permissões do harness.
 
 ## Bloqueios e encerramento
 
@@ -48,6 +48,7 @@ Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempr
 
 - [Configuração](references/configuracao.md) e [exemplo TOML](assets/orquestrador.example.toml).
 - [Registro na Central](references/central.md).
+- Scripts: [espera-onda.sh](scripts/espera-onda.sh) (espera armada; teste em `scripts/tests/`).
 - Perfis: [Claude Code](references/harnesses/claude-code.md) e [Codex](references/harnesses/codex.md).
 - Pacotes: [implementação](assets/pacote-implementacao.md), [revisão](assets/pacote-revisao.md), [planejamento](assets/pacote-planejamento.md).
 - [Relatório do worker](assets/relatorio-worker.md).

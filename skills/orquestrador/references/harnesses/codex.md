@@ -6,7 +6,7 @@ Lance e retome o Codex com `--no-daemon` (`herdr agent start <nome> --kind codex
 
 ## Espera
 
-O Codex não tem tarefa em background que acorde um turno encerrado. Com worker ativo, a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) é um laço dentro do turno: cada volta roda `herdr agent wait <worker> --timeout 60000` (ou uma espera de 45–60 s), confere relatório e estado da MR e dá uma linha de progresso ao usuário. Worker `done` sem relatório passa pela tolerância de [anomalias](../acompanhamento.md#anomalias) antes de virar anomalia. O turno termina quando o worker termina, bloqueia ou mostra anomalia. Foi assim que a reação caiu de horas para 12–49 s na TG-63.
+O Codex não tem tarefa em background que acorde um turno encerrado. Com worker ativo, a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) é um laço dentro do turno: cada volta roda o [`espera-onda.sh`](../../scripts/espera-onda.sh) com `--limite-s` curto (45–60) e `--intervalo-s` 5, olha o código de saída e a linha final (`sinal=limite` é só "nada ainda": dê uma linha de progresso ao usuário e rode de novo; qualquer outro sinal encerra o laço), e confere o que o script não vigia. O contador de `--parado-s` vale só dentro de uma execução, e cada volta é uma execução nova: some você, no laço do turno, as voltas seguidas em que o worker não estava `working` (`herdr agent get`) e trate como anomalia ao passar da tolerância de [anomalias](../acompanhamento.md#anomalias). O turno termina quando o worker termina, bloqueia ou mostra anomalia. Foi assim que a reação caiu de horas para 12–49 s na TG-63.
 
 ## Diretórios e aprovação
 
