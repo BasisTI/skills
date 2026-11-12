@@ -553,6 +553,7 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 | MR "verde" e o Sonar reclama do último push | Pipeline lida por branch ou de SHA antigo; ler `head_pipeline` da MR |
 | Auditoria diz `Ready` e alguém está trabalhando | Critério por commits; o início se prova pelo registro, não pelo git |
 | Agente parado muito depois de a pipeline da MR terminar | Espera improvisada que nunca casa o SHA; usar `scripts/esperar-pipeline-mr.sh` |
+| Espera de log de build/teste (`sleep N; grep ... suite.log`) bloqueada pelo harness, ou `until ! pgrep -f ...` que nunca termina (acha a própria linha do laço) | Usar `scripts/espera-arquivo.sh` (log) ou `scripts/espera-processo.sh` (PID ou marcador), em segundo plano; nunca `pgrep -f` |
 | Espera de checks de PR no GitHub morre cedo ou é bloqueada (`grep -q pass\|fail` sem aspas, `sleep` + `gh pr checks`) | Usar `scripts/esperar-checks-pr.sh <owner/repo> <pr>` em segundo plano |
 | Espera da MR ficar mesclável quebra (`no matches found` em `glab api` com `?` sem aspas, `jq: Invalid string: control characters`, `Cannot index string with string`) | Usar `scripts/espera-mr-mergeavel.sh <projeto> <mr>` em segundo plano |
 | `production-*` no registry e a story não é `Done` | Overlay/ArgoCD ainda na versão anterior; ver a cadeia de entrega |
@@ -617,6 +618,8 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 |---|---|---|
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
 | `scripts/esperar-pipeline-mr.sh <mr>` | Não | Espera a pipeline do head da MR terminar e diz se serve de aceite (0 aceita, 1 não serve, 3 limite de tempo, 4 verde sem análise). Use-o em vez de montar laço de espera |
+| `scripts/espera-arquivo.sh <arquivo> [--padrao <regex>] [--limite-s n]` | Não | Espera um log de build/teste existir e, com `--padrao`, uma linha casar (ex.: `BUILD (SUCCESS\|FAILURE)`); imprime as últimas linhas (0 casou, 2 limite sem o arquivo aparecer, 3 limite sem o padrão casar, 4 arquivo ilegível, 64 uso). Use-o em vez de `sleep` + `grep`; rode em segundo plano |
+| `scripts/espera-processo.sh --pid <pid> \| --marcador <arquivo> [--limite-s n]` | Não | Espera um processo local terminar por `kill -0` ou por arquivo marcador, sem olhar linha de comando (0 terminou, 2 PID já inexistente, 3 limite de tempo, 64 uso; o PID que já terminou antes de começar também sai 2). Use-o em vez de `pgrep -f`. Testes dos dois: `scripts/tests/espera-arquivo-processo.test.sh` |
 | `scripts/esperar-checks-pr.sh <owner/repo> <pr>` | Não | GitHub: espera os checks do head do PR terminarem (0 todos verdes, 1 algum falhou, 2 sem checks, 3 limite de tempo, 64 uso). Use-o em vez de `sleep` + `gh pr checks`; rode em segundo plano. Testes: `scripts/tests/esperar-checks-pr.test.sh` |
 | `scripts/espera-mr-mergeavel.sh <projeto> <mr>` | Não | Espera a MR ficar mesclável (0 mergeável, 1 pipeline do head falhou, 2 conflito, 3 limite de tempo, 4 mesclada, 5 fechada, 64 uso). Use-o em vez de montar laço com `glab api`; rode em segundo plano. Testes: `scripts/tests/espera-mr-mergeavel.test.sh` |
 | `source scripts/taiga-env.sh <arquivo>` | Não | Carrega a credencial do Taiga de um `compose.yaml` ou `.env` sem imprimir valor |
