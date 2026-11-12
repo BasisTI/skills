@@ -62,6 +62,11 @@ num monitor ou em segundo plano, sem laço em volta. Não improvise essa espera:
 `plataforma-iac`, um laço feito na hora com `set -- $out` sob zsh nunca casou o SHA, e o
 agente ficou 30 minutos parado depois de a pipeline terminar, até o monitor estourar.
 
+**No GitHub**, a espera equivalente é `scripts/esperar-checks-pr.sh <owner/repo> <pr>` (sai 0 com
+todos os checks do head verdes, 1 se algum falhou, 2 se nenhum apareceu, 3 no limite de tempo).
+Ele lê os checks pelo SHA da cabeça do PR, não por `gh pr checks`, que mostra os do SHA
+anterior logo depois de um push; rode-o em segundo plano, sem `sleep` do agente.
+
 Depois do push, o `head_pipeline` pode continuar na pipeline anterior por alguns minutos,
 com a nova já rodando: é esperar o SHA bater, não aceitar a antiga. Na listagem de pipelines
 da MR (`merge_requests/<iid>/pipelines`) aparecem também pipelines de origem `external` —
