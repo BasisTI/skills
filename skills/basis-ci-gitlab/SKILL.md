@@ -553,6 +553,7 @@ Receitas verificadas em [`references/glab-argocd-cli.md`](references/glab-argocd
 | MR "verde" e o Sonar reclama do último push | Pipeline lida por branch ou de SHA antigo; ler `head_pipeline` da MR |
 | Auditoria diz `Ready` e alguém está trabalhando | Critério por commits; o início se prova pelo registro, não pelo git |
 | Agente parado muito depois de a pipeline da MR terminar | Espera improvisada que nunca casa o SHA; usar `scripts/esperar-pipeline-mr.sh` |
+| Espera da MR ficar mesclável quebra (`no matches found` em `glab api` com `?` sem aspas, `jq: Invalid string: control characters`, `Cannot index string with string`) | Usar `scripts/espera-mr-mergeavel.sh <projeto> <mr>` em segundo plano |
 | `production-*` no registry e a story não é `Done` | Overlay/ArgoCD ainda na versão anterior; ver a cadeia de entrega |
 
 ## O que engana
@@ -615,6 +616,7 @@ português e frouxo; é anterior à convenção atual e o único assim. A conven
 |---|---|---|
 | `scripts/estado-pipeline.sh` | Não | Reconcilia projeto, `ref` do template, presença das variáveis, pipeline da branch e da MR, e o trace do primeiro job que falhou |
 | `scripts/esperar-pipeline-mr.sh <mr>` | Não | Espera a pipeline do head da MR terminar e diz se serve de aceite (0 aceita, 1 não serve, 3 limite de tempo, 4 verde sem análise). Use-o em vez de montar laço de espera |
+| `scripts/espera-mr-mergeavel.sh <projeto> <mr>` | Não | Espera a MR ficar mesclável (0 mergeável, 1 pipeline do head falhou, 2 conflito, 3 limite de tempo, 4 mesclada, 5 fechada, 64 uso). Use-o em vez de montar laço com `glab api`; rode em segundo plano. Testes: `scripts/tests/espera-mr-mergeavel.test.sh` |
 | `source scripts/taiga-env.sh <arquivo>` | Não | Carrega a credencial do Taiga de um `compose.yaml` ou `.env` sem imprimir valor |
 | `scripts/configurar-taiga-projeto.sh <id>` | Só com `--apply` | Cria no board o status `Waiting for deployment` e os campos customizados dos registros; sem `--apply`, mostra o plano. Exige `admin_project_values` |
 
