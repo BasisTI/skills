@@ -13,8 +13,9 @@
 #   --marcador   termina quando o arquivo existe (o processo, ou quem o lançou, o
 #                cria ao acabar: `comando; touch /tmp/x.fim`). Serve quando o PID
 #                não é conhecido ou pertence a outro usuário.
-#   --limite-s   tempo máximo de espera (padrão 3600).
-# Variável opcional: INTERVALO (segundos entre leituras, padrão 5).
+#   --limite-s   tempo máximo de espera (padrão 3600; máximo 86400).
+# Variável opcional: INTERVALO (segundos entre leituras, padrão 5, mínimo 1; a
+# última pausa é encurtada para não passar do limite).
 #
 # Existe para que ninguém improvise essa espera: `until ! pgrep -f <padrão>`
 # apareceu em 110 laços do levantamento de 2026-11-12 e 25 estouraram o limite,
@@ -28,9 +29,17 @@
 #
 # Saída:
 #   0  terminou: PID sumiu (sinal terminou) ou marcador apareceu (sinal marcador)
-#   2  --pid já não existia ao começar (sinal pid-inexistente): provável PID errado
+#   2  --pid já não existia ao começar (sinal pid-inexistente): o processo já
+#      terminou (um build que falha em 1 s cai aqui) ou o PID está errado
 #   3  limite de tempo atingido (sinal limite, o processo ainda vivo / sem marcador)
 #  64  uso / ambiente (argumento inválido)
+# 129/130/143  interrompido por HUP/INT/TERM; imprime `sinal interrompido`.
+#
+# Limites aceitos: PID reciclado entre duas leituras conta como vivo (inerente ao
+# --pid; para processo longo prefira --marcador); PID de thread (TID) conta como
+# vivo; marcador que sobrou de rodada anterior sai na hora, então remova-o antes
+# de lançar o comando (`rm -f /tmp/x.fim; comando; touch /tmp/x.fim`). Processo de
+# outro usuário (EPERM no `kill -0`) conta como vivo enquanto /proc/<pid> existir.
 
 set -euo pipefail
 
@@ -52,9 +61,17 @@ done
 
 { [ -n "$PID" ] || [ -n "$MARCADOR" ]; } || uso
 { [ -z "$PID" ] || [ -z "$MARCADOR" ]; } || uso
-[[ "$LIMITE" =~ ^[0-9]+$ ]] || uso
-[[ "$INTERVALO" =~ ^[0-9]+$ ]] || uso
-[ -z "$PID" ] || { [[ "$PID" =~ ^[0-9]+$ ]] && [ "$PID" -gt 0 ] || uso; }
+[[ "$LIMITE" =~ ^[0-9]{1,6}$ ]] || uso
+[ "$((10#$LIMITE))" -le 86400 ] || uso
+LIMITE=$((10#$LIMITE))
+[[ "$INTERVALO" =~ ^[0-9]{1,5}$ ]] || uso
+INTERVALO=$((10#$INTERVALO))
+[ "$INTERVALO" -ge 1 ] || uso
+if [ -n "$PID" ]; then
+  [[ "$PID" =~ ^[0-9]{1,10}$ ]] || uso
+  PID=$((10#$PID))
+  [ "$PID" -gt 0 ] || uso
+fi
 
 vivo() { # PID existe e não é zumbi
   if ! kill -0 "$PID" 2>/dev/null && [ ! -e "/proc/$PID" ]; then return 1; fi
@@ -69,6 +86,22 @@ vivo() { # PID existe e não é zumbi
 ALVO="${PID:-$MARCADOR}"
 fim() { printf 'processo %s sinal %s\n' "$ALVO" "$1"; exit "$2"; }
 
+SONO_PID=""
+interrompido() { # nome codigo
+  [ -z "$SONO_PID" ] || kill "$SONO_PID" 2>/dev/null || true
+  printf '%s  interrompido por %s\n' "$(date +%H:%M:%S)" "$1"
+  fim interrompido "$2"
+}
+trap 'interrompido HUP 129' HUP
+trap 'interrompido INT 130' INT
+trap 'interrompido TERM 143' TERM
+
+dormir() { # segundos; em segundo plano + wait para o trap agir na hora
+  sleep "$1" & SONO_PID=$!
+  wait "$SONO_PID" 2>/dev/null || true
+  SONO_PID=""
+}
+
 if [ -n "$PID" ] && ! vivo; then
   fim pid-inexistente 2
 fi
@@ -82,9 +115,10 @@ while :; do
   elif [ -e "$MARCADOR" ]; then
     fim marcador 0
   fi
-  if [ $(( $(date +%s) - inicio )) -ge "$LIMITE" ]; then
+  restante=$(( LIMITE - ($(date +%s) - inicio) ))
+  if [ "$restante" -le 0 ]; then
     echo "limite de ${LIMITE}s atingido"
     fim limite 3
   fi
-  sleep "$INTERVALO"
+  dormir $(( INTERVALO < restante ? INTERVALO : restante ))
 done
