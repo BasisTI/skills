@@ -1,8 +1,8 @@
 # Acompanhamento
 
-Use `herdr agent get/read` para estado e saída, conforme a skill `herdr`. `done` ou `idle` significa disponível para entrada, não story entregue. Confira relatório, tarefas em background e pipeline antes de concluir a rodada.
+Use `scripts/herdr-workers.sh estado <agente>` para o estado (`working|idle|blocked|done|sumiu`) e `herdr agent read`, conforme a skill `herdr`, para a saída. `done` ou `idle` significa disponível para entrada, não story entregue. Confira relatório, tarefas em background e pipeline antes de concluir a rodada.
 
-Envie o prompt uma vez; um timeout pode acontecer depois da entrega. Consulte estado e saída antes de repetir. Nas TG-225 e TG-312 do convey, todos os `agent prompt --wait` deram timeout com o agente já `working`, e o prompt tinha sido entregue. `--timeout` só vale junto com `--wait`: sem ele, a CLI recusa o comando e nada é enviado.
+Envie o prompt uma vez, por `scripts/herdr-workers.sh prompt <agente> <texto>`; um timeout pode acontecer depois da entrega, e o script o trata: `working` é entrega confirmada (`entregue_timeout`), sem `working` é `nao_confirmado` e nada é reenviado. Consulte estado e saída antes de repetir. Nas TG-225 e TG-312 do convey, todos os `agent prompt --wait` deram timeout com o agente já `working`, e o prompt tinha sido entregue. `--timeout` só vale junto com `--wait`: sem ele, a CLI recusa o comando e nada é enviado.
 
 ## Worker ativo implica espera armada
 
