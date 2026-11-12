@@ -62,6 +62,11 @@ num monitor ou em segundo plano, sem laço em volta. Não improvise essa espera:
 `plataforma-iac`, um laço feito na hora com `set -- $out` sob zsh nunca casou o SHA, e o
 agente ficou 30 minutos parado depois de a pipeline terminar, até o monitor estourar.
 
+**No GitHub**, a espera equivalente é `scripts/esperar-checks-pr.sh <owner/repo> <pr>` (sai 0 com
+todos os checks do head verdes, 1 se algum falhou, 2 se nenhum apareceu, 3 no limite de tempo).
+Ele lê os checks pelo SHA da cabeça do PR (o `gh pr checks` não expõe o SHA) e vale só a
+execução mais recente de cada check; rode-o em segundo plano, sem `sleep` do agente.
+
 **Esperar a MR ficar mesclável** (depois da revisão aprovada, ou para saber se ela foi mesclada) é
 `scripts/espera-mr-mergeavel.sh <projeto> <mr>`: sai 0 se está mergeável, 1 se a pipeline do head
 falhou, 2 com conflito, 3 no limite de tempo, 4 se já foi mesclada e 5 se foi fechada. Só conta a
