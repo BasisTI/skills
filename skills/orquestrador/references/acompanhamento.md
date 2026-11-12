@@ -8,14 +8,16 @@ Envie o prompt uma vez, por `scripts/herdr-workers.sh prompt <agente> <texto>`; 
 
 Com worker trabalhando, o coordenador não encerra o turno sem uma espera armada que o acorde. Encerrar dizendo "o executor está trabalhando" deixa a rodada dependendo do usuário: na TG-63 foram 11,4 h parado em 3 episódios. A receita depende do harness: [Claude Code](harnesses/claude-code.md#espera) espera em background com notificação; [Codex](harnesses/codex.md#espera) não acorda um turno encerrado e faz o laço dentro do turno.
 
-A espera termina por um destes sinais, conferidos a cada volta:
+A espera é o [`espera-onda.sh`](../scripts/espera-onda.sh): ele recebe `<agente>=<relatório>`, `--onda` e `--mr`, sai no primeiro sinal e imprime uma linha final com o nome dele. Os sinais, conferidos a cada volta, e o código de cada um estão no cabeçalho do script:
 
-- relatório da rodada gravado no caminho do pacote (no planejamento, o `retorno-planejamento.md`);
-- worker `idle`, `done` ou `blocked` (`herdr agent wait <worker> --timeout <ms>`);
-- MR aprovada mesclada (vigia de merge, abaixo);
-- pendência respondida: `orq pend list --respondidas` traz alguma. O daemon avisa, mas o aviso espera o coordenador `idle`/`done`, e uma espera que só olha o relatório deixaria a resposta da pessoa parada ([pendências](#abrir-a-pendência-pelo-arquivo)).
+- relatório da rodada gravado no caminho do pacote (no planejamento, o `retorno-planejamento.md`). Conta o arquivo regular não vazio, então o worker o grava por `.<nome>.tmp` e `mv`; escrito aos poucos, sairia no primeiro byte;
+- worker `blocked`, pane sumido, ou `idle`/`done` sem relatório por `--parado-s` seguidos (o estado vem só do `herdr-workers.sh estado`, que lê o JSON de `herdr agent get`);
+- MR aprovada mesclada ou fechada (vigia de merge, abaixo);
+- pendência respondida **depois de armada a espera** (`--onda`; resposta já lida e ainda não resolvida não dispara, e `--ignorar <chave>` cobre o relógio ou a resposta que caiu entre duas armadas): o daemon avisa, mas o aviso espera o coordenador `idle`/`done`, e uma espera que só olha o relatório deixaria a resposta da pessoa parada ([pendências](#abrir-a-pendência-pelo-arquivo));
+- `orq`, `gh` ou `glab` fora do ar por 5 voltas (sinal `fonte-indisponivel`, com a causa), e o `herdr` idem (`herdr-indisponivel`): são falha de ambiente, não "nada ainda";
+- limite de tempo: nunca espera indefinida (teto de 2 h; cada chamada externa roda sob `timeout`).
 
-O Herdr às vezes não reconhece o estado final do Codex; por isso a espera também confere o arquivo do relatório e usa timeout curto com rearme, nunca espera indefinida.
+O Herdr às vezes não reconhece o estado final do Codex; por isso a espera também confere o arquivo do relatório e usa limite curto com rearme.
 
 ## Anomalias
 
@@ -26,7 +28,7 @@ O Herdr às vezes não reconhece o estado final do Codex; por isso a espera tamb
 
 ## Vigia de merge
 
-MR aprovada aguardando merge entra na mesma espera: o merge é da pessoa, ou do coordenador quando a MR é para uma branch de `merge_automatico` e as condições valem no head ([configuração](configuracao.md#merge_automatico)). A cada volta, consulte o estado: `glab mr view <url> --output json | jq -r .state` (GitLab) ou `gh pr view <url> --json state -q .state` (GitHub, em maiúsculas). Em `merged`, siga o pós-merge sem esperar aviso: auditoria, transições automáticas configuradas e dependentes ([conclusão](conclusao-e-limpeza.md#auditoria-proativa)); a [limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge) é do daemon, e sem ele você roda `orq limpar`. Em `closed`, informe o usuário.
+MR aprovada aguardando merge entra na mesma espera: o merge é da pessoa, ou do coordenador quando a MR é para uma branch de `merge_automatico` e as condições valem no head ([configuração](configuracao.md#merge_automatico)). Passe a URL em `--mr` ao `espera-onda.sh`, que consulta `gh pr view` (GitHub) ou `glab mr view` (demais) a cada volta e sai com o sinal `mr`. Em `merged`, siga o pós-merge sem esperar aviso: auditoria, transições automáticas configuradas e dependentes ([conclusão](conclusao-e-limpeza.md#auditoria-proativa)); a [limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge) é do daemon, e sem ele você roda `orq limpar`. Em `closed`, informe o usuário.
 
 ## Status na sidebar
 
