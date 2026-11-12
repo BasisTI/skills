@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Espera a mudança empurrada ao argocd-apps chegar aos pods de um Deployment:
 # primeiro o template do Deployment passa a ter o que se espera (ConfigMap com
 # um texto, imagem com uma tag), depois o rollout termina.
@@ -35,7 +35,8 @@
 #   2  uso / ambiente (kubectl, jq, contexto ou Deployment inexistente)
 #   3  limite de tempo: a expectativa não chegou ao template, ou o rollout não terminou
 
-set -u
+# Sem `-e` de propósito: `rollout status` devolve código que o script interpreta.
+set -uo pipefail
 
 CONTEXTO="" NS="" DEPLOY="" TEXTO_CM="" TEXTO_IMG="" LIMITE=900 INTERVALO=15
 
