@@ -8,8 +8,8 @@ AQUI="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$AQUI/../espera-pendencia-registrada.sh"
 BASE="$(mktemp -d "${TMPDIR:-/tmp}/espera-pend.XXXXXX")"
 # Remove só o diretório criado acima (o valor do mktemp entra literal no trap).
+# shellcheck disable=SC2064  # expandir agora é intencional: caminho literal
 case "$BASE" in
-  # shellcheck disable=SC2064  # expandir agora é intencional: caminho literal
   */espera-pend.??????) trap "rm -rf -- '$BASE'" EXIT ;;
   *) echo "mktemp inesperado: $BASE" >&2; exit 2 ;;
 esac
