@@ -45,6 +45,17 @@ Com o worktree e os panes criados, grave o que o despacho criou, uma vez por US 
 
 Origem: pedido do Cedric em 2026-10-17 (orq #13), que citou o Docker compartilhado e um possível prefixo da onda.
 
+### Regra de shell dos workers
+
+O Bash tool dos workers roda em **zsh**, e o pacote repassa esta regra (os três modelos a citam). Onde ela cita um script, o coordenador escreve no pacote o caminho absoluto dele na cópia instalada dele (o worker não tem as skills), como já faz com o `espera-pendencia-registrada.sh`.
+
+- **Espera:** sempre em background (`run_in_background`) com um script pronto: `espera-pendencia-registrada.sh` (orquestrador); `esperar-pipeline-mr.sh`, `esperar-checks-pr.sh`, `espera-mr-mergeavel.sh` e, quando mesclados, `espera-arquivo.sh` e `espera-processo.sh` (basis-ci-gitlab); `esperar-rollout.sh` e, quando mesclado, `espera-argocd-sync.sh` (basis-k8s-deploy). Nunca `sleep` em primeiro plano (o harness o bloqueia) nem o contorno `timeout N tail -f /dev/null`.
+- **Aspas:** padrão com `*`, `[` ou `?` vai entre aspas (`--include='*.md'`, custom-columns, URL com query em `glab api`); sem elas o zsh aborta o comando.
+- **Script bash:** comando ou opções nunca em variável fora de array (`"${opts[@]}"`), nunca `set -- $x`; o zsh não separa palavras de variável.
+- **Nomes e palavras:** nunca `status=` como variável (somente leitura no zsh); palavra que começa com `=` quebra (`echo ======` dá "not found": use `printf '%s\n' '======'`).
+- **`rm`:** só com caminho literal; temporário vem de `mktemp -d` validado e removido por `trap`.
+- **Processos:** só se mata o que o próprio worker criou, pelo PID guardado na criação; nunca por linha de comando (`pkill`, `pgrep -f`, `args == "sleep 30"`), inclusive no subagente `qa-adversarial`. Origem: na revisão r1 da infra-2025 #443 (2026-11-12), o subagente matou o `sleep` de esperas de dois coordenadores.
+
 ### Fatos de ambiente
 
 Um fato de ambiente que decide para onde uma escrita vai entra no pacote somente se foi conferido na fonte de configuração: overlay, manifest ou values. Exemplos: qual banco, instância ou API cada ambiente usa; se staging e produção compartilham o destino. O pacote registra o caminho, o valor e a data da conferência. Comentário de código, relatório de outra story e memória são pistas: confira antes de repassar. Se não for possível conferir, o pacote marca o fato como "não confirmado" e trata o destino como de produção, para que a guarda seja implementada como se a escrita fora de produção alcançasse dados reais.
