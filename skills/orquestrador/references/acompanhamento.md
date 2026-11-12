@@ -10,11 +10,12 @@ Com worker trabalhando, o coordenador não encerra o turno sem uma espera armada
 
 A espera é o [`espera-onda.sh`](../scripts/espera-onda.sh): ele recebe `<agente>=<relatório>`, `--onda` e `--mr`, sai no primeiro sinal e imprime uma linha final com o nome dele. Os sinais, conferidos a cada volta, e o código de cada um estão no cabeçalho do script:
 
-- relatório da rodada gravado no caminho do pacote (no planejamento, o `retorno-planejamento.md`);
-- worker `blocked`, pane sumido, ou `idle`/`done` sem relatório por `--parado-s` seguidos (o estado vem só de `herdr agent get`, em JSON);
+- relatório da rodada gravado no caminho do pacote (no planejamento, o `retorno-planejamento.md`). Conta o arquivo regular não vazio, então o worker o grava por `.<nome>.tmp` e `mv`; escrito aos poucos, sairia no primeiro byte;
+- worker `blocked`, pane sumido, ou `idle`/`done` sem relatório por `--parado-s` seguidos (o estado vem só do `herdr-workers.sh estado`, que lê o JSON de `herdr agent get`);
 - MR aprovada mesclada ou fechada (vigia de merge, abaixo);
-- pendência respondida (`--onda`): o daemon avisa, mas o aviso espera o coordenador `idle`/`done`, e uma espera que só olha o relatório deixaria a resposta da pessoa parada ([pendências](#abrir-a-pendência-pelo-arquivo));
-- limite de tempo: nunca espera indefinida.
+- pendência respondida **depois de armada a espera** (`--onda`; resposta já lida e ainda não resolvida não dispara, e `--ignorar <chave>` cobre o relógio ou a resposta que caiu entre duas armadas): o daemon avisa, mas o aviso espera o coordenador `idle`/`done`, e uma espera que só olha o relatório deixaria a resposta da pessoa parada ([pendências](#abrir-a-pendência-pelo-arquivo));
+- `orq`, `gh` ou `glab` fora do ar por 5 voltas (sinal `fonte-indisponivel`, com a causa), e o `herdr` idem (`herdr-indisponivel`): são falha de ambiente, não "nada ainda";
+- limite de tempo: nunca espera indefinida (teto de 2 h; cada chamada externa roda sob `timeout`).
 
 O Herdr às vezes não reconhece o estado final do Codex; por isso a espera também confere o arquivo do relatório e usa limite curto com rearme.
 

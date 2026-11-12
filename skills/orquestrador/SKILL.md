@@ -48,7 +48,17 @@ Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempr
 
 - [Configuração](references/configuracao.md) e [exemplo TOML](assets/orquestrador.example.toml).
 - [Registro na Central](references/central.md).
-- Scripts: [espera-onda.sh](scripts/espera-onda.sh) (espera armada; teste em `scripts/tests/`).
 - Perfis: [Claude Code](references/harnesses/claude-code.md) e [Codex](references/harnesses/codex.md).
 - Pacotes: [implementação](assets/pacote-implementacao.md), [revisão](assets/pacote-revisao.md), [planejamento](assets/pacote-planejamento.md).
 - [Relatório do worker](assets/relatorio-worker.md).
+
+## Scripts
+
+Roda-se a partir do diretório da skill; os testes ficam em `scripts/tests/` (bash puro, comandos falsos no `PATH`).
+
+| Script | Muta? | Uso |
+|---|---|---|
+| `scripts/espera-onda.sh <agente>=<relatório>... [--onda <id>] [--mr <url>]` | Não | Espera armada do coordenador: sai no primeiro sinal (relatório, `blocked`, pane sumido, parado, pendência respondida, MR mesclada ou fechada, limite) com um código por sinal e a linha final `espera-onda: sinal=<nome> …`. Use-o em vez de montar laço de espera ([acompanhamento](references/acompanhamento.md#worker-ativo-implica-espera-armada)) |
+| `scripts/herdr-workers.sh estado <agente>` | Não | Estado do worker (`working\|idle\|blocked\|done\|sumiu`) em JSON, com código de saída por estado |
+| `scripts/herdr-workers.sh start --kind <harness> <nome>=<pane>...` | Sim: abre agentes nos panes indicados | Lança workers sem montar comando em variável |
+| `scripts/herdr-workers.sh prompt <agente> <texto>` | Sim: envia o prompt, uma vez | Entrega o prompt e trata o timeout do `--wait` com o agente `working` como entrega |

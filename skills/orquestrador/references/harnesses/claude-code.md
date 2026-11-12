@@ -7,7 +7,7 @@ Confira `claude --help` e a configuração efetiva antes de iniciar. Selecione m
 O Claude Code acorda o turno quando um comando em background termina. Arme a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) com o [`espera-onda.sh`](../../scripts/espera-onda.sh), como comando Bash com `run_in_background`, e encerre o turno só depois de armá-la. Não reescreva o laço: o Bash tool roda em zsh, e o laço improvisado já morreu por isso (`${!R[@]}`, "bad substitution"). O cabeçalho do script traz parâmetros e códigos de saída:
 
 ```bash
-<skill>/scripts/espera-onda.sh <worker>=<relatorio> [--onda <id>] [--mr <url>]
+<skill>/scripts/espera-onda.sh <worker>=<relatorio> [--onda <id> [--ignorar <chave>]] [--mr <url>]
 ```
 
 Ao acordar, leia a linha final (`espera-onda: sinal=<nome> …`) e o código de saída. Relatório, pendência respondida e MR mesclada ou fechada seguem o fluxo normal; `blocked`, pane sumido e parado são anomalia ([anomalias](../acompanhamento.md#anomalias)). Os 10 min de `--parado-s` são valor de partida: cobrem a janela em que o executor está entre um comando e o seguinte, e o contador zera sempre que o worker volta a `working`.
