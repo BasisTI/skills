@@ -5,7 +5,8 @@
 # Uso:
 #   espera-pendencia-registrada.sh <dir_pendencias> <slug> [limite_s]   (padrão: 30)
 #
-#   <dir_pendencias>  pasta `pendencias/` da rodada (ou da US, no coordenador)
+#   <dir_pendencias>  pasta `pendencias/` da US (`<projeto>/TG-<ref>/pendencias`) ou do papel e rodada
+#                     (`<projeto>/TG-<ref>/<papel>/<rodada>/pendencias`); nunca `<projeto>/TG-<ref>/r<n>/pendencias`
 #   <slug>            nome do arquivo sem extensão. O script usa:
 #                       .<slug>.md.tmp   arquivo recém-gravado: vira <slug>.md por `mv`
 #                       <slug>.md        arquivo já no lugar (nada a mover)
