@@ -79,9 +79,9 @@ O `GLAB_CONFIG_DIR` vem de `[identidades.<papel>]` ([configuração](configuraca
 
 O worktree já existe, criado pelo `wt` no passo anterior; `herdr workspace create` e `herdr worktree create/open` abririam um workspace à parte para cada worker, que é justamente o que este layout evita. Story de projeto diferente do workspace atual: pergunte ao usuário onde abrir.
 
-Dê ao pane o rótulo e ao agente o nome de [nomes dos panes](#nomes-dos-panes). Obtenha IDs da resposta; associe pane e agente à missão. Passe argumentos nativos por uma lista explícita, sem montar comandos por concatenação de texto externo.
+Dê ao pane o rótulo e ao agente o nome de [nomes dos panes](#nomes-dos-panes). Obtenha IDs da resposta; associe pane e agente à missão. Lance os workers com [`scripts/herdr-workers.sh`](../scripts/herdr-workers.sh): `herdr-workers.sh start --kind <harness> <nome>=<pane>... [-- <arg nativo>...]`, um par por worker, já separado (cabeçalho do script: uso, códigos e JSON de saída). Não guarde os pares numa variável nem use `set -- $x`: o zsh do Bash tool não separa palavras e o `herdr agent start` recebe tudo como um alvo só.
 
-Confirme agente pronto e entrega do prompt. Não reenvie automaticamente depois de timeout. O pacote contém transições autorizadas; registros de status são feitos pelo responsável indicado nele. Registre o despacho ([Central](central.md#do-fluxo-ao-comando)) e arme a espera antes de encerrar o turno ([acompanhamento](acompanhamento.md#worker-ativo-implica-espera-armada)).
+Envie o prompt de despacho com `herdr-workers.sh prompt <agente> <texto>`, uma vez. O script trata o timeout do `--wait` com o agente `working` como entrega confirmada e, sem `working`, informa `nao_confirmado` sem reenviar. Não reenvie automaticamente depois de timeout. O pacote contém transições autorizadas; registros de status são feitos pelo responsável indicado nele. Registre o despacho ([Central](central.md#do-fluxo-ao-comando)) e arme a espera antes de encerrar o turno ([acompanhamento](acompanhamento.md#worker-ativo-implica-espera-armada)).
 
 ## Nomes dos panes
 
