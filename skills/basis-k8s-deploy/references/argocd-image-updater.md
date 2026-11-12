@@ -123,6 +123,9 @@ kubectl -n argocd logs deploy/argocd-image-updater --tail=100 | grep <app>
 argocd app sync <app>-<env>
 ```
 
+Para esperar o app ficar `Synced` + `Healthy` no commit empurrado, não escreva laço:
+use `scripts/espera-argocd-sync.sh` (ver §9 do `SKILL.md`).
+
 ## Anti-padrões
 
 - **Tag `latest` em produção** — Image Updater não consegue ordenar; deploy não-determinístico
