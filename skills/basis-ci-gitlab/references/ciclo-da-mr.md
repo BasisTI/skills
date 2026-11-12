@@ -64,8 +64,8 @@ agente ficou 30 minutos parado depois de a pipeline terminar, até o monitor est
 
 **No GitHub**, a espera equivalente é `scripts/esperar-checks-pr.sh <owner/repo> <pr>` (sai 0 com
 todos os checks do head verdes, 1 se algum falhou, 2 se nenhum apareceu, 3 no limite de tempo).
-Ele lê os checks pelo SHA da cabeça do PR, não por `gh pr checks`, que mostra os do SHA
-anterior logo depois de um push; rode-o em segundo plano, sem `sleep` do agente.
+Ele lê os checks pelo SHA da cabeça do PR (o `gh pr checks` não expõe o SHA) e vale só a
+execução mais recente de cada check; rode-o em segundo plano, sem `sleep` do agente.
 
 Depois do push, o `head_pipeline` pode continuar na pipeline anterior por alguns minutos,
 com a nova já rodando: é esperar o SHA bater, não aceitar a antiga. Na listagem de pipelines
