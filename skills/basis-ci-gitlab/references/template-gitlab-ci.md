@@ -54,6 +54,7 @@ stages:
 |---|---|---|
 | `validate-pipeline-config` | check | MR que toca `ci/pipeline.toml` |
 | `check-quality` | check | `$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'develop'` |
+| `check-flyway-migrations` | check | MR com mudança em `**/db/migration/**/*`, qualquer destino, a partir do `ref` `v1.22.0`; pula com aviso se o módulo não expõe a função, reprova se o módulo não carrega |
 | `publish-develop` | build | `$CI_COMMIT_BRANCH == 'develop'` |
 | `check-images-ready` | pre-prod | MR develop→main **e** push em `main` |
 | `promote-production` | promote | push em `main` |
