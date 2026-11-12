@@ -67,6 +67,11 @@ todos os checks do head verdes, 1 se algum falhou, 2 se nenhum apareceu, 3 no li
 Ele lê os checks pelo SHA da cabeça do PR (o `gh pr checks` não expõe o SHA) e vale só a
 execução mais recente de cada check; rode-o em segundo plano, sem `sleep` do agente.
 
+**Esperar a MR ficar mesclável** (depois da revisão aprovada, ou para saber se ela foi mesclada) é
+`scripts/espera-mr-mergeavel.sh <projeto> <mr>`: sai 0 se está mergeável, 1 se a pipeline do head
+falhou, 2 com conflito, 3 no limite de tempo, 4 se já foi mesclada e 5 se foi fechada. Só conta a
+pipeline do SHA do head; rode-o em segundo plano, sem `sleep` do agente nem `glab api` à mão.
+
 Depois do push, o `head_pipeline` pode continuar na pipeline anterior por alguns minutos,
 com a nova já rodando: é esperar o SHA bater, não aceitar a antiga. Na listagem de pipelines
 da MR (`merge_requests/<iid>/pipelines`) aparecem também pipelines de origem `external` —
