@@ -19,6 +19,7 @@ Antes de despachar, leia as instruções canônicas do alvo. Recupere decisões 
 
 ## Fluxo e referências
 
+0. Com `init` como argumento (`/orquestrador init`), conduza o [início guiado](references/inicio.md): projeto, épico opcional e prontidão das US, só com leituras, até a criação da onda.
 1. Confira story, critérios, branch base e dependências; prepare o pacote e o worktree: [despacho](references/despacho.md). Várias stories entregues de uma vez, com autorização declarada, formam uma [onda](references/ondas.md).
 2. Resolva um alias separado para cada papel. Honre escolhas explícitas e preferências persistentes; não pergunte novamente por story. "Despacha" sem par indicado usa o [par padrão](references/despacho.md#par-padrão), sem perguntar.
 3. Se houver planejamento independente, ofereça conversa em outro pane: [planejamento](references/planejamento.md).
