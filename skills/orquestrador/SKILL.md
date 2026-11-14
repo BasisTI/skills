@@ -50,7 +50,8 @@ Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempr
 - [Registro na Central](references/central.md).
 - Perfis: [Claude Code](references/harnesses/claude-code.md) e [Codex](references/harnesses/codex.md).
 - Pacotes: [implementação](assets/pacote-implementacao.md), [revisão](assets/pacote-revisao.md), [planejamento](assets/pacote-planejamento.md).
-- [Relatório do worker](assets/relatorio-worker.md).
+- [Relatório do worker](assets/relatorio-worker.md) e [retorno do planejamento](assets/retorno-planejamento.md).
+- Papel do planejador: [`agents/planejador.md`](../../agents/planejador.md) ([planejamento](references/planejamento.md)).
 
 ## Scripts
 
