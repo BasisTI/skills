@@ -4,7 +4,7 @@ Onda é um conjunto ordenado de stories que o usuário entrega ao coordenador de
 
 ## O contrato
 
-Antes de despachar, confirme com o usuário o que ele não disse e dê à onda um nome e ao pane do coordenador o rótulo e o nome de agente dela ([nomes dos panes](despacho.md#nomes-dos-panes)) e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--ate`, `--ordem` e `--depende`; sem ela, no registro da missão):
+Antes de despachar, rode a [busca de US similares](#us-similares-na-criação-da-onda) (em projeto com board Taiga), confirme com o usuário o que ele não disse e dê à onda um nome e ao pane do coordenador o rótulo e o nome de agente dela ([nomes dos panes](despacho.md#nomes-dos-panes)) e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--ate`, `--ordem` e `--depende`; sem ela, no registro da missão):
 
 - **Stories e ordem.** A ordem de despacho e, quando houver, a ordem de merge.
 - **Até onde ir sem perguntar.** O padrão é MR aprovada, pronta para merge; onde `merge_automatico` lista a branch de destino, o merge também entra, e a onda segue até o pós-merge ([condições](configuracao.md#merge_automatico)). Merge em outra branch (`main`, `staging`) continua humano, mesmo com autorização para a onda; transições seguem `[autonomia]` ([configuração](configuracao.md#autonomia-e-transições-automáticas)).
@@ -12,6 +12,45 @@ Antes de despachar, confirme com o usuário o que ele não disse e dê à onda u
 - **O que fica de fora.** Escritas externas que dependem da pessoa viram pendência, não bloqueio da onda. Naquela noite, sem escrita no SGO, a verificação da TG-217 ficou pendente e a implementação seguiu com a alternativa segura.
 
 Dentro do contrato, o coordenador despacha a próxima story elegível (`orq onda proxima`, com a Central) sem nova pergunta, respeitando os limites de `[coordenador]` (`max_executores`, `max_revisores`, `max_builds_pesados`). Pedido explícito do usuário pode ampliar o limite ou encurtar o fluxo para a onda: na subida para a v1.16.0 (2026-10-05), três stories de três projetos correram com três executores simultâneos, contra `max_executores = 2`, e sem revisão, ambos por escolha do usuário. Anote a mudança no registro.
+
+### US similares na criação da onda
+
+Em toda criação de onda em projeto com board Taiga, a busca roda **antes** do `orq onda criar`, sem a pessoa pedir: vale para a onda que sai do [`/orquestrador init`](inicio.md) e para o pedido direto ("cria a onda com a TG-x a TG-y"). Serve para não deixar US parada e esquecida no board enquanto uma vizinha dela entra em onda (pedido de 2026-11-14, orq #55). É leitura e julgamento do coordenador; não há índice nem comando novo.
+
+**Onde procurar.** No mesmo board, as US abertas que cumprem tudo isto:
+
+- status `New` ou `Ready`, pelo nome exato, o mesmo critério de "pronta" do [início guiado](inicio.md#2-épico-opcional) (`Ready for test` não conta);
+- fora de onda aberta da Central: as ondas abertas vêm de `orq snapshot` (a US tem `chave` `<slug>/<ref>`; onda com `encerrada_em` nulo);
+- fora da lista que a pessoa já deu;
+- sem épico, ou em épico diferente do da onda.
+
+```bash
+taiga story list --project <slug> --closed=false --output json   # status em status_extra_info.name; épicos em epics
+orq snapshot                                                      # ondas abertas e suas US
+```
+
+**Como.** Leia os títulos de todas essas US e escolha as de assunto parecido com o das US da onda (mesmo módulo, tela, regra ou tipo de problema). Só das candidatas leia a descrição (`taiga story get <ref> --project <slug>`) para confirmar. `--search` só procura no título, por isso não substitui a leitura.
+
+**O que mostrar à pessoa**, da mais para a menos parecida, no máximo cerca de 10: número, título, uma linha da descrição e o motivo da semelhança.
+
+```text
+ #59  Padronizar specs e o fluxo planejador, coordenador e orq
+      descrição: padroniza as skills de spec e plano e o retorno do planejador ao coordenador
+      motivo: mesmo papel do planejador que a #82 muda (épico #36)
+```
+
+Sem candidata, diga "nenhuma US parecida entre as N olhadas" (N = quantas passaram pelo filtro), para provar que a busca rodou.
+
+**Inclusão é escolha da pessoa.** Nada entra na onda nem é vinculado sem ela escolher. As escolhidas entram no próprio `orq onda criar` (`--us` leva as US separadas por vírgula, num argumento só: `--us 52,53`; repetir `--us` fica só com a última). Com a onda já criada, use `orq onda adicionar <id> <ref>…` ([abaixo](#acrescentar-story-à-onda-aberta)). Confira com `orq onda ver <id>`.
+
+**Vínculo ao épico.** Se a onda tem épico e uma US incluída está fora dele, o coordenador a vincula ao épico no Taiga (decisão de 2026-11-14, orq #55):
+
+```bash
+taiga epic link <epic> <story> --project <slug>    # sem --replace
+taiga epic get <epic> --project <slug>             # releia: a US precisa aparecer
+```
+
+Não use `--replace`: ele tira a US dos outros épicos (exige `--confirm-delete`), e o Taiga aceita mais de um épico por US. PATCH aceito sem a releitura não prova o vínculo. Board com o módulo de Epics desligado segue o [Épico da onda](#épico-da-onda): peça permissão antes de ligar.
 
 ## Acrescentar story à onda aberta
 

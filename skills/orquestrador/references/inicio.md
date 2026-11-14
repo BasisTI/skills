@@ -61,7 +61,7 @@ Com o épico escolhido, o coordenador lê as US prontas (`taiga story get <ref> 
 - **Alguma precisa de planejamento:** abre o planejamento direto, com o papel `planejador` ([planejamento](planejamento.md)), sem perguntar de novo.
 - **Nenhuma precisa:** o planejamento fica como oferta opcional e o fluxo segue para a criação da onda com as US prontas do épico, conforme o contrato de [ondas](ondas.md#o-contrato).
 
-A avaliação é leitura e opinião do coordenador; quem decide é a pessoa. O ponto de encontro com a busca de US similares é a criação da onda, em [ondas](ondas.md).
+A avaliação é leitura e opinião do coordenador; quem decide é a pessoa. Na criação da onda, antes do `orq onda criar`, roda a [busca de US similares](ondas.md#us-similares-na-criação-da-onda) (regra em `ondas.md`).
 
 ## 4. Falha de leitura
 
