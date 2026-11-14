@@ -23,12 +23,14 @@ Agent skills com os padrões de engenharia da [Basis](https://www.basis.com.br) 
 | Agente | Papel |
 |--------|-------|
 | [`qa-adversarial`](agents/qa-adversarial.md) | Revisor adversarial da MR: parte da premissa de que o código quebra e procura o caso concreto que prova. Severidade ancorada no ambiente real e escopo por rodada, conforme a revisão da `basis-ci-gitlab`. Usado como subagente no Claude Code e no opencode. |
+| [`planejador`](agents/planejador.md) | Parceiro de planejamento: conduz a conversa para tirar as decisões da pessoa e não as toma por ela. Uma pergunta por vez, nunca responde às próprias perguntas, nenhuma pendência antes do fechamento, decisão só com fala e data. Retorno no modelo fixo da skill `orquestrador`. |
 
 O skills CLI não instala agentes. Aponte o diretório de agentes do harness para o arquivo
 do clone, para que um `git pull` traga as mudanças:
 
 ```bash
 ln -sf ~/caminho/do/clone/skills/agents/qa-adversarial.md ~/.claude/agents/qa-adversarial.md
+ln -sf ~/caminho/do/clone/skills/agents/planejador.md ~/.claude/agents/planejador.md
 ```
 
 ## Instalação
