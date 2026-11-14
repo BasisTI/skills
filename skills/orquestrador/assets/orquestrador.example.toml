@@ -46,6 +46,15 @@ modelo = "gpt-6-sol"
 esforco = "medium"
 ambiente = "local"
 
+# Alternativo de revisão: entra só quando o revisor atual para por limite de uso
+# (mensagem de limite do harness no pane), nunca pelo menu "Approaching rate limits".
+# Depois da troca, fica até o fim da story, no mesmo pane.
+[aliases.revisao-fallback]
+harness = "claude-code"
+modelo = "claude-fable-5-2"
+esforco = "medium"
+ambiente = "local"
+
 [aliases.planejamento-padrao]
 harness = "claude-code"
 modelo = "claude-opus-5-5"
@@ -64,7 +73,7 @@ papel = "revisao"
 complexidade = "*"
 risco = "*"
 alias = "revisao-padrao"
-fallback = []
+fallback = ["revisao-fallback"]
 
 [[selecao]]
 papel = "planejamento"

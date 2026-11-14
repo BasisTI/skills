@@ -16,6 +16,10 @@ Não há atalho por "shell em background": a conferência pelo processo (`pgrep 
 
 O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: o script tem limite próprio (`--limite-s`, padrão 6600) e, ao receber o aviso de espera morta, você confere estado e relatório e rearma. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
 
+## Limite de uso
+
+Sinal de parada por limite: o pane parado com a mensagem de limite de uso de 5 h do harness, sem relatório. É a [troca por limite](../configuracao.md#troca-por-limite): o próximo alias do `fallback`, sem esperar a renovação. A porcentagem de cota do rodapé nunca entra na decisão.
+
 ## Permissões de worktrees e temporários
 
 A CLI oferece `--add-dir`, `--allowedTools` e `--settings`; confira sintaxe e política vigentes. Configure no escopo do projeto coordenador, com diretórios dos alvos/artefatos explicitamente autorizados. Regras de permissão ficam no perfil do ambiente, não nos aliases de modelo.

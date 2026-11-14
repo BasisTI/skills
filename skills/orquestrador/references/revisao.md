@@ -6,6 +6,16 @@ O pacote delimita a rodada conforme as seções "Severidade ancorada no ambiente
 
 Escolha alias próprio de revisão. A configuração aprovada pelo usuário fornece harness/modelo/esforço sem perguntar a cada story. Antes de lançar, confira MR aberta, conflitos, se está atrás da base e head atual. Em conflito ou atrás da base, siga [conflito](#conflito): a base entra antes da r1.
 
+## Revisor parado por limite
+
+O revisor atual que para por limite de uso não espera a renovação: o coordenador troca pelo próximo alias do `fallback` da revisão, no mesmo pane, e o alternativo fica até o fim da story ([troca por limite](configuracao.md#troca-por-limite)). O menu "Approaching rate limits" não é limite. Antes de cada prompt a um revisor Codex, r≥2 inclusa, confira o pane:
+
+```bash
+herdr agent read <nome> --source visible | grep -q -E "Switch to gpt-6-luna|GPT-6-Luna" && echo "barrado: menu ou modelo trocado"
+```
+
+Com o `grep` positivo, não envie o prompt. Menu aberto: Esc (nunca Enter) e confira o modelo. Se o modelo já mudou para Luna, saia e relance o Codex com o modelo padrão do alias, porque o menu não é limite. Só a parada de fato, com a mensagem de limite do harness, aciona o `fallback`.
+
 ## Conflito
 
 Com `"rebase-conflito"` em `acoes_automaticas` ([configuração](configuracao.md#acoes_automaticas)), MR atrás da branch de destino, com ou sem conflito, não gera pergunta: o coordenador manda o executor, no mesmo pane e worktree, trazer a base pelo caminho de `basis-ci-gitlab/references/rebase-da-branch-da-us.md` (sem conflito, rebase no servidor; com conflito, merge da base se a MR for mesclada com squash, senão rebase sobre a branch de destino e `--force-with-lease`); o revisor, depois, confirma o delta do rebase no SHA novo (o que o rebase ou a resolução do conflito mudou, sem refazer a revisão inteira) e a MR volta ao ritmo normal. A aprovação e a pipeline do SHA antigo não valem para o novo: o `--aprovado` é gravado de novo e o CI roda de novo. Conflito que exige escolher entre dois comportamentos (e não só reaplicar o diff) é decisão da pessoa: pendência, não rebase automático. Quando trazer a base, em que ordem, quantas voltas e o efeito sobre o merge automático estão em [atrás da base](configuracao.md#atras-da-base). Sem a ação na lista, a pergunta é concreta.
