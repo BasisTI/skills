@@ -8,6 +8,10 @@ Lance e retome o Codex com `--no-daemon` (`scripts/herdr-workers.sh start --kind
 
 O Codex não tem tarefa em background que acorde um turno encerrado. Com worker ativo, a espera ([acompanhamento](../acompanhamento.md#worker-ativo-implica-espera-armada)) é um laço dentro do turno: cada volta roda o [`espera-onda.sh`](../../scripts/espera-onda.sh) com `--limite-s` curto (45–60) e `--intervalo-s` 5, olha o código de saída e a linha final (`sinal=limite` é só "nada ainda": dê uma linha de progresso ao usuário e rode de novo; qualquer outro sinal encerra o laço), e confere o que o script não vigia. O contador de `--parado-s` vale só dentro de uma execução, e cada volta é uma execução nova: some você, no laço do turno, as voltas seguidas em que o worker não estava `working` (`scripts/herdr-workers.sh estado <agente>`) e trate como anomalia ao passar da tolerância de [anomalias](../acompanhamento.md#anomalias). O turno termina quando o worker termina, bloqueia ou mostra anomalia. Foi assim que a reação caiu de horas para 12–49 s na TG-63.
 
+## Limite de uso
+
+Sinais de parada por limite: o rodapé já em `GPT-6-Luna` sem ninguém ter pedido, e a mensagem "not supported when using Codex with a ChatGPT account" ao tentar o modelo. Com a parada, o coordenador aplica a [troca por limite](../configuracao.md#troca-por-limite). O menu "Approaching rate limits / Switch to gpt-6-luna?" não é sinal: Esc, nunca Enter. A barreira com `grep` antes de cada prompt, r≥2 inclusa, está em [revisão](../revisao.md#revisor-parado-por-limite).
+
 ## Diretórios e aprovação
 
 No perfil do coordenador, registre os diretórios necessários para worktrees, metadados Git e artefatos. `--add-dir <diretorio>` acrescenta diretório gravável na execução compatível; não amplia os direitos do processo pai ou da plataforma que o lançou. Confirme `.git` real de worktrees e raízes de escrita antes de tentar remover.

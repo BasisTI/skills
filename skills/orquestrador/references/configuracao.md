@@ -14,7 +14,23 @@ Precedência: escolha explícita atual do usuário → preferência persistente 
 
 **Seleção**: regras associam papel, complexidade e risco a um alias. Use o primeiro seletor compatível, na ordem do arquivo; `*` aceita qualquer valor. Papéis iniciais: planejamento, implementação e revisão. Avalie complexidade por ambiguidade, extensão e dependências; risco por impacto e reversibilidade. Documente a classificação.
 
-Fallback só usa aliases listados e disponíveis. Se nenhum puder cumprir o contrato, reporte bloqueio e peça a escolha que falta. Escalada por ambiguidade ou falhas recorrentes usa a política configurada; não autoriza gasto ou modelo fora das escolhas do usuário.
+Fallback só usa aliases listados e disponíveis. Se nenhum puder cumprir o contrato, reporte bloqueio e peça a escolha que falta. A troca por limite de uso está em [troca por limite](#troca-por-limite). Escalada por ambiguidade ou falhas recorrentes usa a política configurada; não autoriza gasto ou modelo fora das escolhas do usuário.
+
+## Troca por limite
+
+Vale para o worker atual de qualquer papel que tenha `fallback` no seletor (hoje só a revisão tem lista) e para qualquer harness. Origem: decisões do Cedric em 2026-11-12 (orq #53), depois que, em 2026-10-18, o coordenador esperou a cota renovar com o revisor Codex parado.
+
+- **Sinal.** O worker parou (sem relatório, `idle`/`done` ou parado no meio) e o pane mostra a mensagem de limite do harness; as conhecidas estão em [Codex](harnesses/codex.md#limite-de-uso) e [Claude Code](harnesses/claude-code.md#limite-de-uso). O menu "Approaching rate limits / Switch to gpt-6-luna?" **não** é sinal: o alerta já aparece com metade da cota, e o coordenador o fecha com Esc (nunca Enter) e segue no modelo padrão. A porcentagem de cota no rodapé nunca entra na decisão.
+- **Troca imediata, sem perguntar.** O coordenador não agenda espera pela renovação. Usa o próximo alias do `fallback` do seletor daquele papel e avisa o usuário (alias, modelo, motivo e rodada). Se o alternativo também parar por limite, vai para o seguinte; com a lista esgotada, é bloqueio reportado (parágrafo de fallback acima).
+- **Até o fim da story.** O alternativo fica com a story, rodadas seguintes inclusas, no mesmo pane. Não volta ao alias original quando a cota renova.
+- **Como trocar.** O `harness` da configuração não é o `--kind` do Herdr: converta (`claude-code` → `claude`, `codex` → `codex`; os demais valores aceitos estão em `herdr agent start --help`). Encerre o harness atual (`/quit` no Codex), espere o prompt do shell do pane e confira que o `GLAB_CONFIG_DIR` do papel segue ali (`glab api user | jq -r .username` responde o usuário do papel; o pane o recebeu por `--env` no [despacho](despacho.md#inicialização) e o mantém). Então rode, por exemplo na troca Codex → Claude Code, com o nome do agente e o pane que já existem:
+
+  ```bash
+  herdr agent start tg-53_revisor --kind claude --pane wA:p3N -- --model claude-fable-5-2 --effort medium
+  ```
+
+  Modelo e esforço vêm do alias de fallback. O prompt avisa a troca de harness, diz que o trabalho parcial do anterior é pista e não evidência, e manda reconferir as discussões que ele já tenha resolvido na MR.
+- **Registro.** O relatório do worker e o aviso ao usuário trazem alias, modelo, motivo e rodada. Na Central, quando o `orq us status` aceitar `--modelo` (orq #81), passe-o em todo comando que abre ou troca pane; até lá, vale o aviso e o relatório. Detalhe em [central](central.md).
 
 ## Autonomia e transições automáticas
 
