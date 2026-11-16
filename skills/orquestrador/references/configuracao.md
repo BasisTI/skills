@@ -30,7 +30,7 @@ Vale para o worker atual de qualquer papel que tenha `fallback` no seletor (hoje
   ```
 
   Modelo e esforço vêm do alias de fallback. O prompt avisa a troca de harness, diz que o trabalho parcial do anterior é pista e não evidência, e manda reconferir as discussões que ele já tenha resolvido na MR.
-- **Registro.** O relatório do worker e o aviso ao usuário trazem alias, modelo, motivo e rodada. Na Central, quando o `orq us status` aceitar `--modelo` (orq #81), passe-o em todo comando que abre ou troca pane; até lá, vale o aviso e o relatório. Detalhe em [central](central.md).
+- **Registro.** O relatório do worker e o aviso ao usuário trazem alias, modelo, motivo e rodada. Na Central, a troca para o alternativo grava o modelo novo: `orq us status <ref> <plan|exec|rev> --pane <p> --papel <papel> --rodada <n> --modelo <id> [--esforco <nível>]` (exige o `orq` com a orq #81). Detalhe em [central](central.md).
 
 ## Autonomia e transições automáticas
 
