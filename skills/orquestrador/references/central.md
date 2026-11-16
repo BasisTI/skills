@@ -29,9 +29,9 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Contrato da [onda](ondas.md#o-contrato) fechado (o título começa pelo [nome da onda](despacho.md#nomes-dos-panes)); story isolada é onda de uma US | `orq onda criar "<onda> — <título>" --us 215,216 --ate mr-pronta\|plano\|merge --ordem estrita\|livre [--depende 216:215]` |
 | Story nova que o usuário pede para entrar numa onda que já está aberta (ex.: uma menor que surgiu de outra story; [quando](ondas.md#acrescentar-story-à-onda-aberta)) | `orq onda adicionar <id> <ref>… [--apos <ref>]` (entra no fim da onda ou depois de `--apos`; entra em `wait`, ou guarda o status se veio de onda encerrada de mesmo limite; recusa onda encerrada e story de outra onda aberta; exige o `orq` com a US #42 do projeto `orq`) |
 | Próxima story a despachar | `orq onda proxima [<id>]` (traz `us`, `bloqueadas` e o limite, e com a onda no limite o `encerramento`; o id é obrigatório com mais de uma onda aberta) |
-| Planejador aberto | `orq us status <ref> plan --pane <p> --papel planejamento --rodada 1` |
-| Executor despachado ou correção r≥2 | `orq us status <ref> exec --pane <p> --papel implementacao --rodada <n>` |
-| Revisor despachado | `orq us status <ref> rev --pane <p> --papel revisao --rodada <n>` |
+| Planejador aberto | `orq us status <ref> plan --pane <p> --papel planejamento --rodada 1 --modelo <id> [--esforco <nível>]` |
+| Executor despachado ou correção r≥2 | `orq us status <ref> exec --pane <p> --papel implementacao --rodada <n> --modelo <id> [--esforco <nível>]` |
+| Revisor despachado | `orq us status <ref> rev --pane <p> --papel revisao --rodada <n> --modelo <id> [--esforco <nível>]` |
 | Worktree e panes criados (e a cada pane novo) | `orq recursos gravar <ref> --repo … --worktree … --branch … --pane <nome>` ([recursos](despacho.md#recursos-da-us-temporários-e-docker)) |
 | MR aberta | `orq mr add <ref> <url>` |
 | Limite da onda alcançado | `orq us status <ref> done` |
@@ -42,6 +42,8 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Pendência sem arquivo (fluxo antigo, daemon sem a #15) | `orq pend add <ref> --tipo duvida\|autorizacao\|decisao "<resumo>" --pane <p>` |
 | Merge da última MR da US | nada: o daemon roda `orq limpar <ref>` ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)) |
 | Onda concluída ([regra](#encerrar-a-onda)) | `orq onda encerrar <id>`, se o daemon não encerrou |
+
+`--modelo` é o id inteiro do modelo do pane (ex. `claude-fable-5-2`, `gpt-6.1-sol`) e `--esforco` o nível (ex. `medium`). Passe os dois em todo `orq us status` que abre ou troca pane, também na troca de modelo dentro da rodada, como a [troca por limite](configuracao.md#troca-por-limite) (o diário guarda `modelo_antes`). Sem a flag, o orq mantém o gravado. Exige o `orq` com a orq #81.
 
 `done` quer dizer que a US chegou ao `--ate` da onda: plano aprovado (`plano`), MR aprovada pela revisão independente, à espera do merge (`mr-pronta`; o coordenador só marca `done` com a MR sem Draft ou com a pré-condição explícita na descrição, e a Central já mostra o selo `draft` da MR) ou MR mesclada (`merge`). Chegar ao limite não encerra a onda: [encerrar a onda](#encerrar-a-onda) é um passo do coordenador.
 
