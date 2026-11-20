@@ -61,6 +61,7 @@ Roda-se a partir do diretório da skill; os testes ficam em `scripts/tests/` (ba
 | Script | Muta? | Uso |
 |---|---|---|
 | `scripts/espera-onda.sh <agente>=<relatório>... [--onda <id>] [--mr <url>]` | Não | Espera armada do coordenador: sai no primeiro sinal (relatório, `blocked`, pane sumido, parado, pendência respondida, MR mesclada ou fechada, limite) com um código por sinal e a linha final `espera-onda: sinal=<nome> …`. Use-o em vez de montar laço de espera ([acompanhamento](references/acompanhamento.md#worker-ativo-implica-espera-armada)) |
+| `scripts/codex-confiar-hooks.sh <worktree> [--podar]` | Sim: grava em `~/.codex/config.toml` (backup antes) | Copia para o worktree novo a confiança nos hooks que o checkout principal já tem, antes de lançar o Codex ([codex](references/harnesses/codex.md#confiança-nos-hooks-do-worktree)); recusa (saída 3) se o `hooks.json` diferir |
 | `scripts/herdr-workers.sh estado <agente>` | Não | Estado do worker (`working\|idle\|blocked\|done\|sumiu`) em JSON, com código de saída por estado |
 | `scripts/herdr-workers.sh start --kind <harness> <nome>=<pane>...` | Sim: abre agentes nos panes indicados | Lança workers sem montar comando em variável |
 | `scripts/herdr-workers.sh prompt <agente> <texto>` | Sim: envia o prompt, uma vez | Entrega o prompt e trata o timeout do `--wait` com o agente `working` como entrega |
