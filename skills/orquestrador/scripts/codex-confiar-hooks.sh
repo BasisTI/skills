@@ -113,10 +113,10 @@ copiar() {
         for (i = 1; i <= nb; i++) ck_body[nc, i] = body[i] }
       key = ""; nb = 0
     }
-    /^\[/ {
+    /^[ \t]*\[/ {
       fecha()
       l = $0
-      if (sub(/^\[hooks\.state\."/, "", l) && sub(/"\][ \t]*(#.*)?$/, "", l) && match(l, /:[^:]+:[0-9]+:[0-9]+$/)) {
+      if (sub(/^[ \t]*\[hooks\.state\."/, "", l) && sub(/"\][ \t]*(#.*)?$/, "", l) && match(l, /:[^:]+:[0-9]+:[0-9]+$/)) {
         key = l; suf = substr(l, RSTART); path = substr(l, 1, RSTART - 1); nb = 0
       }
       next
@@ -161,7 +161,7 @@ podar_entradas() {
   [ -f "$config" ] || { info "podar: $config não existe; nada a fazer"; return 0; }
   paths=$(mktemp "${TMPDIR:-/tmp}/codex-confiar-paths.XXXXXX")
   faltam=$(mktemp "${TMPDIR:-/tmp}/codex-confiar-faltam.XXXXXX")
-  awk '/^\[hooks\.state\."/ { l=$0; sub(/^\[hooks\.state\."/,"",l); sub(/"\][ \t]*(#.*)?$/,"",l)
+  awk '/^[ \t]*\[hooks\.state\./ { l=$0; sub(/^[ \t]*\[hooks\.state\."/,"",l); sub(/"\][ \t]*(#.*)?$/,"",l)
          if (match(l, /:[^:]+:[0-9]+:[0-9]+$/)) print substr(l,1,RSTART-1) }' "$config" | sort -u >"$paths"
   while IFS= read -r p; do
     [ -e "$p" ] || { printf '%s\n' "$p" >>"$faltam"; n=$((n+1)); }
@@ -169,14 +169,16 @@ podar_entradas() {
   if [ "$n" = 0 ]; then info "podar: nenhuma entrada de hooks.json inexistente"; return 0; fi
   backup_uma_vez
   novo_tmp
-  awk -v lista="$faltam" '
+  nl=0; [ -z "$(tail -c1 "$config")" ] && nl=1  # preserva a ausência do newline final
+  awk -v nl="$nl" -v lista="$faltam" '
     BEGIN { while ((getline l < lista) > 0) sumido[l] = 1 }
-    /^\[/ {
+    /^[ \t]*\[/ {
       skip = 0; l = $0
-      if (sub(/^\[hooks\.state\."/, "", l) && sub(/"\][ \t]*(#.*)?$/, "", l) && match(l, /:[^:]+:[0-9]+:[0-9]+$/))
+      if (sub(/^[ \t]*\[hooks\.state\."/, "", l) && sub(/"\][ \t]*(#.*)?$/, "", l) && match(l, /:[^:]+:[0-9]+:[0-9]+$/))
         if (substr(l, 1, RSTART - 1) in sumido) skip = 1
     }
-    !skip { print }' "$config" >"$tmp"
+    !skip { printf "%s%s", sep, $0; sep = "\n" }
+    END { if (nl) printf "\n" }' "$config" >"$tmp"
   mv -- "$tmp" "$config"; tmp=""
   while IFS= read -r p; do
     ! grep -qF -- "[hooks.state.\"$p:" "$config" || erro "conferência falhou: entrada de $p ainda em $config"
@@ -186,5 +188,7 @@ podar_entradas() {
 
 RC=0
 if [ -n "$worktree" ]; then copiar; fi
-if [ "$podar" = 1 ]; then podar_entradas; fi
+if [ "$podar" = 1 ]; then
+  if [ "$RC" != 0 ]; then info "--podar não executado: a cópia foi recusada e nada é gravado"; else podar_entradas; fi
+fi
 exit "$RC"

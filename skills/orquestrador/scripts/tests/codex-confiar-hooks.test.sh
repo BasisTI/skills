@@ -132,6 +132,39 @@ cmp -s "$RAIZ/antes.toml" "$CFG" && [ "$RC" = 0 ] && [[ "$SAIDA" == *"nenhuma en
 rodar "$WT" --podar --config "$CFG"
 [ "$RC" = 0 ]; confere "worktree e --podar juntos" $?
 
+# --- M1: cabeçalho indentado delimita seção -------------------------------------
+config_base
+printf '\n  [mcp_servers.indentado]\n  command = "alheio"\n' >>"$CFG"
+printf '\n\t[hooks.state."%s/.codex/hooks.json:stop:0:0"]\n\ttrusted_hash = "%s"\n' "$RAIZ/morto" "$H1" >>"$CFG"
+printf '\n  [mcp_servers.depois]\n  command = "outro"\n' >>"$CFG"
+rodar --podar --config "$CFG"
+grep -qx '  command = "alheio"' "$CFG" && grep -qx '  \[mcp_servers.indentado\]' "$CFG" && grep -qx '  command = "outro"' "$CFG" && [ "$(conta "$RAIZ/morto")" = 0 ] && ! grep -q "$RAIZ/morto" "$CFG"; confere "--podar com cabeçalho indentado: remove só o bloco morto (indentado) e preserva a seção alheia" $?
+printf 'model = "gpt-6"\n' >"$CFG"
+printf '\n  [hooks.state."%s/.codex/hooks.json:stop:0:0"]\n  trusted_hash = "%s"\n\n  [mcp_servers.fim]\n  command = "fim"\n' "$CKP" "$H1" >>"$CFG"
+cp "$CFG" "$RAIZ/orig.toml"; rodar "$WT" --config "$CFG"
+grep -qx '  command = "fim"' "$CFG" && [ "$RC" = 0 ]; confere "cópia com cabeçalho indentado no config preserva seção seguinte" $?
+[ "$(grep -c "hooks.state.\"$WTP/.codex/hooks.json:stop:0:0\"" "$CFG")" = 1 ]; confere "cópia com cabeçalho indentado não duplica tabela" $?
+
+# --- M2: --podar preserva a ausência de newline final -------------------------
+config_base; printf '\n[hooks.state."%s/.codex/hooks.json:stop:0:0"]\ntrusted_hash = "%s"\n\n[depois]\nx = 1' "$RAIZ/morto" "$H1" >>"$CFG"
+rodar --podar --config "$CFG"
+config_base; printf '\n[depois]\nx = 1' >>"$CFG"; cp "$CFG" "$RAIZ/esperado.toml"
+config_base; printf '\n[hooks.state."%s/.codex/hooks.json:stop:0:0"]\ntrusted_hash = "%s"\n\n[depois]\nx = 1' "$RAIZ/morto" "$H1" >>"$CFG"
+rodar --podar --config "$CFG"
+cmp -s "$RAIZ/esperado.toml" "$CFG"; confere "--podar sem newline final: byte a byte, continua sem newline" $?
+config_base; printf '\n[hooks.state."%s/.codex/hooks.json:stop:0:0"]\ntrusted_hash = "%s"' "$RAIZ/morto" "$H1" >>"$CFG"
+rodar --podar --config "$CFG"
+[ "$RC" = 0 ] && ! grep -q "$RAIZ/morto" "$CFG" && [ "$(tail -c1 "$CFG" | od -An -c | tr -d ' ')" = '\n' ]; confere "--podar do último bloco, sem newline final: termina em newline do bloco anterior" $?
+
+# --- M3: recusa + --podar não escreve nada ------------------------------------
+config_base
+printf '\n[hooks.state."%s/.codex/hooks.json:stop:0:0"]\ntrusted_hash = "%s"\n' "$RAIZ/morto" "$H1" >>"$CFG"
+printf '%s\n' '{"hooks":{"Stop":[]}}' >"$WT/.codex/hooks.json"
+cp "$CFG" "$RAIZ/orig.toml"; antes=$(ls "$CODEX_HOME" | wc -l)
+rodar "$WT" --podar --config "$CFG"
+[ "$RC" = 3 ] && cmp -s "$RAIZ/orig.toml" "$CFG" && [ "$(ls "$CODEX_HOME" | wc -l)" = "$antes" ] && [[ "$SAIDA" == *"não executado"* ]]; confere "recusa + --podar: saída 3, config intocado, sem backup, e diz que não podou" $?
+printf '%s\n' "$HOOKS" >"$WT/.codex/hooks.json"
+
 # --- uso ----------------------------------------------------------------------
 rodar; [ "$RC" = 2 ]; confere "sem argumentos: saída 2" $?
 rodar --zzz; [ "$RC" = 2 ]; confere "opção desconhecida: saída 2" $?
