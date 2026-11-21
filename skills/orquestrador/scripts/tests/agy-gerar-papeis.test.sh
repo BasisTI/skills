@@ -67,7 +67,8 @@ A="$DEST/alfa/agent.md"
 # defeito (achado nesta rodada): o gerador perdia o `---` de abertura e o agy não via frontmatter
 confere "frontmatter abre com --- na 1ª linha e fecha com --- logo antes da marca" "$([ "$(head -n1 "$A")" = --- ] && [ "$(grep -n '^<!-- gerado por' "$A" | cut -d: -f1)" = "$(( $(grep -n '^---$' "$A" | sed -n 2p | cut -d: -f1) + 1 ))" ]; echo $?)"
 confere "name e description (dobrada) copiados" "$(tem "$A" 'name: alfa' && tem "$A" 'description: >-' && tem "$A" '  em duas linhas.'; echo $?)"
-confere "subagent, mainAgent e tools completo (canônico sem tools)" "$(tem "$A" 'subagent: true' && tem "$A" 'mainAgent: false' && tem "$A" "$TODAS"; echo $?)"
+# defeito (orq #111): `mainAgent: false` escondia o papel de `agy agents` e de `--agent`
+confere "subagent: true, mainAgent: true (nunca false) e tools completo (canônico sem tools)" "$(tem "$A" 'subagent: true' && tem "$A" 'mainAgent: true' && ! tem "$A" 'mainAgent: false' && tem "$A" "$TODAS"; echo $?)"
 confere "descarta mode, model e color" "$(! grep -qE '^(mode|model|color):' "$A"; echo $?)"
 confere "marca de gerado" "$(grep -qF '<!-- gerado por agy-gerar-papeis.sh a partir de alfa.md' "$A"; echo $?)"
 # defeito: comparar via $(...) esconde newline final a mais ou a menos; aqui é cmp em arquivo
@@ -114,6 +115,10 @@ confere "5b: rodada limpa depois da recusa gera o arquivo (rc 0)" "$([ $rc = 0 ]
 printf 'x\n' >>"$AG/beta.md"; roda beta; roda alfa beta
 confere "arquivo gerado (com a marca) é regravado quando o canônico muda" "$([ $rc = 0 ] && tem "$DEST/beta/agent.md" 'x'; echo $?)"
 
+# agent.md que é diretório: rc 3 e sem temporário (N6: o rc não era conferido)
+zera; mkdir -p "$DEST/alfa/agent.md"
+roda alfa beta
+confere "agent.md não regular (diretório): rc 3, o outro papel gerado, nada dentro do diretório" "$([ $rc = 3 ] && [ -f "$DEST/beta/agent.md" ] && [ -z "$(ls -A "$DEST/alfa/agent.md")" ]; echo $?)"
 # ---------------------------------------------------------------- links
 zera; mkdir -p "$DEST/alfa"
 printf 'alvo do link\n' >"$RAIZ/canonico-link.md"
@@ -132,10 +137,27 @@ confere "agent.md link para DIRETÓRIO: trocado, nada cai dentro do diretório" 
 zera; mkdir -p "$RAIZ/fora"; ln -s "$RAIZ/fora" "$DEST/alfa"
 roda alfa beta --substituir-link
 confere "diretório do papel é link: rc 3, nada gravado fora, os outros gerados" "$([ $rc = 3 ] && [ -z "$(ls -A "$RAIZ/fora")" ] && [ -f "$DEST/beta/agent.md" ]; echo $?)"
-# defeito: --destino link
-ln -sfn "$DEST" "$RAIZ/destino-link"
-rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/destino-link" >/dev/null 2>&1 || rc=$?
-confere "--destino é link: rc 3" "$([ $rc = 3 ]; echo $?)"
+# defeito: --destino link. Destino LIMPO (sem o link do caso anterior): o rc 3 tem de vir
+# da recusa do --destino, e nada pode ser gravado através do link (N6 da r2 da #109).
+zera; mkdir -p "$RAIZ/alvo-dl"; ln -sfn "$RAIZ/alvo-dl" "$RAIZ/dl"
+rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/dl" >"$RAIZ/saida" 2>"$RAIZ/erro" || rc=$?
+confere "--destino é link: rc 3, recusa do --destino e nada gravado no alvo" "$([ $rc = 3 ] && grep -q -- '--destino' "$RAIZ/erro" && [ -z "$(ls -A "$RAIZ/alvo-dl")" ]; echo $?)"
+# defeito (N5): barra final contornava o -L
+rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/dl/" >"$RAIZ/saida" 2>"$RAIZ/erro" || rc=$?
+confere "--destino link com barra final: rc 3 e nada gravado" "$([ $rc = 3 ] && [ -z "$(ls -A "$RAIZ/alvo-dl")" ]; echo $?)"
+rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/dl//" >/dev/null 2>&1 || rc=$?
+confere "--destino link com barras duplas finais: rc 3" "$([ $rc = 3 ] && [ -z "$(ls -A "$RAIZ/alvo-dl")" ]; echo $?)"
+# defeito (N5): componente intermediário link
+mkdir -p "$RAIZ/alvo-dl/sub"
+rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/dl/sub" >"$RAIZ/saida" 2>"$RAIZ/erro" || rc=$?
+confere "--destino com componente intermediário link: rc 3 e nada gravado" "$([ $rc = 3 ] && [ -z "$(ls -A "$RAIZ/alvo-dl/sub")" ]; echo $?)"
+# caminho relativo com link no meio
+rc=0; (cd "$RAIZ" && bash "$SCRIPT" --agentes "$AG" --destino dl/sub >/dev/null 2>&1) || rc=$?
+confere "--destino relativo passando por link: rc 3" "$([ $rc = 3 ] && [ -z "$(ls -A "$RAIZ/alvo-dl/sub")" ]; echo $?)"
+# sem link no caminho, barra final é aceita
+zera
+rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$DEST/" beta >/dev/null 2>&1 || rc=$?
+confere "--destino real com barra final: gera (rc 0)" "$([ $rc = 0 ] && [ -f "$DEST/beta/agent.md" ]; echo $?)"
 
 # ---------------------------------------------------------------- nomes e efeito parcial
 # defeito: nome com `.` aceito (ex. `.x`, `a.b`, `..`)
@@ -173,6 +195,42 @@ confere "description dobrada sem texto: rc 1" "$([ $rc = 1 ]; echo $?)"
 printf -- '---\nname: x\n---\ncorpo\n' >"$AG/semnome.md"
 roda semnome
 confere "sem name: rc 1" "$([ $rc = 1 ]; echo $?)"
+# N4: description/name vazios ou reservados. Cada caso: rc 1 e nada gravado.
+rejeita() { # rejeita <descrição> <conteúdo do canônico com printf> [trecho esperado do erro]
+  printf -- "$2" >"$AG/inv.md"; zera; roda inv
+  confere "$1: rc 1 e nada gravado" "$([ $rc = 1 ] && [ -z "$(ls -A "$DEST")" ]; echo $?)"
+  [ -z "${3:-}" ] || confere "$1: mensagem cita '$3'" "$(grep -q -- "$3" "$RAIZ/erro"; echo $?)"
+}
+rejeita "description \"\"" '---\nname: x\ndescription: ""\n---\ncorpo\n' description
+rejeita "description ''" "---\nname: x\ndescription: ''\n---\ncorpo\n" description
+rejeita "description só comentário" '---\nname: x\ndescription: # nada\n---\ncorpo\n' description
+rejeita "description dobrada só com comentário" '---\nname: x\ndescription: >-\n  # nada\n---\ncorpo\n' description
+rejeita "description em lista" '---\nname: x\ndescription:\n  - a\n  - b\n---\ncorpo\n' description
+rejeita "name vazio" '---\nname:\ndescription: d\n---\ncorpo\n' name
+rejeita "name \"\"" '---\nname: ""\ndescription: d\n---\ncorpo\n' name
+rejeita "name só comentário" '---\nname: # x\ndescription: d\n---\ncorpo\n' name
+for r in self browser research deepagent review-agent; do
+  rejeita "name reservado '$r'" "---\nname: $r\ndescription: d\n---\ncorpo\n" reservado
+done
+rejeita "name reservado entre aspas" '---\nname: "self"\ndescription: d\n---\ncorpo\n' reservado
+# não pode recusar o que vale: description com `#` no meio do texto e name com aspas
+printf -- '---\nname: "ok"\ndescription: usa # no meio\n---\ncorpo\n' >"$AG/ok.md"; zera; roda ok
+confere "name entre aspas e description com # no meio são aceitos" "$([ $rc = 0 ] && tem "$DEST/ok/agent.md" 'description: usa # no meio'; echo $?)"
+# N3: tools com padrão e disallowedTools ampliavam direitos
+rejeita "tools Bash(git:*)" '---\nname: x\ndescription: d\ntools: Bash(git:*)\n---\ncorpo\n' tools
+rejeita "tools com padrão numa lista de blocos" '---\nname: x\ndescription: d\ntools:\n  - Read\n  - Bash(git status)\n---\ncorpo\n' tools
+rejeita "tools com padrão entre colchetes" '---\nname: x\ndescription: d\ntools: [Read, "Bash(git:*)"]\n---\ncorpo\n' tools
+rejeita "disallowedTools: Bash" '---\nname: x\ndescription: d\ndisallowedTools: Bash\n---\ncorpo\n' disallowedTools
+rejeita "disallowedTools junto de tools" '---\nname: x\ndescription: d\ntools: Read\ndisallowedTools: Write\n---\ncorpo\n' disallowedTools
+# N7: uma recusa, uma mensagem (sem o "frontmatter não fechado" espúrio depois)
+printf -- '---\nname: x\n---\ncorpo\n' >"$AG/semdesc2.md"; zera; roda semdesc2
+confere "sem description: só a mensagem da description, sem 'não fechado'" "$(grep -q 'description' "$RAIZ/erro" && ! grep -q 'não fechado' "$RAIZ/erro"; echo $?)"
+rejeita "name reservado: sem 'não fechado' espúrio" '---\nname: self\ndescription: d\n---\ncorpo\n'
+confere "name reservado: sem 'não fechado' espúrio na mensagem" "$(! grep -q 'não fechado' "$RAIZ/erro"; echo $?)"
+# BOM (N6: faltava o caso)
+printf -- '\357\273\277---\nname: x\ndescription: d\n---\ncorpo\n' >"$AG/bom.md"
+zera; roda bom
+confere "frontmatter com BOM: rc 1 e nada gravado" "$([ $rc = 1 ] && [ -z "$(ls -A "$DEST")" ]; echo $?)"
 printf -- '---\r\nname: x\r\ndescription: d\r\n---\r\ncorpo\r\n' >"$AG/crlf.md"
 roda crlf
 confere "frontmatter CRLF: rc 1" "$([ $rc = 1 ]; echo $?)"
@@ -235,6 +293,18 @@ confere "sem .agent.md.* nem rascunho sobrando" "$([ -z "$(find "$DEST" "$TMPDIR
 REAL="$AQUI/../../../../agents"
 rc=0; bash "$SCRIPT" --agentes "$REAL" --destino "$RAIZ/real" >/dev/null 2>&1 || rc=$?
 confere "papéis reais (qa-adversarial, planejador) geram com tools completo e corpo idêntico" "$([ $rc = 0 ] && tem "$RAIZ/real/planejador/agent.md" "$TODAS" && tem "$RAIZ/real/qa-adversarial/agent.md" "$TODAS" && mesmo_corpo "$REAL/planejador.md" "$RAIZ/real/planejador/agent.md" && mesmo_corpo "$REAL/qa-adversarial.md" "$RAIZ/real/qa-adversarial/agent.md"; echo $?)"
+
+# ---------------------------------------------------------------- perfil do agy (N1, orq #111)
+# defeito: o exemplo `--settings` mantinha em `allow` comandos de leitura que o próprio
+# texto diz liberarem escrita por redirecionamento (`grep x > arquivo`).
+PERFIL="$AQUI/../../references/harnesses/agy.md"
+ALLOW="$(grep -m1 '^ *"allow": \[' "$PERFIL")"
+ASK="$(grep -m1 '^ *"ask": \[' "$PERFIL")"
+confere "perfil: o exemplo --settings achou as linhas allow e ask" "$([ -n "$ALLOW" ] && [ -n "$ASK" ]; echo $?)"
+for c in ls grep head tail cat find; do
+  confere "perfil: command($c) fora do allow do exemplo e em ask" "$(! printf '%s' "$ALLOW" | grep -q "command($c)" && printf '%s' "$ASK" | grep -q "command($c)"; echo $?)"
+done
+confere "perfil: grava mainAgent: true e não 'mainAgent: false' como o frontmatter gerado" "$(grep -q 'mainAgent: true' "$PERFIL" && ! grep -q 'frontmatter.*mainAgent: false' "$PERFIL"; echo $?)"
 
 if [ "$falhas" -eq 0 ]; then echo "todos os casos passaram"; exit 0; fi
 echo "$falhas caso(s) falharam" >&2; exit 1
