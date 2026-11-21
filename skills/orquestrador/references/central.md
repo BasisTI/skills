@@ -33,6 +33,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Executor despachado ou correção r≥2 | `orq us status <ref> exec --pane <p> --papel implementacao --rodada <n> --modelo <id> [--esforco <nível>]` |
 | Revisor despachado | `orq us status <ref> rev --pane <p> --papel revisao --rodada <n> --modelo <id> [--esforco <nível>]` |
 | Worktree e panes criados (e a cada pane novo) | `orq recursos gravar <ref> --repo … --worktree … --branch … --pane <nome>` ([recursos](despacho.md#recursos-da-us-temporários-e-docker)) |
+| US em `wait` por algo externo (carga a corrigir, arquivo de terceiro, decisão de outra equipe) | `orq us espera <ref> "<motivo>"` ([quando](#motivo-da-espera)) |
 | MR aberta | `orq mr add <ref> <url>` |
 | Limite da onda alcançado | `orq us status <ref> done` |
 | Aviso do daemon `pendência P<n> aberta` | nada: o daemon já importou o arquivo e numerou. Worker sem `.registrada.json` ("pendência não registrada: `<arquivo>`"): `orq pend importar <arquivo>` |
@@ -45,6 +46,10 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Onda concluída ([regra](#encerrar-a-onda)) | `orq onda encerrar <id>`, se o daemon não encerrou |
 
 `--modelo` é o id inteiro do modelo do pane (ex. `claude-fable-5-2`, `gpt-6.1-sol`) e `--esforco` o nível (ex. `medium`). Passe os dois em todo `orq us status` que abre ou troca pane, também na troca de modelo dentro da rodada, como a [troca por limite](configuracao.md#troca-por-limite) (o diário guarda `modelo_antes`). Sem a flag, o orq mantém o gravado. Exige o `orq` com a orq #81.
+
+### Motivo da espera
+
+A Central mostra a US parada só como `wait`; o motivo está com você. Quando a US espera por algo **externo** (ex. "Espera o eSocial publicar o arquivo de validação"), registre na hora em que souber: `orq us espera <ref> "<motivo>"`, uma linha de até 200 caracteres, sem dado sensível. Ele aparece na lista de US da Central (TUI e web), depois da MR. Se o motivo mudar, repita o comando com o novo texto; quando a espera acabar, `orq us espera <ref> --limpar`. Mudar o status **não** limpa o motivo: limpe ao despachar a US. US que só aguarda a vez na ordem da onda não leva motivo. Cada troca e limpeza vai ao diário (`us.espera`). Exige o `orq` com a orq #100.
 
 `done` quer dizer que a US chegou ao `--ate` da onda: plano aprovado (`plano`), MR aprovada pela revisão independente, à espera do merge (`mr-pronta`; o coordenador só marca `done` com a MR sem Draft ou com a pré-condição explícita na descrição, e a Central já mostra o selo `draft` da MR) ou MR mesclada (`merge`). Chegar ao limite não encerra a onda: [encerrar a onda](#encerrar-a-onda) é um passo do coordenador.
 
