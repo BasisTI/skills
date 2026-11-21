@@ -9,6 +9,7 @@
 #   herdr-workers.sh start  --kind <harness> [--timeout <ms>] <nome>=<pane>... [-- <arg do agente>...]
 #   herdr-workers.sh prompt <agente> <texto> [--timeout <ms>]
 #   herdr-workers.sh estado <agente>
+#   herdr-workers.sh filhos <agente>
 #
 #   <nome>=<pane>  um par por worker, já separado (`tg-77_executor=wA:p31`).
 #                  O nome segue [a-z][a-z0-9_-]{0,31}. Tudo o que vier depois de
@@ -35,6 +36,16 @@
 #           5 `sumiu`: o alvo não existe (`agent_not_found`)
 #   estado  0 working   10 idle   11 blocked   12 done   13 sumiu
 #           14 desconhecido (status que o Herdr não classificou)   2 uso   1 erro
+#   filhos  0 sem shell em background (sinal `sem_filhos`)
+#           10 com shell ou Monitor em background (sinal `com_filhos`;
+#              `filhos` lista pid e nome)   13 sumiu   2 uso   1 erro
+#           Lê a árvore de processos do pane: `herdr pane process-info` dá os
+#           pids em primeiro plano do pane (o agente) e `ps -eo pid=,ppid=,comm=`
+#           dá a ascendência. Conta os descendentes do agente cujo nome é de
+#           shell (bash, zsh, sh, dash, fish): é o que o Bash tool em background
+#           e o Monitor deixam rodando. Tudo por pid; nunca pela linha de
+#           comando (nada de pgrep -f). Servidores MCP e afins (node, python)
+#           não contam.
 #
 # Existe por duas falhas medidas em 2026-09-20 a 2026-11-12 nos transcripts dos
 # agentes:
@@ -48,7 +59,7 @@
 #     `working`, e foi tratado como falha (e às vezes reenviado). Aqui o
 #     timeout só é falha se o agente NÃO estiver `working`.
 #
-# Requer: herdr, jq.
+# Requer: herdr, jq (e ps, só para `filhos`).
 
 set -euo pipefail
 
@@ -68,7 +79,7 @@ emitir() {
 }
 
 uso() {
-  emitir uso "$1" --arg uso "herdr-workers.sh start|prompt|estado (cabeçalho do script)"
+  emitir uso "$1" --arg uso "herdr-workers.sh start|prompt|estado|filhos (cabeçalho do script)"
   exit 2
 }
 
@@ -230,6 +241,44 @@ cmd_estado() {
   esac
 }
 
+# --- filhos ------------------------------------------------------------------
+
+# O agente `idle`/`done` com um shell ou Monitor em background ainda não está
+# parado de verdade: a árvore de processos do pane diz se há algo rodando.
+cmd_filhos() {
+  [ $# -eq 1 ] && [ -n "$1" ] || uso "filhos exige <agente>"
+  local agente="$1" out rc=0 pane info raizes tabela filhos qtd
+  out=$(herdr agent get "$agente" 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    if [ "$(codigo_do_erro "$out")" = "agent_not_found" ]; then
+      emitir sumiu "$agente não existe (agent_not_found)" --arg agente "$agente"; exit 13
+    fi
+    emitir erro "herdr agent get falhou para $agente" --arg agente "$agente"; exit 1
+  fi
+  pane=$(jq -r '.result.agent.pane_id // ""' <<<"$out" 2>/dev/null || true)
+  [ -n "$pane" ] || { emitir erro "herdr agent get de $agente sem pane_id" --arg agente "$agente"; exit 1; }
+  info=$(herdr pane process-info --pane "$pane" 2>&1) ||
+    { emitir erro "herdr pane process-info falhou para $pane" --arg agente "$agente" --arg pane "$pane"; exit 1; }
+  raizes=$(jq -c '[.result.process_info.foreground_processes[]?.pid | numbers]' <<<"$info" 2>/dev/null) ||
+    { emitir erro "process-info de $pane ilegível" --arg agente "$agente" --arg pane "$pane"; exit 1; }
+  tabela=$(ps -eo pid=,ppid=,comm= 2>/dev/null) ||
+    { emitir erro "ps falhou" --arg agente "$agente"; exit 1; }
+  filhos=$(printf '%s\n' "$tabela" | jq -Rsc --argjson raizes "$raizes" '
+    [ split("\n")[] | capture("^\\s*(?<pid>[0-9]+)\\s+(?<ppid>[0-9]+)\\s+(?<nome>.*)$")
+      | {pid: (.pid | tonumber), ppid: (.ppid | tonumber), nome} ] as $t
+    | def desc($pids): ([$t[] | select(.ppid as $p | $pids | index($p))]) as $f
+        | if ($f | length) == 0 then [] else $f + desc([$f[].pid]) end;
+      [desc($raizes)[] | select(.nome | IN("bash", "zsh", "sh", "dash", "fish")) | {pid, nome}]')
+  qtd=$(jq 'length' <<<"$filhos")
+  if [ "$qtd" -gt 0 ]; then
+    emitir com_filhos "$agente tem $qtd shell(s) em background no pane $pane" \
+      --arg agente "$agente" --arg pane "$pane" --argjson filhos "$filhos"
+    exit 10
+  fi
+  emitir sem_filhos "$agente sem shell em background no pane $pane" --arg agente "$agente" --arg pane "$pane"
+  exit 0
+}
+
 # --- despacho ----------------------------------------------------------------
 
 sub="${1:-}"
@@ -238,5 +287,6 @@ case "$sub" in
   start) cmd_start "$@" ;;
   prompt) cmd_prompt "$@" ;;
   estado) cmd_estado "$@" ;;
+  filhos) cmd_filhos "$@" ;;
   *) uso "subcomando desconhecido ou ausente: ${sub:-<nenhum>}" ;;
 esac
