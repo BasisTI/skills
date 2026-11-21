@@ -4,7 +4,7 @@ Onda é um conjunto ordenado de stories que o usuário entrega ao coordenador de
 
 ## O contrato
 
-Antes de despachar, rode a [busca de US similares](#us-similares-na-criação-da-onda) (em projeto com board Taiga), confirme com o usuário o que ele não disse e dê à onda um nome e ao pane do coordenador o rótulo e o nome de agente dela ([nomes dos panes](despacho.md#nomes-dos-panes)) e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--ate`, `--ordem` e `--depende`; sem ela, no registro da missão):
+Antes de despachar, rode a [busca de US similares](#us-similares-na-criação-da-onda) (em projeto com board Taiga), confirme com o usuário o que ele não disse e dê um nome à onda ([nomes dos panes](despacho.md#nomes-dos-panes)) e registre o contrato (com a [Central](central.md#do-fluxo-ao-comando), em `orq onda criar` com `--nome`, `--ate`, `--ordem` e `--depende`; o `orq` põe o nome da onda no rótulo e no agente do pane do coordenador, sem passo manual; sem ela, no registro da missão):
 
 - **Stories e ordem.** A ordem de despacho e, quando houver, a ordem de merge.
 - **Até onde ir sem perguntar.** O padrão é MR aprovada, pronta para merge; onde `merge_automatico` lista a branch de destino, o merge também entra, e a onda segue até o pós-merge ([condições](configuracao.md#merge_automatico)). Merge em outra branch (`main`, `staging`) continua humano, mesmo com autorização para a onda; transições seguem `[autonomia]` ([configuração](configuracao.md#autonomia-e-transições-automáticas)).
