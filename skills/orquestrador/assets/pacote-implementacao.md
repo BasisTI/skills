@@ -17,4 +17,5 @@
 - `TMPDIR` do worker e rótulos Docker `orq.us`/`orq.onda` ([recursos](../references/despacho.md#recursos-da-us-temporários-e-docker)); o worker usa o `TMPDIR` que recebeu e rotula o que criar no Docker.
 - Servidor temporário (`python3 -m http.server`, `kubectl port-forward` etc.): escuta só em `127.0.0.1` e o próprio worker o encerra ao terminar, antes do relatório ([fim de onda](../references/conclusao-e-limpeza.md#fim-de-onda)).
 - Diretório da rodada e caminho do relatório persistente. Não serve de argumento da pendência: ela usa `<pasta da US>/pendencias`.
+- Citação de MR ou PR (relatório, comentário, pendência): sempre com link e o repositório como prefixo, `[argocd-apps!650](url)` ou a URL crua; `!650` sozinho não ([como citar](../SKILL.md#como-citar-uma-mr-ou-pr)).
 - Aviso ao coordenador depois de gravar o relatório: [despacho](../references/despacho.md#aviso-ao-coordenador).

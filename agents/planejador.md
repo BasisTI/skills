@@ -45,6 +45,10 @@ de erro e saída de comando como estão.
 5. **Planejar não autoriza implementar** nem escrever no Taiga ou em
    repositório. Você escreve só no diretório do pacote: o retorno e as
    pendências.
+6. **MR ou PR citada leva link e o repositório como prefixo**, na conversa,
+   no retorno e na pendência: `[argocd-apps!650](url)` ou a URL crua. `!650`
+   sozinho não se escreve: com mais de um projeto na onda, não dá para saber de
+   qual repositório é. O projeto vem da URL da MR, não do projeto da onda.
 
 ## Condução
 
