@@ -7,20 +7,20 @@ Confira `agy --help`, `agy models` e `agy agents` antes de despachar: a CLI muda
 Pelo script, que chama `herdr agent start <nome> --kind agy --pane <pane> -- …`:
 
 ```bash
-scripts/herdr-workers.sh start --kind agy <nome>=<pane> -- --model <id> --mode auto --add-dir <worktree> --add-dir <artefatos>
+scripts/herdr-workers.sh start --kind agy <nome>=<pane> -- --model <id> --mode auto --add-dir <worktree> --add-dir <artefatos> [--agent <papel>]
 ```
 
 - **Modelo:** só `--model <id>`, com o id completo de `agy models` (ex. `gemini-4-neon-medium`). O esforço já vem no id, então o lançamento **não** passa `--effort` e o alias tem `esforco` vazio ([configuração](../configuracao.md#alias-agy)).
 - **Modo:** `--mode auto`. O que ele aprova sozinho e o que ainda pergunta: a confirmar no ensaio (orq #108).
-- **Diretórios:** um `--add-dir` para a worktree da US e outro para a pasta de artefatos (relatório, pendências, `TMPDIR`). `--add-dir` é repetível e só acrescenta ao workspace; não amplia os direitos do processo pai.
+- **Diretórios:** um `--add-dir` para a worktree da US e outro para a pasta de artefatos (relatório e pendências, `~/tmp/orquestrador/<projeto>/TG-<ref>`). O `TMPDIR` da US (`/tmp/orq/<projeto>/TG-<ref>`) é outro caminho e **não** está nesses dois; se ele precisa de um terceiro `--add-dir`: a confirmar no ensaio (orq #108). `--add-dir` é repetível e só acrescenta ao workspace; não amplia os direitos do processo pai.
 - **Sem bypass:** nunca `--dangerously-skip-permissions`. Também não use como receita para limpeza. `--sandbox` e `--settings` existem (`--settings` aceita JSON ou arquivo, só para a sessão); use só com autorização e depois de conferir o efeito.
-- **Papel:** `--agent <nome>` escolhe o agente da sessão ([papéis](#papéis-como-agentes-nativos)).
+- **Papel:** `--agent <papel>` é opção da **sessão**: vai nos argumentos nativos do `start`, depois de o coordenador conferir o papel em `agy agents`. Mandá-lo no prompt, depois do `start`, não seleciona nada ([papéis](#papéis-como-agentes-nativos)). Worker sem papel (executor) não leva `--agent`.
 
 O pane precisa estar no prompt do shell, como nos outros harnesses. O nome do agente segue [nomes dos panes](../despacho.md#nomes-dos-panes).
 
 ## Retomada
 
-`--conversation <id>` retoma uma conversa pelo id; `-c` (`--continue`) retoma a mais recente. Prefira o id: `-c` pega a mais recente da máquina e pode ser a de outro pane. Onde o id aparece e como o Herdr registra a sessão do `agy`: a confirmar no ensaio (orq #108).
+`--conversation <id>` retoma uma conversa pelo id; `-c` (`--continue`) retoma "a conversa mais recente" (`agy --help`). Prefira o id. O escopo de `-c` (por pane, por diretório ou global) é a confirmar no ensaio (orq #108); até lá não o use onde houver mais de uma worktree. Onde o id aparece e como o Herdr registra a sessão do `agy`: a confirmar no ensaio (orq #108).
 
 ## Espera
 
@@ -36,8 +36,8 @@ Mensagem de limite de uso do `agy`: **a confirmar no ensaio (orq #108)**; nenhum
 
 Os papéis `qa-adversarial` e `planejador` são agentes globais do `agy`, lidos de `~/.gemini/config/agents/<papel>/agent.md`, com cada `agent.md` apontando para `~/.agents/agents/<papel>.md` (que aponta para o clone; veja a seção "Instalação" de [`qa-adversarial`](../../../../agents/qa-adversarial.md#instalação) e [`planejador`](../../../../agents/planejador.md#instalação)). Os links são criados na orq #107.
 
-- Com os links no lugar, `agy agents` precisa listar os dois papéis; o pacote então manda o worker usar `--agent <papel>` (ou o agente nativo, se a sessão já o usa).
-- **Reserva (modo arquivo):** se `agy agents` não listar o papel, o pacote entrega o conteúdo do arquivo do papel pelo prompt e registra a adaptação (origem, modo e motivo), com `qa_adversarial_modo = "arquivo"` autorizado no [ambiente](../configuracao.md). Não presuma que uma skill de revisão comum substitui o contrato do papel.
+- **Antes do lançamento**, o coordenador roda `agy agents`. Com o papel listado, passa `--agent <papel>` nos argumentos nativos do `herdr-workers.sh start` e o pacote registra o papel já selecionado. A seleção não acontece depois, pelo prompt.
+- **Reserva (modo arquivo):** se `agy agents` não listar o papel, o `start` sai sem `--agent`, o pacote entrega o conteúdo do arquivo do papel pelo prompt e registra a adaptação (origem, modo e motivo), com `qa_adversarial_modo = "arquivo"` autorizado no [ambiente](../configuracao.md).
 - O frontmatter dos arquivos dos papéis foi escrito para Claude Code e opencode (`mode: subagent`); se o `agy` o rejeita ou ignora campos: a confirmar na orq #107 e no ensaio.
 
 ## Fallback
