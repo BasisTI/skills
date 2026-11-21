@@ -1,6 +1,6 @@
 # Relatório da rodada
 
-- Identidade: missão, projeto, story, papel, rodada e pane (rótulo, nome de agente e id).
+- Identidade: missão, projeto, story, papel, rodada e pane (`<workspace>/<pane>`, com o id entre parênteses, [como citar](../SKILL.md#como-citar-um-pane)).
 - Execução: alias, harness, modelo, esforço e adaptações autorizadas.
 - Resultado: devolvida/aprovada/com achados/bloqueada/falhou, conforme o papel.
 - Entrega: URL completa da MR ou PR e sua forma `<projeto>!<iid>`/`<repo>#<n>`, com link, como `[argocd-apps!650](url)` ([como citar](../SKILL.md#como-citar-uma-mr-ou-pr)), SHA, pipeline, versão testada e links.
