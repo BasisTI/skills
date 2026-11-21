@@ -7,7 +7,7 @@
 - Estado da execução em paralelo e dependências.
 - Decisões aprovadas, propostas pendentes e restrições.
 - Alias e harness/modelo/esforço resolvidos.
-- Papel: adote o `planejador` (`agents/planejador.md` do `BasisTI/skills`, instalado como o `qa-adversarial`); sem o papel disponível, o pacote traz o conteúdo do arquivo e informa a adaptação. Origem: decisão de 2026-11-12 na orq #52.
+- Papel: adote o `planejador` (`agents/planejador.md` do `BasisTI/skills`, instalado como o `qa-adversarial`); planejador `agy`: agente nativo (`--agent planejador`, em `~/.gemini/config/agents/planejador/agent.md`; `agy agents` o lista); sem o papel disponível (inclusive o `agy` que não o liste), o pacote traz o conteúdo do arquivo e informa a adaptação, o modo arquivo como reserva registrada ([agy](../references/harnesses/agy.md#papéis-como-agentes-nativos)). Origem: decisão de 2026-11-12 na orq #52.
 - Autorização para conversar; escritas externas/implementação exigem escopo próprio.
 - Pane do planejador: rótulo, nome de agente e id, a comunicar ao usuário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Entrega: plano, critérios, dependências e decisões com origem, no modelo fixo [retorno-planejamento](retorno-planejamento.md).

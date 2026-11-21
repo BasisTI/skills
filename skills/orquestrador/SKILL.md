@@ -49,7 +49,7 @@ Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempr
 
 - [Configuração](references/configuracao.md) e [exemplo TOML](assets/orquestrador.example.toml).
 - [Registro na Central](references/central.md).
-- Perfis: [Claude Code](references/harnesses/claude-code.md) e [Codex](references/harnesses/codex.md).
+- Perfis: [Claude Code](references/harnesses/claude-code.md), [Codex](references/harnesses/codex.md) e [agy](references/harnesses/agy.md).
 - Pacotes: [implementação](assets/pacote-implementacao.md), [revisão](assets/pacote-revisao.md), [planejamento](assets/pacote-planejamento.md).
 - [Relatório do worker](assets/relatorio-worker.md) e [retorno do planejamento](assets/retorno-planejamento.md).
 - Papel do planejador: [`agents/planejador.md`](../../agents/planejador.md) ([planejamento](references/planejamento.md)).

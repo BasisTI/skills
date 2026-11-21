@@ -5,7 +5,7 @@
 - Alvo: chave do projeto, caminho, board e story, instruções canônicas.
 - Objetivo e critérios de aceite: links e escopo.
 - Plano, dependências incorporadas e decisões relevantes.
-- Alias e harness/modelo/esforço resolvidos; skills e versões.
+- Alias e harness/modelo/esforço resolvidos; skills e versões. Alias `agy`: id completo do modelo, sem esforço, e o comando de lançamento do [perfil](../references/harnesses/agy.md#lançamento) (`--mode auto`, `--add-dir` da worktree e dos artefatos, sem bypass).
 - Worktree absoluto, branch, base e MR existente (no formato de [como citar](../SKILL.md#como-citar-uma-mr-ou-pr)).
 - Autorizações: transições, escrita externa e limites explícitos.
 - Modo autônomo, critérios de bloqueio e histórico de recorrências.

@@ -16,14 +16,18 @@ Precedência: escolha explícita atual do usuário → preferência persistente 
 
 Fallback só usa aliases listados e disponíveis. Se nenhum puder cumprir o contrato, reporte bloqueio e peça a escolha que falta. A troca por limite de uso está em [troca por limite](#troca-por-limite). Escalada por ambiguidade ou falhas recorrentes usa a política configurada; não autoriza gasto ou modelo fora das escolhas do usuário.
 
+## Alias agy
+
+Alias com `harness = "agy"` ([perfil](harnesses/agy.md)) leva o **id completo** do modelo em `modelo`, como `agy models` o lista (ex. `gemini-4-neon-high`), e `esforco` **vazio**: o esforço já faz parte do id, e o lançamento passa só `--model <id>`, sem `--effort`. Esforço preenchido num alias `agy` é erro de configuração. Origem: planejamento do épico orq #105, 2026-11-21. O alias `agy` entra num `[[selecao]]` só depois do ensaio da orq #108; até lá é alias avulso, escolhido explicitamente.
+
 ## Troca por limite
 
 Vale para o worker atual de qualquer papel que tenha `fallback` no seletor (hoje só a revisão tem lista) e para qualquer harness. Origem: decisões do Cedric em 2026-11-12 (orq #53), depois que, em 2026-10-18, o coordenador esperou a cota renovar com o revisor Codex parado.
 
-- **Sinal.** O worker parou (sem relatório, `idle`/`done` ou parado no meio) e o pane mostra a mensagem de limite do harness; as conhecidas estão em [Codex](harnesses/codex.md#limite-de-uso) e [Claude Code](harnesses/claude-code.md#limite-de-uso). O menu "Approaching rate limits / Switch to gpt-6-luna?" **não** é sinal: o alerta já aparece com metade da cota, e o coordenador o fecha com Esc (nunca Enter) e segue no modelo padrão. A porcentagem de cota no rodapé nunca entra na decisão.
+- **Sinal.** O worker parou (sem relatório, `idle`/`done` ou parado no meio) e o pane mostra a mensagem de limite do harness; as conhecidas estão em [Codex](harnesses/codex.md#limite-de-uso), [Claude Code](harnesses/claude-code.md#limite-de-uso) e [agy](harnesses/agy.md#limite-de-uso) (a mensagem do `agy` ainda é a confirmar no ensaio, orq #108). O menu "Approaching rate limits / Switch to gpt-6-luna?" **não** é sinal: o alerta já aparece com metade da cota, e o coordenador o fecha com Esc (nunca Enter) e segue no modelo padrão. A porcentagem de cota no rodapé nunca entra na decisão.
 - **Troca imediata, sem perguntar.** O coordenador não agenda espera pela renovação. Usa o próximo alias do `fallback` do seletor daquele papel e avisa o usuário (alias, modelo, motivo e rodada). Se o alternativo também parar por limite, vai para o seguinte; com a lista esgotada, é bloqueio reportado (parágrafo de fallback acima).
 - **Até o fim da story.** O alternativo fica com a story, rodadas seguintes inclusas, no mesmo pane. Não volta ao alias original quando a cota renova.
-- **Como trocar.** O `harness` da configuração não é o `--kind` do Herdr: converta (`claude-code` → `claude`, `codex` → `codex`; os demais valores aceitos estão em `herdr agent start --help`). Encerre o harness atual (`/quit` no Codex), espere o prompt do shell do pane e confira que o `GLAB_CONFIG_DIR` do papel segue ali (`glab api user | jq -r .username` responde o usuário do papel; o pane o recebeu por `--env` no [despacho](despacho.md#inicialização) e o mantém). Então rode, por exemplo na troca Codex → Claude Code, com o nome do agente e o pane que já existem:
+- **Como trocar.** O `harness` da configuração não é o `--kind` do Herdr: converta (`claude-code` → `claude`, `codex` → `codex`, `agy` → `agy`; os demais valores aceitos estão em `herdr agent start --help`). Encerre o harness atual (`/quit` no Codex), espere o prompt do shell do pane e confira que o `GLAB_CONFIG_DIR` do papel segue ali (`glab api user | jq -r .username` responde o usuário do papel; o pane o recebeu por `--env` no [despacho](despacho.md#inicialização) e o mantém). Então rode, por exemplo na troca Codex → Claude Code, com o nome do agente e o pane que já existem:
 
   ```bash
   herdr agent start tg-53_revisor --kind claude --pane wA:p3N -- --model claude-fable-5-2 --effort medium
