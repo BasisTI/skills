@@ -116,13 +116,13 @@ confere "start fez duas chamadas" test "$(chamadas)" -eq 2
 confere "start passou o pane do segundo par" grep -qx 'w1:p4' "$FAKE_LOG"
 caso "start com argumentos do agente" 0 iniciado -- W start --kind codex --timeout 5000 tg-1_executor=w1:p3 -- --no-daemon --foo
 confere "args do agente depois de --" grep -qx -- '--no-daemon' "$FAKE_LOG"
-caso "start agy com --model, --mode e --add-dir repetido" 0 iniciado -- W start --kind agy tg-1_executor=w1:p3 -- --model gemini-4-neon-medium --mode auto --add-dir /w/a --add-dir /w/b
+caso "start agy com --model, --mode e --add-dir repetido" 0 iniciado -- W start --kind agy tg-1_executor=w1:p3 -- --model gemini-4-neon-medium --mode accept-edits --add-dir /w/a --add-dir /w/b
 confere "kind agy repassado" grep -qx 'agy' "$FAKE_LOG"
 confere "--model do agy repassado" grep -qx -- 'gemini-4-neon-medium' "$FAKE_LOG"
-confere "--mode auto repassado" grep -qx -- 'auto' "$FAKE_LOG"
+confere "--mode accept-edits repassado" grep -qx -- 'accept-edits' "$FAKE_LOG"
 confere "os dois --add-dir repassados" test "$(grep -cx -- '--add-dir' "$FAKE_LOG")" -eq 2
 confere "agy sem --effort" test "$(grep -cx -- '--effort' "$FAKE_LOG")" -eq 0
-caso "start agy com --agent (papel na sessão)" 0 iniciado -- W start --kind agy tg-1_revisor=w1:p3 -- --model gemini-4-neon-high --mode auto --agent qa-adversarial
+caso "start agy com --agent (papel na sessão)" 0 iniciado -- W start --kind agy tg-1_revisor=w1:p3 -- --model gemini-4-neon-high --mode accept-edits --agent qa-adversarial
 confere "--agent repassado" grep -qx -- '--agent' "$FAKE_LOG"
 confere "papel repassado" grep -qx -- 'qa-adversarial' "$FAKE_LOG"
 confere "--agent depois do kind agy" test "$(grep -nx -- '--agent' "$FAKE_LOG" | head -1 | cut -d: -f1)" -gt "$(grep -nx 'agy' "$FAKE_LOG" | head -1 | cut -d: -f1)"

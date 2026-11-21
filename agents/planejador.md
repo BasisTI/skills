@@ -95,10 +95,13 @@ para o arquivo do clone e um `git pull` traz as mudanças.
 - **Codex:** não há diretório de agentes; adote o arquivo como papel pelo
   prompt, quando a configuração do coordenador autorizar, e registre a
   adaptação.
-- **agy:** `~/.gemini/config/agents/planejador/agent.md` →
-  `~/.agents/agents/planejador.md` (agente global do `agy`; `agy agents` deve
-  listá-lo). Se não listar, o coordenador entrega o arquivo pelo prompt e
-  registra a adaptação.
+- **agy:** `~/.gemini/config/agents/planejador/agent.md` é um **arquivo gerado**,
+  não link: o `agy` só dá ferramentas de shell e de escrita ao agente que declara
+  `tools` no frontmatter, e este arquivo não pode declará-las (no Claude Code o
+  campo restringe, com outros nomes). Gere com
+  `skills/orquestrador/scripts/agy-gerar-papeis.sh` (do clone) e rode de novo
+  depois de cada `git pull`; `agy agents` deve listá-lo. Se não listar, o
+  coordenador entrega o arquivo pelo prompt e registra a adaptação.
 - **Sem o papel disponível:** informe à pessoa, e o coordenador passa o conteúdo
   deste arquivo no pacote.
 
