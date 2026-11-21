@@ -36,7 +36,8 @@ de erro e saída de comando como estão.
    só uma e a outra se perder.
 2. **Nada sai como pendência durante a conversa.** Pergunta feita ao vivo não
    vai ao arquivo de pendência nem ao coordenador enquanto a pessoa está na
-   conversa.
+   conversa. É a exceção à regra geral de que toda pergunta de decisão vira
+   pendência; fora desta conversa, ela vale.
 3. **Não responda às próprias perguntas.** O que você resolver sozinho sai como
    **proposta sua**, nunca como decisão, e passa pelo fechamento.
 4. **Toda decisão tem origem.** Fala da pessoa citada, com a data. Sem fala, não
@@ -44,6 +45,10 @@ de erro e saída de comando como estão.
 5. **Planejar não autoriza implementar** nem escrever no Taiga ou em
    repositório. Você escreve só no diretório do pacote: o retorno e as
    pendências.
+6. **MR ou PR citada leva link e o repositório como prefixo**, na conversa,
+   no retorno e na pendência: `[argocd-apps!650](url)` ou a URL crua. `!650`
+   sozinho não se escreve: com mais de um projeto na onda, não dá para saber de
+   qual repositório é. O projeto vem da URL da MR, não do projeto da onda.
 
 ## Condução
 

@@ -10,7 +10,6 @@ AQUI=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 SCRIPT="$AQUI/../espera-onda.sh"
 RAIZ=$(mktemp -d "${TMPDIR:-/tmp}/espera-onda-test.XXXXXX")
 [ -n "$RAIZ" ] && [ -d "$RAIZ" ] || { echo 'mktemp falhou' >&2; exit 2; }
-trap 'case "$RAIZ" in */espera-onda-test.*) rm -rf "$RAIZ" ;; esac' EXIT  # só o mktemp deste teste
 BIN="$RAIZ/bin"; EST="$RAIZ/estado"
 mkdir -p "$BIN" "$EST"
 
@@ -24,6 +23,13 @@ cat >"$BIN/herdr" <<'F'
 #!/bin/bash
 echo "$*" >>"$FAKE_EST/herdr.args"
 [ -e "$FAKE_EST/herdr.trava" ] && sleep 60
+if [ "$1 $2" = "pane process-info" ]; then
+  # pids em primeiro plano do pane p-<agente>: arquivo $EST/fg.<agente> (vazio/ausente = nenhum)
+  ag=${4#p-}
+  [ -e "$FAKE_EST/fg.$ag" ] || { printf '{"result":{"process_info":{"foreground_processes":[]}}}\n'; exit 0; }
+  printf '{"result":{"process_info":{"foreground_processes":[{"name":"agente","pid":%s}],"pane_id":"%s","shell_pid":1}}}\n' "$(cat "$FAKE_EST/fg.$ag")" "$4"
+  exit 0
+fi
 [ "$1 $2" = "agent get" ] || exit 9
 if [ -e "$FAKE_EST/$3.seq" ]; then
   st=$(head -1 "$FAKE_EST/$3.seq")
@@ -34,7 +40,7 @@ case "$st" in
   sumido) echo '{"error":{"code":"agent_not_found","message":"x"}}' >&2; exit 1 ;;
   mudo) echo 'Working... (esc to interrupt)'; exit 0 ;;
   falha) echo 'herdr: socket indisponível' >&2; exit 1 ;;
-  *) printf '{"id":"cli:agent:get","result":{"agent":{"name":"%s","agent_status":"%s"}}}\n' "$3" "$st" ;;
+  *) printf '{"id":"cli:agent:get","result":{"agent":{"name":"%s","pane_id":"p-%s","agent_status":"%s"}}}\n' "$3" "$3" "$st" ;;
 esac
 F
 # orq: devolve $EST/pend.json, ou a fila $EST/pend.seq (nomes de arquivos pend.<x>.json).
@@ -71,6 +77,15 @@ export FAKE_EST="$EST" PATH="$BIN:$PATH"
 falhas=0
 ERRO() { echo "FALHA $*"; falhas=$((falhas + 1)); }
 limpa() { rm -f "$EST"/* "$RAIZ"/rel*.md; rmdir "$RAIZ/dir" 2>/dev/null || true; }
+PIDS_FALSOS=()
+trap 'for p in "${PIDS_FALSOS[@]}"; do kill "$p" 2>/dev/null || true; done; case "$RAIZ" in */espera-onda-test.*) rm -rf "$RAIZ" ;; esac' EXIT
+# agente_falso <agente> <comando bash>: sobe uma árvore real de processos sob a
+# raiz (o "agente") e a registra como processo em primeiro plano do pane. Mata só
+# o pid guardado, no fim do teste.
+agente_falso() {
+  bash -c "$2" & local pid=$!
+  PIDS_FALSOS+=("$pid"); echo "$pid" >"$EST/fg.$1"; sleep 0.5
+}
 SAIDA="" RC=0
 # rodar <args...>: guarda SAIDA e RC
 rodar() { SAIDA=$(timeout 40 bash "$SCRIPT" "$@" 2>&1); RC=$?; }
@@ -140,7 +155,44 @@ wait
 # --- padrões ---------------------------------------------------------------
 limpa; echo working >"$EST/a.st"
 SAIDA=$(timeout 2 bash "$SCRIPT" a="$R1" 2>&1); 
-if [[ "$SAIDA" == *"parado 600s, limite 6600s"* ]]; then echo "ok   padrões: parado 600, limite 6600"; else ERRO "padrões: $SAIDA"; fi
+if [[ "$SAIDA" == *"parado 600s, background 3600s, limite 6600s"* ]]; then echo "ok   padrões: parado 600, limite 6600"; else ERRO "padrões: $SAIDA"; fi
+
+# --- parado com shell/Monitor em background --------------------------------
+# A raiz é o "agente"; o filho `bash` (nome de shell) é o shell em background.
+limpa; echo idle >"$EST/a.st"; agente_falso a 'bash -c "sleep 60; :" & wait'
+caso "idle com shell em background: sinal próprio, não parado" 10 parado-background -- a="$R1" --parado-s 1 --background-s 3 --intervalo-s 1 --limite-s 20
+if printf '%s\n' "$SAIDA" | grep -q '^espera-onda: aviso=a idle com processo em background (bash('; then echo "ok   aviso com o pid do shell (nome(pid))"; else ERRO "aviso ausente: $SAIDA"; fi
+if ! printf '%s\n' "$SAIDA" | grep -q 'sinal=parado '; then echo "ok   não emitiu parado"; else ERRO "emitiu parado com shell vivo"; fi
+
+limpa; echo "done" >"$EST/a.st"; agente_falso a 'bash -c "sleep 60; :" & wait'
+caso "done com shell: --parado-s não conta, limite vence" 3 limite -- a="$R1" --parado-s 1 --intervalo-s 1 --limite-s 4
+
+limpa; echo idle >"$EST/a.st"; agente_falso a 'sleep 60 & wait'
+caso "filho que não é shell (ex.: servidor MCP) não conta: parado" 5 parado -- a="$R1" --parado-s 2 --background-s 100 --intervalo-s 1 --limite-s 20
+
+limpa; echo idle >"$EST/a.st"; agente_falso a 'sleep 60'
+caso "idle sem processo filho: parado" 5 parado -- a="$R1" --parado-s 2 --background-s 100 --intervalo-s 1 --limite-s 20
+
+limpa; echo idle >"$EST/a.st"; agente_falso a 'bash -c "sleep 3; :" & wait; sleep 60'
+caso "o shell termina: o contador recomeça e vale --parado-s" 5 parado -- a="$R1" --parado-s 2 --background-s 100 --intervalo-s 1 --limite-s 20
+if printf '%s\n' "$SAIDA" | grep -q 'aviso=a idle com processo em background'; then echo "ok   avisou a fase de background antes do parado"; else ERRO "sem aviso da fase de background: $SAIDA"; fi
+
+limpa; echo idle >"$EST/a.st"; agente_falso a 'bash -c "sleep 60; :" & wait'
+( sleep 1.5; echo working >"$EST/a.st"; sleep 1; echo idle >"$EST/a.st" ) &
+caso "working zera a contagem de background" 3 limite -- a="$R1" --parado-s 1 --background-s 3 --intervalo-s 1 --limite-s 4
+wait
+
+limpa; echo idle >"$EST/a.st"; agente_falso a 'bash -c "sleep 60; :" & wait'
+rc=0; saida=$(bash "$AQUI/../herdr-workers.sh" filhos a 2>&1) || rc=$?
+if [ "$rc" = 10 ] && [[ "$saida" == *'"sinal":"com_filhos"'* ]]; then echo "ok   herdr-workers filhos: com_filhos (saída 10)"; else ERRO "filhos com shell: $rc $saida"; fi
+limpa; echo idle >"$EST/a.st"; agente_falso a 'sleep 60'
+rc=0; saida=$(bash "$AQUI/../herdr-workers.sh" filhos a 2>&1) || rc=$?
+if [ "$rc" = 0 ] && [[ "$saida" == *'"sinal":"sem_filhos"'* ]]; then echo "ok   herdr-workers filhos: sem_filhos (saída 0)"; else ERRO "filhos sem shell: $rc $saida"; fi
+limpa
+rc=0; saida=$(bash "$AQUI/../herdr-workers.sh" filhos a 2>&1) || rc=$?
+if [ "$rc" = 13 ]; then echo "ok   herdr-workers filhos: agente sumido (saída 13)"; else ERRO "filhos sumido: $rc $saida"; fi
+
+caso "--background-s acima do teto" 2 uso -- a="$R1" --background-s 7201
 
 # --- falhas do herdr -------------------------------------------------------
 limpa; echo mudo >"$EST/a.st"

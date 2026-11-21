@@ -10,6 +10,7 @@
 # Uso:
 #   espera-onda.sh <agente>=<relatorio> [<agente>=<relatorio> ...]
 #                  [--parado-s N]      (padrão 600, máx. 7200) parado = idle/done sem relatório
+#                  [--background-s N]  (padrão 3600, máx. 7200) parado com shell/Monitor em background
 #                  [--limite-s N]      (padrão 6600, máx. 7200) nunca espera indefinida
 #                  [--intervalo-s N]   (padrão 30, máx. 600)  pausa entre voltas
 #                  [--onda <id>]       vigia pendência respondida da onda
@@ -29,6 +30,19 @@
 # MR (--mr): com URL do GitLab no formato `.../-/merge_requests/<n>` o script
 # passa `-R <grupo/projeto>` ao `glab`, que então funciona de qualquer cwd.
 # Fora desse formato, o `glab mr view <url>` exige cwd dentro de um repositório.
+#
+# Parado com processo em background: `idle`/`done` não prova worker parado se o
+# agente deixou um shell ou um Monitor rodando (ondas 219/220, 2026-11-12: duas
+# falsas anomalias). Com o agente `idle`/`done` a espera consulta
+# `herdr-workers.sh filhos`, que lê a árvore de processos do pane por pid
+# (`herdr pane process-info` + ps; nunca pgrep -f nem a linha de comando). Sem
+# filho, vale --parado-s e o sinal `parado` (5). Com shell/Monitor ainda rodando,
+# o contador de --parado-s não corre: a espera imprime uma linha
+# `espera-onda: aviso=...` (não é sinal) e conta um limite próprio, --background-s
+# (padrão 3600), ao fim do qual sai com `parado-background` (10), que o
+# coordenador trata como "parado há muito, com processo ainda vivo" e não como
+# anomalia comum. Trocar de situação (com/sem filho) recomeça o contador;
+# `working` zera tudo.
 #
 # Existe porque o laço de espera escrito na hora pelo agente quebrou mais de
 # uma vez: `espera.sh` reescrito ao menos 7 vezes em sessões diferentes;
@@ -53,6 +67,8 @@
 #   8  herdr-indisponivel o estado do agente falhou 5 voltas seguidas
 #   9  fonte-indisponivel `orq` (--onda) ou `gh`/`glab` (--mr) falhou 5 voltas
 #                         seguidas; o detalhe diz qual e o último erro
+#  10  parado-background idle/done sem relatório por --background-s seguidos com
+#                        shell/Monitor em background ainda rodando (detalhe: pids)
 # Cada chamada externa roda sob `timeout` (20 s, nunca além do tempo que resta
 # do limite); travar conta como falha. Ordem de conferência a cada volta:
 # relatório, pendência, MR, estado dos agentes, limite.
@@ -63,6 +79,7 @@ AQUI=$(cd "${BASH_SOURCE[0]%/*}" && pwd)
 WORKERS="$AQUI/herdr-workers.sh"
 
 PARADO_S=600
+BACKGROUND_S=3600
 LIMITE_S=6600
 INTERVALO_S=30
 CHAMADA_S=20
@@ -74,7 +91,7 @@ RELATORIOS=()
 IGNORAR=()
 
 uso() {
-  echo "uso: $0 <agente>=<relatorio> [...] [--parado-s N] [--limite-s N] [--intervalo-s N] [--onda <id>] [--ignorar <chave>] [--mr <url>]" >&2
+  echo "uso: $0 <agente>=<relatorio> [...] [--parado-s N] [--background-s N] [--limite-s N] [--intervalo-s N] [--onda <id>] [--ignorar <chave>] [--mr <url>]" >&2
   echo "espera-onda: sinal=uso $1"
   exit 2
 }
@@ -89,6 +106,7 @@ numero() {
 while [ $# -gt 0 ]; do
   case "$1" in
     --parado-s) numero "$1" "${2:-}" 7200; PARADO_S=$NUM; shift 2 ;;
+    --background-s) numero "$1" "${2:-}" 7200; BACKGROUND_S=$NUM; shift 2 ;;
     --limite-s) numero "$1" "${2:-}" 7200; LIMITE_S=$NUM; shift 2 ;;
     --intervalo-s) numero "$1" "${2:-}" 600; INTERVALO_S=$NUM; shift 2 ;;
     --onda) numero "$1" "${2:-}" 999999999; ONDA=$NUM; shift 2 ;;
@@ -148,8 +166,9 @@ fi
 
 n=${#AGENTES[@]}
 parado_desde=()
+com_filho=()  # 1 quando a contagem de parado em curso é a do background
 falhas=()
-for ((i = 0; i < n; i++)); do parado_desde+=(0); falhas+=(0); done
+for ((i = 0; i < n; i++)); do parado_desde+=(0); com_filho+=(0); falhas+=(0); done
 falhas_pend=0
 falhas_mr=0
 erro_pend=""
@@ -158,7 +177,7 @@ erro_mr=""
 ign='[]'
 if [ "${#IGNORAR[@]}" -gt 0 ]; then ign=$(printf '%s\n' "${IGNORAR[@]}" | jq -R . | jq -sc .); fi
 
-printf 'espera-onda: armada com %d agente(s), parado %ss, limite %ss\n' "$n" "$PARADO_S" "$LIMITE_S"
+printf 'espera-onda: armada com %d agente(s), parado %ss, background %ss, limite %ss\n' "$n" "$PARADO_S" "$BACKGROUND_S" "$LIMITE_S"
 
 while :; do
   agora=$(date +%s)
@@ -234,11 +253,31 @@ while :; do
 
     if [ "$st" = working ]; then
       parado_desde[i]=0
-    elif [ "${parado_desde[$i]}" -eq 0 ]; then
-      parado_desde[i]=$agora
-    elif [ $((agora - parado_desde[i])) -ge "$PARADO_S" ]; then
+      com_filho[i]=0
+      continue
+    fi
+
+    # idle/done/desconhecido: há shell ou Monitor em background no pane?
+    # (falha na leitura vale como "sem filho": o comportamento de antes)
+    bg=0
+    pids=""
+    saida_filhos=$(chamar "$WORKERS" filhos "${AGENTES[$i]}" 2>/dev/null) && cod=0 || cod=$?
+    if [ "$cod" -eq 10 ]; then
+      bg=1
+      pids=$(jq -r '[.filhos[]? | "\(.nome)(\(.pid))"] | join(" ")' <<<"$saida_filhos" 2>/dev/null || true)
+    fi
+
+    if [ "${parado_desde[$i]}" -eq 0 ] || [ "${com_filho[$i]}" -ne "$bg" ]; then
+      parado_desde[i]=$agora  # primeira volta parado, ou mudou a situação: recomeça
+      if [ "$bg" -eq 1 ]; then
+        printf 'espera-onda: aviso=%s %s com processo em background (%s); conta --background-s=%ss, não --parado-s\n' "${AGENTES[$i]}" "$st" "$pids" "$BACKGROUND_S"
+      fi
+    elif [ "$bg" -eq 1 ] && [ $((agora - parado_desde[i])) -ge "$BACKGROUND_S" ]; then
+      fim 10 parado-background "agente ${AGENTES[$i]} $st sem relatório há $((agora - parado_desde[i]))s com processo em background ($pids; limite ${BACKGROUND_S}s)"
+    elif [ "$bg" -eq 0 ] && [ $((agora - parado_desde[i])) -ge "$PARADO_S" ]; then
       fim 5 parado "agente ${AGENTES[$i]} $st sem relatório há $((agora - parado_desde[i]))s (limite ${PARADO_S}s)"
     fi
+    com_filho[i]=$bg
   done
 
   if [ $(( $(date +%s) - inicio )) -ge "$LIMITE_S" ]; then

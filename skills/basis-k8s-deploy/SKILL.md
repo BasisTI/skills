@@ -172,7 +172,8 @@ scripts/esperar-rollout.sh --context <ctx> --namespace <ns> --deployment <nome> 
 
 Ele espera o texto aparecer num ConfigMap que o template referencia (volume simples,
 `projected`, `envFrom` ou `valueFrom`) e/ou a imagem com a tag, depois o rollout, e sempre
-imprime o resumo. Saída: 0 no ar, 1 rollout falhou, 2 uso/ambiente, 3 limite de tempo.
+imprime o resumo. Saída: 0 no ar, 1 rollout falhou, 3 limite de tempo, 64 uso/pré-requisito (como nos demais
+scripts de espera).
 Somente leitura, sem ler Secret. Os motivos de não improvisar o laço estão no cabeçalho do
 script.
 

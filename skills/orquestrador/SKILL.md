@@ -37,13 +37,13 @@ Modo autônomo e transições automáticas vêm de `[autonomia]` da configuraç�
 
 ## Bloqueios e encerramento
 
-Classifique o bloqueio: dependência, permissão, ambiente, falha técnica ou decisão de produto. Ao repetir a mesma causa, siga o limite de tentativas da `basis-ci-gitlab`; mudança de agente não zera o histórico. Continue atividades independentes autorizadas.
+Classifique o bloqueio: dependência, permissão, ambiente, falha técnica ou decisão de produto. Ao repetir a mesma causa, siga o limite de tentativas da `basis-ci-gitlab`; mudança de agente não zera o histórico. Continue atividades independentes autorizadas. Toda pergunta de decisão ou autorização para a pessoa, do coordenador ou de worker, vira pendência pelo arquivo, nunca só texto no chat, mesmo com a pessoa no pane; a exceção é a conversa de planejamento, e a pergunta sem US em onda aberta tem caminho próprio ([regra](references/acompanhamento.md#toda-pergunta-de-decisão-vira-pendência-mesmo-com-a-pessoa-no-pane)).
 
 Registre alias e combinação resolvida, pane, worktree, URL completa da MR, SHA, pipeline, relatório e evidências por rodada. Estado `done` do agente não comprova entrega. Informe o que foi confirmado e o que falta, preserve evidências e limpe recursos elegíveis.
 
 ## Como citar uma MR ou PR
 
-Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempre com o projeto: `<projeto>!<iid>` no GitLab (`argocd-apps!404`) e `<repo>#<n>` no GitHub (`orq#66`), e, onde o meio aceitar link, com a URL completa. O projeto vem da URL da MR, não do projeto da onda ou da story: uma onda do colaboradados pode ter MR no `argocd-apps`. `!404` sozinho é ambíguo e não se escreve. É a mesma forma que a Central web, o TUI e os tokens do `orq` mostram.
+Em relatório, mensagem, pacote, pendência e comentário, toda MR ou PR citada leva **link**, e o repositório vem como prefixo: `<projeto>!<iid>` no GitLab e `<repo>#<n>` no GitHub. Duas formas valem: o texto com prefixo apontando para a URL, `[argocd-apps!650](https://gitlab.exemplo.com/grupo/argocd-apps/-/merge_requests/650)` (no GitHub, `[orq#66](url)`), ou a URL completa crua. Sem link renderizado (arquivo de texto, prompt para outro agente), escreva a URL completa. A única exceção é o token de sidebar, que não comporta link nem a URL: use `argocd-apps!650`. O projeto vem da URL da MR, não do projeto da onda ou da story: uma onda do colaboradados pode ter MR no `argocd-apps`. `!650` sozinho, sem prefixo, é ambíguo e não se escreve; com ou sem link, o prefixo não se omite. É a mesma forma que a Central web, o TUI e os tokens do `orq` mostram.
 
 ## Recursos
 
