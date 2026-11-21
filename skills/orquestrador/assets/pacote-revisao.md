@@ -3,7 +3,7 @@
 - Origem (coordenador: rótulo, nome de agente e id do pane), missão, projeto e story com critérios de aceite.
 - Worker: rótulo, nome de agente e id do pane do destinatário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Alias e harness/modelo/esforço resolvidos.
-- Papel qa-adversarial: origem e modo autorizado. Revisor `agy`: o coordenador confere `agy agents` **antes** do lançamento e passa `--agent qa-adversarial` no `start` (opção da sessão, não vale pelo prompt); o pacote registra o papel já selecionado. Com o papel fora da lista, `start` sem `--agent` e o pacote traz o conteúdo do arquivo (modo arquivo, reserva) e a adaptação registrada ([agy](../references/harnesses/agy.md#papéis-como-agentes-nativos)).
+- Papel qa-adversarial: origem e modo autorizado. Revisor `agy`: o coordenador confere `agy agents` **antes** do lançamento (o `agent.md` do `agy` é gerado por `scripts/agy-gerar-papeis.sh`, com `tools`) e passa `--agent qa-adversarial` no `start` (opção da sessão, não vale pelo prompt); o pacote registra o papel já selecionado. Com o papel fora da lista, `start` sem `--agent` e o pacote traz o conteúdo do arquivo (modo arquivo, reserva) e a adaptação registrada ([agy](../references/harnesses/agy.md#papéis-como-agentes-nativos)).
 - MR aberta (formato de [como citar](../SKILL.md#como-citar-uma-mr-ou-pr)), SHA a revisar, base, worktree e estado de conflitos.
 - Relatório do executor, evidências, pipeline e suspeitas Sonar.
 - Escopo da rodada: r1 completa; r≥2 confirma as correções no SHA novo e ataca o delta, nunca "procure quebras novas". Regra em `basis-ci-gitlab/references/revisao-da-mr.md`.

@@ -61,7 +61,9 @@ modelo = "claude-opus-5-5"
 esforco = "medium"
 ambiente = "local"
 
-# Aliases agy: avulsos, escolhidos explicitamente; nenhum entra em [[selecao]] antes do ensaio.
+# Aliases agy: entram nas cadeias de [[selecao]] abaixo (orq #109, depois do ensaio da orq #108,
+# conforme a D2): primeiro fallback da implementação e da revisão, último do planejamento.
+# Valem também como alias avulso, escolhido explicitamente.
 # O id completo vai em "modelo" (o esforço já vem nele) e "esforco" fica vazio: o lançamento
 # passa só --model <id>, sem --effort. Confira os ids em `agy models`.
 [aliases.implementacao-agy]
@@ -87,21 +89,21 @@ papel = "implementacao"
 complexidade = "*"
 risco = "*"
 alias = "implementacao-padrao"
-fallback = []
+fallback = ["implementacao-agy"]
 
 [[selecao]]
 papel = "revisao"
 complexidade = "*"
 risco = "*"
 alias = "revisao-padrao"
-fallback = ["revisao-fallback"]
+fallback = ["revisao-agy", "revisao-fallback"]
 
 [[selecao]]
 papel = "planejamento"
 complexidade = "*"
 risco = "*"
 alias = "planejamento-padrao"
-fallback = []
+fallback = ["planejamento-agy"]
 
 # Identidade GitLab por papel: o pane do worker recebe GLAB_CONFIG_DIR com este caminho.
 # O token fica no config.yml desse diretório (chmod 600), nunca aqui. Papel sem entrada usa o glab do usuário.
