@@ -32,15 +32,17 @@
 # Saída:
 #   0  expectativa no template e rollout concluído (todas as réplicas novas prontas)
 #   1  rollout falhou (ProgressDeadlineExceeded ou `rollout status` com erro)
-#   2  uso / ambiente (kubectl, jq, contexto ou Deployment inexistente)
 #   3  limite de tempo: a expectativa não chegou ao template, ou o rollout não terminou
+#  64  uso / pré-requisito (argumento inválido ou faltando, sem expectativa, falta
+#      kubectl ou jq, Deployment inexistente), o mesmo código dos demais scripts de espera
+#      (até a orq#94 era 2; nenhum chamador conhecido dependia dele)
 
 # Sem `-e` de propósito: `rollout status` devolve código que o script interpreta.
 set -uo pipefail
 
 CONTEXTO="" NS="" DEPLOY="" TEXTO_CM="" TEXTO_IMG="" LIMITE=900 INTERVALO=15
 
-uso() { echo "uso: $0 --context <ctx> --namespace <ns> --deployment <nome> [--configmap-contem <texto>] [--imagem <texto>] [--limite <s>]" >&2; exit 2; }
+uso() { echo "uso: $0 --context <ctx> --namespace <ns> --deployment <nome> [--configmap-contem <texto>] [--imagem <texto>] [--limite <s>]" >&2; exit 64; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -54,10 +56,10 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$CONTEXTO" ] && [ -n "$NS" ] && [ -n "$DEPLOY" ] || uso
-[ -n "$TEXTO_CM" ] || [ -n "$TEXTO_IMG" ] || { echo "informe --configmap-contem e/ou --imagem: sem expectativa a espera não prova nada" >&2; exit 2; }
+[ -n "$TEXTO_CM" ] || [ -n "$TEXTO_IMG" ] || { echo "informe --configmap-contem e/ou --imagem: sem expectativa a espera não prova nada" >&2; exit 64; }
 [[ "$LIMITE" =~ ^[0-9]+$ ]] || uso
 for cmd in kubectl jq; do
-  command -v "$cmd" >/dev/null 2>&1 || { echo "falta \`$cmd\` no PATH" >&2; exit 2; }
+  command -v "$cmd" >/dev/null 2>&1 || { echo "falta \`$cmd\` no PATH" >&2; exit 64; }
 done
 
 K=(kubectl --context "$CONTEXTO" -n "$NS")
@@ -89,7 +91,7 @@ resumo() {
 sair() { resumo; exit "$1"; }
 
 ler_deploy
-[ -n "$dep" ] || { echo "deployment $NS/$DEPLOY não encontrado no contexto $CONTEXTO" >&2; exit 2; }
+[ -n "$dep" ] || { echo "deployment $NS/$DEPLOY não encontrado no contexto $CONTEXTO" >&2; exit 64; }
 
 # 1. A expectativa chega ao template do Deployment (o ArgoCD sincronizou).
 while :; do
