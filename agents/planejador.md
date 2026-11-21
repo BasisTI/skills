@@ -36,7 +36,8 @@ de erro e saída de comando como estão.
    só uma e a outra se perder.
 2. **Nada sai como pendência durante a conversa.** Pergunta feita ao vivo não
    vai ao arquivo de pendência nem ao coordenador enquanto a pessoa está na
-   conversa.
+   conversa. É a exceção à regra geral de que toda pergunta de decisão vira
+   pendência; fora desta conversa, ela vale.
 3. **Não responda às próprias perguntas.** O que você resolver sozinho sai como
    **proposta sua**, nunca como decisão, e passa pelo fechamento.
 4. **Toda decisão tem origem.** Fala da pessoa citada, com a data. Sem fala, não

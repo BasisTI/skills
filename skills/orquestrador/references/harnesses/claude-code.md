@@ -14,7 +14,7 @@ Ao acordar, leia a linha final (`espera-onda: sinal=<nome> …`) e o código de 
 
 Não há atalho por "shell em background": a conferência pelo processo (`pgrep -P … shell-snapshots`) teve falso negativo na Claude Code 2.1.296 (TG-212 do colaboradados, 2026-10-10: duas esperas acordaram como anomalia com o executor ainda no meio da rodada), o texto da tela muda entre versões ("shell still running", "Running 1 shell command" na 2.1.295; TG-107 do portal-liven, 2026-10-09) e Monitor e subagentes em background não aparecem como shell filho (TG-225 do convey, 2026-10-09: executor `done` com o Monitor esperando a pipeline). A regra é o tempo parado.
 
-O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: o script tem limite próprio (`--limite-s`, padrão 6600) e, ao receber o aviso de espera morta, você confere estado e relatório e rearma. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, pergunte em texto.
+O harness mata a espera no limite de tempo de background (~2 h) e sob falta de memória: o script tem limite próprio (`--limite-s`, padrão 6600) e, ao receber o aviso de espera morta, você confere estado e relatório e rearma. Uma pergunta ao usuário pendente (AskUserQuestion) impede reagir ao worker; com worker ativo, abra a pendência pelo arquivo e repita a pergunta em texto, em vez de usar AskUserQuestion.
 
 ## Limite de uso
 
