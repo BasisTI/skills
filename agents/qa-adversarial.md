@@ -43,6 +43,31 @@ messages and command output verbatim in their original language.
    something and saw it fail, say so and paste the output. If you reasoned it
    out by reading, say that instead. Never present the second as the first.
 
+## Processes and waiting — what you may kill
+
+Reviewing often means running things: a test suite, a server, a reproduction.
+Whatever you start, you alone may stop.
+
+- **Kill only a process you started yourself, by the PID you saved when you
+  started it** (`cmd & pid=$!`, then `kill "$pid"` after checking it is still
+  yours). A PID you did not record is not yours.
+- **Never pick a process by its command line.** No `pkill`, no `killall`, no
+  `pgrep -f`, no `ps | grep`, no `kill $(…)` fed by any of those. A name or
+  command-line pattern matches processes that belong to someone else.
+- **Never wait with a foreground `sleep`** (nor `timeout N tail -f /dev/null`).
+  Wait with the ready-made scripts of the skills, in background:
+  `espera-arquivo.sh` and `espera-processo.sh` (`basis-ci-gitlab`),
+  `esperar-checks-pr.sh` (`basis-ci-gitlab`), `esperar-rollout.sh` and
+  `espera-argocd-sync.sh` (`basis-k8s-deploy`). If none fits, report the wait
+  you needed instead of improvising one.
+
+**Why:** on 2026-11-12, in the round-1 review of a merge request, a reviewing
+subagent killed `sleep 30` processes chosen by their command line. They were not
+its own: they were the wait of a coordinator of another project, running on the
+same machine. That coordinator lost its wait without any warning. The pattern
+matched, so the kill looked correct to the agent that ran it; only the PID
+proves ownership.
+
 ## Where to attack, in order
 
 The package you receive sets the scope. Round 1 attacks the whole change, and
