@@ -26,7 +26,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Momento | Comando |
 |---|---|
 | Início da sessão | `orq coord registrar <chave-projeto> --projeto <taiga_slug>`; confira na saída o pane, que vem de `$HERDR_PANE_ID` e no Codex sem `--no-daemon` é o de outro pane ([Codex](harnesses/codex.md)) |
-| Contrato da [onda](ondas.md#o-contrato) fechado (o título começa pelo [nome da onda](despacho.md#nomes-dos-panes)); story isolada é onda de uma US | `orq onda criar "<onda> — <título>" --us 215,216 --ate mr-pronta\|plano\|merge --ordem estrita\|livre [--depende 216:215]` |
+| Contrato da [onda](ondas.md#o-contrato) fechado (`--nome` é o [nome da onda](despacho.md#nomes-dos-panes), obrigatório; o `orq` renomeia o pane do coordenador); story isolada é onda de uma US | `orq onda criar "<título>" --nome <onda> --us 215,216 --ate mr-pronta\|plano\|merge --ordem estrita\|livre [--depende 216:215]` |
 | Story nova que o usuário pede para entrar numa onda que já está aberta (ex.: uma menor que surgiu de outra story; [quando](ondas.md#acrescentar-story-à-onda-aberta)) | `orq onda adicionar <id> <ref>… [--apos <ref>]` (entra no fim da onda ou depois de `--apos`; entra em `wait`, ou guarda o status se veio de onda encerrada de mesmo limite; recusa onda encerrada e story de outra onda aberta; exige o `orq` com a US #42 do projeto `orq`) |
 | Próxima story a despachar | `orq onda proxima [<id>]` (traz `us`, `bloqueadas` e o limite, e com a onda no limite o `encerramento`; o id é obrigatório com mais de uma onda aberta) |
 | Planejador aberto | `orq us status <ref> plan --pane <p> --papel planejamento --rodada 1 --modelo <id> [--esforco <nível>]` |
