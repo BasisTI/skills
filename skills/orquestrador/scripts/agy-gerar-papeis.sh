@@ -11,7 +11,11 @@
 # e o corpo do papel sem alteração; o canônico continua sem `tools`.
 #
 # Frontmatter gerado: `name` e `description` do canônico (a `description` copiada
-# linha a linha; vazia é recusada), `subagent: true`, `mainAgent: false` e `tools`.
+# linha a linha; vazia é recusada), `subagent: true`, `mainAgent: true` e `tools`.
+#   `mainAgent: true` é o que faz `agy agents` listar o papel e `--agent <papel>` valer na
+#   sessão do worker; com `mainAgent: false` (o que a `migrate-agent-settings` manda para
+#   subagente) o papel some da lista (orq #111). `subagent: true` fica: a skill o manda
+#   para agente importado e ele só acrescenta o papel como subagente invocável.
 #   - Canônico SEM `tools` (todas, no Claude Code): `tools` completo do agy,
 #     [read_file, edit_file, write_file, run_command, manage_task, search_web].
 #   - Canônico COM `tools` (restritivo): mapeado como a `migrate-agent-settings`:
@@ -33,7 +37,8 @@
 #
 #   --agentes  pasta `agents/` do clone. Padrão: a do repositório desta skill.
 #   --destino  pasta de agentes do agy. Padrão: ${GEMINI_HOME:-~/.gemini}/config/agents.
-#              Se for link simbólico, é recusado (rc 3).
+#              Recusado (rc 3) se ele ou qualquer diretório do caminho for link simbólico
+#              (barra final ignorada); só os ancestrais do $HOME ficam de fora da conferência.
 #   papel...   nomes (sem .md). Padrão: todos os `*.md` de --agentes.
 #   --substituir-link  troca por arquivo gerado um `agent.md` que hoje é link simbólico
 #              (a instalação antiga da orq #107). Sem a opção, o link é recusado.
@@ -103,10 +108,20 @@ for papel in "${PAPEIS[@]}"; do
   nome_valido "$papel" || { echo "nome de papel inválido: $papel" >&2; exit 2; }
 done
 
-if [ -L "$DESTINO" ]; then
-  echo "recusado: --destino $DESTINO é link simbólico" >&2
-  exit 3
-fi
+# --destino: nenhum componente do caminho pode ser link simbólico, inclusive com barra
+# final (`dl/` escapava do `-L` sobre o caminho inteiro; a subida por componentes pega).
+# Só os ancestrais do $HOME ficam de fora (ex. `/home` -> `/var/home`).
+[ -n "$DESTINO" ] || { echo "--destino vazio" >&2; exit 2; }
+case "$DESTINO" in /*) conf="$DESTINO" ;; *) conf="$PWD/$DESTINO" ;; esac
+while [ "$conf" != "/" ] && [ -n "$conf" ]; do
+  if [ -L "$conf" ]; then
+    case "$HOME/" in
+      "$conf"/*) ;;   # ancestral do HOME (ou o próprio): tolerado
+      *) echo "recusado: --destino $DESTINO passa por link simbólico: $conf" >&2; exit 3 ;;
+    esac
+  fi
+  conf="${conf%/*}"
+done
 
 # cabecalho <canônico> <papel>: imprime o frontmatter do agy + a marca; devolve no
 # stderr, na última linha, o número da linha do `---` que fecha. Falha se o
@@ -114,7 +129,7 @@ fi
 cabecalho() {
   awk -v todas="$TOOLS_TODAS" -v marca="$MARCA $2.md; não edite, rode o script de novo -->" '
     function mapear(tok,   t) {
-      gsub(/^[ \t\047"]+|[ \t\047"]+$/, "", tok); sub(/\(.*$/, "", tok)
+      gsub(/^[ \t\047"]+|[ \t\047"]+$/, "", tok); if (tok ~ /\(/) padrao = 1; sub(/\(.*$/, "", tok)
       if (tok == "") return
       if (tok == "Read" || tok == "Glob" || tok == "Grep") t = "read_file"
       else if (tok == "Edit" || tok == "MultiEdit") t = "edit_file"
@@ -128,33 +143,50 @@ cabecalho() {
       gsub(/[\[\]]/, "", s); n = split(s, partes, ",")
       for (i = 1; i <= n; i++) mapear(partes[i])
     }
+    function falha(msg) { print msg > "/dev/stderr"; fm = 0; exit 1 }
+    function limpo(v) {   # valor escalar sem espaços, aspas nem comentário
+      sub(/^[ \t]+/, "", v); if (v ~ /^#/) return ""
+      if (v ~ /^"/) { sub(/^"/, "", v); sub(/".*$/, "", v) }
+      else if (v ~ /^\047/) { sub(/^\047/, "", v); sub(/\047.*$/, "", v) }
+      else { sub(/[ \t]+#.*$/, "", v) }
+      gsub(/^[ \t]+|[ \t]+$/, "", v); return v
+    }
     NR == 1 {
-      if ($0 != "---") { print "sem frontmatter (ou com CRLF/BOM)" > "/dev/stderr"; exit 1 }
+      if ($0 != "---") falha("sem frontmatter (ou com CRLF/BOM)")
       print "---"; fm = 1; next
     }
     fm {
       if ($0 == "---") {
-        if (!tem_name) { print "frontmatter sem name" > "/dev/stderr"; exit 1 }
-        if (!tem_desc || desc_txt == "") { print "frontmatter sem description (ou vazia)" > "/dev/stderr"; exit 1 }
+        if (!tem_name) falha("frontmatter sem name")
+        if (nome == "") falha("frontmatter com name vazio")
+        if (nome ~ /^(self|browser|research|deepagent|review-agent)$/) falha("name reservado do agy: " nome " (prefixe o nome)")
+        if (!tem_desc || desc_txt == "") falha("frontmatter sem description (ou vazia)")
+        if (desc_lista) falha("description em lista: não é texto")
+        if (tem_dis) falha("disallowedTools não tem equivalente no agy: papel recusado")
         if (tem_tools) {
+          if (padrao) falha("tools com padrão entre parênteses (ex. Bash(git:*)): o agy não restringe comando, papel recusado")
           out = ""
           split("read_file edit_file write_file run_command manage_task search_web", ord, " ")
           for (i = 1; i <= 6; i++) if (usar[ord[i]]) out = out (out == "" ? "" : ", ") ord[i]
-          if (out == "") { print "tools restritivo sem nenhum equivalente no agy: papel recusado" > "/dev/stderr"; exit 1 }
+          if (out == "") falha("tools restritivo sem nenhum equivalente no agy: papel recusado")
           tools = "[" out "]"
         } else tools = "[" todas "]"
-        print "subagent: true"; print "mainAgent: false"; print "tools: " tools; print "---"; print marca
+        print "subagent: true"; print "mainAgent: true"; print "tools: " tools; print "---"; print marca
         printf "%d\n", NR > "/dev/stderr"
         fm = 0; exit 0
       }
       if ($0 ~ /^[A-Za-z_][A-Za-z0-9_-]*:/) {
         chave = $0; sub(/:.*/, "", chave); resto = $0; sub(/^[^:]*:[ \t]*/, "", resto)
-        manter = (chave == "name" || chave == "description"); modo = chave
-        if (chave == "name") { tem_name = 1 }
-        if (chave == "description") { tem_desc = 1; v = resto; sub(/^[>|][-+]?[ \t]*$/, "", v); gsub(/[ \t]/, "", v); desc_txt = v }
+        manter = (chave == "name" || chave == "description"); modo = chave; primeira = 1
+        if (chave == "name") { tem_name = 1; nome = limpo(resto) }
+        if (chave == "description") { tem_desc = 1; v = resto; sub(/^[>|][-+]?[ \t]*$/, "", v); v = limpo(v); desc_txt = v; desc_cab = (v != "") }
         if (chave == "tools") { tem_tools = 1; achatar(resto) }
+        if (chave == "disallowedTools") tem_dis = 1
       } else if (modo == "description") {
-        v = $0; gsub(/[ \t]/, "", v); desc_txt = desc_txt v
+        v = $0
+        if (!desc_cab && primeira && v ~ /^[ \t]*-[ \t]/) desc_lista = 1
+        if (v !~ /^[ \t]*#/) { gsub(/[ \t]/, "", v); desc_txt = desc_txt v }
+        if (v != "") primeira = 0
       } else if (modo == "tools" && $0 ~ /^[ \t]*-[ \t]/) {
         v = $0; sub(/^[ \t]*-[ \t]*/, "", v); mapear(v)
       }
