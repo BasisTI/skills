@@ -36,7 +36,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | MR aberta | `orq mr add <ref> <url>` |
 | Limite da onda alcançado | `orq us status <ref> done` |
 | Aviso do daemon `pendência P<n> aberta` | nada: o daemon já importou o arquivo e numerou. Worker sem `.registrada.json` ("pendência não registrada: `<arquivo>`"): `orq pend importar <arquivo>` |
-| Aviso `pendência P<n> respondida`, ou `orq pend list --respondidas` com resultado | `orq pend ver <chave>`; confira o `respondida_por` (abaixo), aja e feche com `orq pend resolver <ref>#P<n>` (sem `--resposta`, vale a registrada) |
+| Aviso `pendência P<n> respondida`, ou `orq pend list --respondidas` com resultado | `orq pend ver <chave>`; confira o `respondida_por` (abaixo), **acuse o recebimento à pessoa** ([regra](acompanhamento.md#acusar-o-recebimento)), aja e feche com `orq pend resolver <ref>#P<n>` (sem `--resposta`, vale a registrada) |
 | A pessoa respondeu a você, no chat ou no pane em que você confirmou ser ela | `orq pend responder <ref>#P<n> [--opcao N] "<texto da pessoa>"` (grava `respondida_por = chat`) **na hora**, e, feita a ação, `orq pend resolver`, antes de seguir. Veja a [regra](#resposta-fora-da-central) |
 | Ação já feita, sem fala da pessoa sobre a pendência | só `orq pend resolver <ref>#P<n> --resposta "<o que foi feito e a evidência>"`; nunca `responder`. Veja a [regra](#resposta-fora-da-central) |
 | Pendência sem arquivo (fluxo antigo, daemon sem a #15) | `orq pend add <ref> --tipo duvida\|autorizacao\|decisao "<resumo>" --pane <p>` |
