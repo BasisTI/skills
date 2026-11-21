@@ -170,6 +170,18 @@ Close with a short section titled `O que tentei e não quebrou`, listing the
 attacks that held. That section is mandatory and is what makes an empty report
 trustworthy.
 
+## Instalação
+
+O skills CLI não instala agentes: o diretório de agentes do harness aponta para
+o arquivo do clone, e um `git pull` traz as mudanças.
+
+- **Claude Code:** `~/.claude/agents/qa-adversarial.md` →
+  `~/.agents/agents/qa-adversarial.md` → `<clone>/agents/qa-adversarial.md`.
+- **agy:** `~/.gemini/config/agents/qa-adversarial/agent.md` →
+  `~/.agents/agents/qa-adversarial.md` (agente global do `agy`; `agy agents`
+  deve listá-lo). Se não listar, o coordenador entrega o arquivo pelo prompt,
+  quando a configuração autorizar, e registra a adaptação.
+
 ## Out of scope
 
 Formatting, naming and style. A formatter and the static analysis in CI own

@@ -61,6 +61,27 @@ modelo = "claude-opus-5-5"
 esforco = "medium"
 ambiente = "local"
 
+# Aliases agy: avulsos, escolhidos explicitamente; nenhum entra em [[selecao]] antes do ensaio.
+# O id completo vai em "modelo" (o esforço já vem nele) e "esforco" fica vazio: o lançamento
+# passa só --model <id>, sem --effort. Confira os ids em `agy models`.
+[aliases.implementacao-agy]
+harness = "agy"
+modelo = "gemini-4-neon-medium"
+esforco = ""
+ambiente = "local"
+
+[aliases.revisao-agy]
+harness = "agy"
+modelo = "gemini-4-neon-high"
+esforco = ""
+ambiente = "local"
+
+[aliases.planejamento-agy]
+harness = "agy"
+modelo = "gemini-4-neon-xhigh"
+esforco = ""
+ambiente = "local"
+
 [[selecao]]
 papel = "implementacao"
 complexidade = "*"
@@ -94,7 +115,7 @@ glab_config_dir = "/home/<usuario>/.config/glab-agentes/revisor"
 runtime = "herdr"
 # Capacidades só passam para verificadas após o pré-voo.
 permissoes_verificadas = false
-qa_adversarial_modo = "nativo" # ou "arquivo", com autorização explícita
+qa_adversarial_modo = "nativo" # ou "arquivo", com autorização explícita (agy: "nativo" exige `agy agents` listar o papel)
 
 [projetos.exemplo]
 caminho = "/caminho/absoluto/do/repositorio"
