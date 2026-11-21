@@ -37,7 +37,7 @@ Modo autônomo e transições automáticas vêm de `[autonomia]` da configuraç�
 
 ## Bloqueios e encerramento
 
-Classifique o bloqueio: dependência, permissão, ambiente, falha técnica ou decisão de produto. Ao repetir a mesma causa, siga o limite de tentativas da `basis-ci-gitlab`; mudança de agente não zera o histórico. Continue atividades independentes autorizadas.
+Classifique o bloqueio: dependência, permissão, ambiente, falha técnica ou decisão de produto. Ao repetir a mesma causa, siga o limite de tentativas da `basis-ci-gitlab`; mudança de agente não zera o histórico. Continue atividades independentes autorizadas. Toda pergunta de decisão ou autorização para a pessoa, do coordenador ou de worker, vira pendência pelo arquivo, nunca só texto no chat, mesmo com a pessoa no pane; a exceção é a conversa de planejamento ([regra](references/acompanhamento.md#toda-pergunta-de-decisão-vira-pendência-mesmo-com-a-pessoa-no-pane)).
 
 Registre alias e combinação resolvida, pane, worktree, URL completa da MR, SHA, pipeline, relatório e evidências por rodada. Estado `done` do agente não comprova entrega. Informe o que foi confirmado e o que falta, preserve evidências e limpe recursos elegíveis.
 

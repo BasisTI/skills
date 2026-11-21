@@ -39,6 +39,7 @@ Com a Central, o `missao.md` guarda só o diário livre: decisões com origem, e
 | Aviso `pendência P<n> respondida`, ou `orq pend list --respondidas` com resultado | `orq pend ver <chave>`; confira o `respondida_por` (abaixo), aja e feche com `orq pend resolver <ref>#P<n>` (sem `--resposta`, vale a registrada) |
 | A pessoa respondeu a você, no chat ou no pane em que você confirmou ser ela | `orq pend responder <ref>#P<n> [--opcao N] "<texto da pessoa>"` (grava `respondida_por = chat`) **na hora**, e, feita a ação, `orq pend resolver`, antes de seguir. Veja a [regra](#resposta-fora-da-central) |
 | Ação já feita, sem fala da pessoa sobre a pendência | só `orq pend resolver <ref>#P<n> --resposta "<o que foi feito e a evidência>"`; nunca `responder`. Veja a [regra](#resposta-fora-da-central) |
+| Pergunta de decisão ou autorização sua para a pessoa | pendência pelo arquivo, nunca só no chat ([regra](acompanhamento.md#toda-pergunta-de-decisão-vira-pendência-mesmo-com-a-pessoa-no-pane)) |
 | Pendência sem arquivo (fluxo antigo, daemon sem a #15) | `orq pend add <ref> --tipo duvida\|autorizacao\|decisao "<resumo>" --pane <p>` |
 | Merge da última MR da US | nada: o daemon roda `orq limpar <ref>` ([limpeza](conclusao-e-limpeza.md#limpeza-depois-do-merge)) |
 | Onda concluída ([regra](#encerrar-a-onda)) | `orq onda encerrar <id>`, se o daemon não encerrou |
