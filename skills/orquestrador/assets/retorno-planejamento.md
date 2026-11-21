@@ -6,7 +6,7 @@
 
 ## Plano
 
-Passos numerados, cada um com o arquivo ou lugar que toca.
+Passos numerados, cada um com o arquivo ou lugar que toca. MR ou PR citada leva link e o repositório como prefixo (`[argocd-apps!650](url)`), como em [como citar](../SKILL.md#como-citar-uma-mr-ou-pr).
 
 ## Critérios de aceite
 

@@ -43,7 +43,7 @@ Registre alias e combinação resolvida, pane, worktree, URL completa da MR, SHA
 
 ## Como citar uma MR ou PR
 
-Em relatório, mensagem, pacote, token de sidebar e comentário, cite a MR sempre com o projeto: `<projeto>!<iid>` no GitLab (`argocd-apps!404`) e `<repo>#<n>` no GitHub (`orq#66`), e, onde o meio aceitar link, com a URL completa. O projeto vem da URL da MR, não do projeto da onda ou da story: uma onda do colaboradados pode ter MR no `argocd-apps`. `!404` sozinho é ambíguo e não se escreve. É a mesma forma que a Central web, o TUI e os tokens do `orq` mostram.
+Em relatório, mensagem, pacote, pendência, token de sidebar e comentário, toda MR ou PR citada leva **link**, e o repositório vem como prefixo: `<projeto>!<iid>` no GitLab e `<repo>#<n>` no GitHub. Duas formas valem: o texto com prefixo apontando para a URL, `[argocd-apps!650](https://gitlab.exemplo.com/grupo/argocd-apps/-/merge_requests/650)` (no GitHub, `[orq#66](url)`), ou a URL completa crua. Onde o meio não renderiza link (texto puro, token de sidebar), escreva a URL completa ou, no limite do espaço, `argocd-apps!650`. O projeto vem da URL da MR, não do projeto da onda ou da story: uma onda do colaboradados pode ter MR no `argocd-apps`. `!650` sozinho, sem prefixo, é ambíguo e não se escreve; com ou sem link, o prefixo não se omite. É a mesma forma que a Central web, o TUI e os tokens do `orq` mostram.
 
 ## Recursos
 
