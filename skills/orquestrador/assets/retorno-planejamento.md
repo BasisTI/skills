@@ -4,6 +4,10 @@
 - **Base lida:** story, documentos, retornos e sessões consultados.
 - **Escrito:** o que foi gravado (só o retorno e as pendências) ou "nada além deste retorno".
 
+## Spec
+
+Caminho da pasta da US no repositório (`docs/specs/<épico>/tg-<ref>-<nome-curto>/`), a branch e o SHA do último commit com `spec.md`, `plano.md` e `decisoes.md`; "nenhuma" quando o planejamento não gerou spec. O coordenador registra com `orq spec registrar`.
+
 ## Plano
 
 Passos numerados, cada um com o arquivo ou lugar que toca. MR ou PR citada leva link e o repositório como prefixo (`[argocd-apps!650](url)`), como em [como citar](../SKILL.md#como-citar-uma-mr-ou-pr).
