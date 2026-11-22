@@ -37,7 +37,7 @@ No `accept-edits` os arquivos passam sozinhos, mas **comando de shell e chamada 
   - **Fato do ensaio (orq #108) sobre persistência.** Duas entradas aprovadas com a opção 1 ("só este") apareceram persistidas no `settings.json`: `command(chmod +x /tmp/orq/orq/TG-64/bin/herdr)` e `command(python3 /tmp/orq/orq/TG-64/probe_isolado.py)` (log `aprovacoes-revisor-64.log`, 2026-11-21 18:57:27Z e 18:58:04Z, "opção 1"; arquivo alterado às 19:06:50Z). Outras aprovações "opção 1" do mesmo ensaio **não** foram persistidas (por exemplo `probe_r2.py`, 19:17:11Z). **A causa não está confirmada**: pode ser a tecla enviada pelo coordenador, a numeração do diálogo ou um comportamento do `agy`. A regra "nunca persistir" sozinha, portanto, **não garante** que nada persista. Segundo o diário do ensaio (`ensaio-orq-108.md`, último item), só `kustomize`, `identity-hub` e `herdr` são entradas **anteriores** ao ensaio. De `find`, `grep` e `head` o diário não diz nada. Nos logs `aprovacoes-*-64.log`, `grep` e `find` aparecem aprovados na opção 2 (prefixo na conversa, que não persiste; `aprovacoes-revisor-64.log:9,11`) e `head` **não aparece** como comando aprovado em nenhum dos dois. A origem de uma eventual entrada deles no `settings.json` **não está atribuída**. O `rm -rf` de caminhos da TG-64 e o `python3 - <<'EOF'` também não foram atribuídos a uma aprovação específica.
   - Comando que o worker não deveria rodar é **negado** ("No, cancel"), e o coordenador diz o que fazer no lugar (no ensaio: uma sondagem que registrava coordenador com o pane real e subia daemons com o Herdr real foi negada, e o revisor a refez com `herdr` falso no PATH e pane inexistente). "No, cancel" interrompe o turno ("What should Antigravity CLI do instead?") e deixa o agente `done` até um prompt novo.
 - **O agente não enxerga essas aprovações.** O autorrelato do `agy` sobre permissões **não é evidência**: o executor da r1 escreveu "nenhuma ação pediu aprovação manual" depois de dezenas de aprovações dadas no pane. O registro vem do coordenador (log de aprovações da onda), e o relatório do worker não o substitui.
-- **Procedimento para o `blocked` do worker `agy`.** `blocked` com diálogo de comando ou de MCP é o estado **esperado** do `agy`, não anomalia ([acompanhamento](../acompanhamento.md#anomalias)). A `espera-onda.sh` acorda por ele, e o coordenador:
+- **Procedimento para o `blocked` do worker `agy`.** `blocked` com diálogo de comando ou de MCP é o estado **esperado** do `agy`, não anomalia ([acompanhamento](../acompanhamento.md#anomalias)). O [vigia](#aprovações-do-coordenador) responde sozinho ao que está na lista e sai com `decisao` no resto (sem vigia, a `espera-onda.sh` acorda pelo `blocked`), e o coordenador:
   1. lê o pane: `herdr pane read <pane> --source visible`;
   2. decide pela regra de prefixo acima, lendo o script antes quando for script novo;
   3. responde pela tecla da opção: `herdr pane send-keys <pane> Enter` aceita a opção selecionada, `down` navega entre as opções e `esc` cancela. **Nunca** a opção que persiste em `settings.json`; confira a opção selecionada no `--source visible` antes do `Enter`;
@@ -45,7 +45,68 @@ No `accept-edits` os arquivos passam sozinhos, mas **comando de shell e chamada 
   5. confere o `settings.json` (regra acima) e rearma a espera.
 
   Em **modo autônomo**, `blocked` repetido sem decisão possível pela regra (comando fora da regra que não é claramente negável, script que não dá para ler, prefixo amplo) vira **pendência** pelo arquivo, sem aprovar às cegas e sem deixar o worker parado em silêncio.
-- **Vigia.** No ensaio o coordenador usou um script de scratchpad (`vigia-agy.sh`, não versionado) que lia o pane periodicamente, reconhecia o diálogo e só aprovava sozinho o que estava na lista de leitura e build, parando nos demais ("PARADO (fora da lista)" no log). O padrão serve se for refeito: lista fechada, parada em todo o resto, log de cada resposta. Um vigia desses precisa também olhar o diálogo de **arquivo** (Herdr `done`), que a espera não vê: só aparece no `--mode auto`.
+- **Vigia.** Com worker `agy` ativo, o coordenador roda o [`scripts/vigia-agy.sh`](../../scripts/vigia-agy.sh) em background **no lugar** da `espera-onda.sh` daquele worker. A espera acordaria a cada diálogo, porque o diálogo deixa o agente `blocked`. O vigia lê o pane e responde "uma vez" (opção 1, `Enter`) só ao comando que o [`vigia_agy_classificar.py`](../../scripts/vigia_agy_classificar.py) aprova. Em todo o resto sai com `decisao`, para o coordenador seguir o procedimento acima. Ele também sai no relatório gravado, como a espera:
+
+  ```bash
+  scripts/vigia-agy.sh <agente>=<relatório> --log <pasta da US>/aprovacoes-<papel>.log \
+    --build-slot <build-slot.sh do projeto> \
+    --raiz <worktree> --raiz <pasta da US> --raiz <TMPDIR da US> --raiz ~/.m2/repository   # run_in_background
+  ```
+
+  - **Limite, antes de tudo:** o vigia evita o acidente de um agente honesto. Ele **não é fronteira contra um agente hostil**: o agy lê qualquer arquivo sem pedir aprovação (ensaio da orq #108), e o build pelo build-slot roda o código da worktree, que o agente edita sem aprovação no accept-edits. Worker suspeito de seguir texto hostil (nota de MR, arquivo do repositório) é caso de parar o vigia e olhar o pane.
+  - **Como classifica.** É lista fechada por palavra, com um leitor de shell próprio que sabe o que estava entre aspas:
+    - param de cara `$` (qualquer expansão), crase, quebra de linha, aspas que não fecham, e, fora de aspas, `{ } * ? [ ]` (expansão de chaves e glob) e `#` no começo de palavra;
+    - separador só fora de aspas (`|`, `&&`, `||`, `;`); um `';'` entre aspas é argumento, como no bash;
+    - redirecionamento, só para `/dev/null` (`>`, `>>`, `&>`), `>&1`/`>&2` e `< arquivo`;
+    - cada comando precisa estar na tabela do classificador e passar pelo validador dele;
+    - caminho com `..` para; caminho absoluto ou com `~` só vale dentro de uma `--raiz`, inclusive o valor colado de opção (`-f/x`, `--x=/y`) e listas com `:`;
+    - nome de segredo em qualquer palavra, já sem as aspas, para, sem distinguir caixa (`token`, `secret`, `credenc`, `.env`, `.ssh`, `glab-cli`, `.docker`, `.pgpass`, `variables`…).
+
+    `vigia-agy.sh --classificar '<comando>' [--build-slot …] [--raiz …]` mostra a decisão sem Herdr.
+  - **Aprova uma vez:**
+    - git de leitura, sem opção longa (nem abreviada) que escreva ou execute e sem `git grep -O`;
+    - `grep`, `rg` sem `--pre`/`--hostname-bin`/`-z`, `ls`, `cat`, `head`/`tail`, `wc`, `jq` sem `env` e sem `-f`;
+    - `find` sem `-exec*`/`-ok*`/`-delete`/`-fprint*`/`-fls`;
+    - `sed`, só `sed -n 'N,Mp' arquivo`; `sort` sem `-o`; `uniq` sem arquivo de saída;
+    - `ps -p <pid> [-o campos]`, sem a linha de comando; `javap` sem `-J`;
+    - `glab api` só GET em `user` e nos caminhos de MR, pipeline, job, issue e repositório de um projeto (nada de `variables`); `glab mr view <n>`;
+    - `sonar qg status`/`list issues`/`list hotspots` e `taiga story get|comments`, sem `--url`; `herdr agent get`;
+    - o build pelo caminho de `--build-slot`: Maven só com as fases `clean` a `install` e opções de uma lista (nada de `deploy`, plugin ou `-f`), `go test|build|vet` sem `-exec`, `npm test`/`npm run build`, `uv run pytest` sem `-p`.
+  - **Para:**
+    - todo o resto, inclusive `java`/`javac`/`python` de código escrito pelo agente;
+    - nota ou comentário que o revisor vai publicar (o coordenador lê o texto antes);
+    - diálogo de MCP ou de arquivo;
+    - opções do diálogo fora do formato, ou opção 1 não selecionada;
+    - `blocked` sem diálogo reconhecido.
+  - **O diálogo é conferido na tela inteira.** O comando é texto do agente e pode imitar o diálogo. Por isso:
+    - o cabeçalho "Requesting permission for:", a pergunta "Run this command?" e a opção que persiste precisam aparecer uma vez só;
+    - o comando ocupa exatamente uma linha entre o cabeçalho e a pergunta;
+    - as quatro opções vêm logo abaixo, com a 1 selecionada e só ela.
+
+    Comando em mais de uma linha na tela sempre para: a quebra feita pela largura do pane não se distingue de uma nova linha do comando, que é outro comando. Comando terminado em `…` (truncado) também para.
+  - **Enter uma vez só.** Se o diálogo continua na tela 10 s depois do `Enter`, o vigia sai com `decisao` sem reenviar. Se o `send-keys` falha, ele não registra aprovação e sai com `herdr-indisponivel`. Se o `send-keys` passa de 20 s, registra `incerto` e sai com `decisao`.
+  - **Depois de cada `decisao`:** responda no pane (registrando no mesmo log a hora, a opção, o comando e o motivo) e rearme o vigia. O comando que se repete e é seguro entra na tabela do classificador com um teste em `scripts/tests/vigia-agy.test.sh`, nunca numa exceção feita na hora.
+  - **`ocioso`.** O agy fica `idle` enquanto espera uma tarefa em background que ele mesmo lançou (`/tasks` no rodapé). Antes de tratar como anomalia, olhe a tarefa. Na TG-32 era uma JVM de teste presa pelas threads do agendador do Spring depois de terminar os testes.
+  - **O que o vigia não vê:** MR mesclada ou fechada e pendência respondida (esta chega pelo aviso do daemon). Quando a espera da onda depende de um merge, arme também a `espera-onda.sh --mr` para outro worker da onda.
+  - **Origem:**
+    - O ensaio da orq #108 usou um vigia de scratchpad. Na onda 317 (TG-32 do trabalhe-conosco, 2026-11-22), o revisor agy precisou de oito ajustes nele ao longo da revisão.
+    - Na revisão do PR skills#88, duas rodadas reprovaram as versões anteriores com falsos "aprova" provados.
+      - **Rodada 1 (lista proibida por regex):**
+        - `cat x <$(…)`;
+        - `&` sozinho;
+        - aspas desemparelhadas;
+        - `sed -n 1p -e '1e …'`;
+        - `git grep -lOrm`;
+        - `sort -uo`;
+        - linhas juntadas.
+      - **Rodada 2 (`shlex`):**
+        - expansão de chaves, como `find {…,.} {-delete,-print}` e `cat {.,.}./etc/group`;
+        - separador entre aspas, como `rg x ';' cat --pre=sh`;
+        - comando de várias linhas forjando o próprio diálogo;
+        - `glab api …/variables`;
+        - `./mvnw deploy`/`flyway:clean`.
+
+      Cada caso virou teste.
 
 ## Pré-aprovação com `--settings`
 
@@ -103,6 +164,8 @@ Consequências:
 ## Espera
 
 A espera do coordenador depende do harness **do coordenador**, não do worker: Claude Code com `espera-onda.sh` em background ([Claude Code](claude-code.md#espera)), Codex com o laço no turno ([Codex](codex.md#espera)). O `espera-onda.sh` lê o estado do worker pelo Herdr, então o `agy` entra como qualquer outro agente, com as particularidades de [estados](#estados-no-herdr).
+
+No Claude Code, o worker `agy` fica com o [vigia](#aprovações-do-coordenador) (`vigia-agy.sh`) no lugar da `espera-onda.sh`: os dois saem no relatório, mas só o vigia responde aos diálogos sem acordar o coordenador a cada um. O vigia não vê pendência (chega pelo aviso do daemon) nem MR; os workers de outros harnesses na mesma onda continuam na `espera-onda.sh`.
 
 Quando o coordenador for um `agy`: se ele acorda ao fim de um comando em background **não foi testado** (o ensaio teve coordenador Claude Code); sem isso, use o laço do Codex.
 
