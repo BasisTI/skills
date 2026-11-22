@@ -53,47 +53,58 @@ No `accept-edits` os arquivos passam sozinhos, mas **comando de shell e chamada 
     --raiz <worktree> --raiz <pasta da US> --raiz <TMPDIR da US> --raiz ~/.m2/repository   # run_in_background
   ```
 
-  - **Como classifica.** É lista fechada por palavra, não regex sobre o texto:
-    - o comando é separado com `shlex` e cortado em `|`, `&&`, `||` e `;`;
+  - **Limite, antes de tudo:** o vigia evita o acidente de um agente honesto. Ele **não é fronteira contra um agente hostil**: o agy lê qualquer arquivo sem pedir aprovação (ensaio da orq #108), e o build pelo build-slot roda o código da worktree, que o agente edita sem aprovação no accept-edits. Worker suspeito de seguir texto hostil (nota de MR, arquivo do repositório) é caso de parar o vigia e olhar o pane.
+  - **Como classifica.** É lista fechada por palavra, com um leitor de shell próprio que sabe o que estava entre aspas:
+    - param de cara `$` (qualquer expansão), crase, quebra de linha, aspas que não fecham, e, fora de aspas, `{ } * ? [ ]` (expansão de chaves e glob) e `#` no começo de palavra;
+    - separador só fora de aspas (`|`, `&&`, `||`, `;`); um `';'` entre aspas é argumento, como no bash;
+    - redirecionamento, só para `/dev/null` (`>`, `>>`, `&>`), `>&1`/`>&2` e `< arquivo`;
     - cada comando precisa estar na tabela do classificador e passar pelo validador dele;
-    - antes disso, param `$` (qualquer expansão), crase, barra invertida antes de aspas ou no fim, aspas que não fecham e qualquer outro operador (`&` sozinho, `(`, `<<`, `>|`…);
-    - redirecionamento, só `>/dev/null`, `2>&1` e `< arquivo`;
-    - caminho com `..` para; caminho absoluto ou com `~` só vale dentro de uma `--raiz`;
-    - nome de segredo em qualquer palavra para, sem distinguir caixa (`token`, `secret`, `credenc`, `.env`, `.ssh`, `glab-cli`, `.docker`, `.pgpass`…).
+    - caminho com `..` para; caminho absoluto ou com `~` só vale dentro de uma `--raiz`, inclusive o valor colado de opção (`-f/x`, `--x=/y`) e listas com `:`;
+    - nome de segredo em qualquer palavra, já sem as aspas, para, sem distinguir caixa (`token`, `secret`, `credenc`, `.env`, `.ssh`, `glab-cli`, `.docker`, `.pgpass`, `variables`…).
 
     `vigia-agy.sh --classificar '<comando>' [--build-slot …] [--raiz …]` mostra a decisão sem Herdr.
   - **Aprova uma vez:**
-    - git de leitura sem `-O`/`--open*`/`--output`/`--ext-diff`;
-    - `grep`, `rg` sem `--pre`, `ls`, `cat`, `head`/`tail`, `wc`, `jq` sem `env`;
+    - git de leitura, sem opção longa (nem abreviada) que escreva ou execute e sem `git grep -O`;
+    - `grep`, `rg` sem `--pre`/`--hostname-bin`/`-z`, `ls`, `cat`, `head`/`tail`, `wc`, `jq` sem `env` e sem `-f`;
     - `find` sem `-exec*`/`-ok*`/`-delete`/`-fprint*`/`-fls`;
     - `sed`, só `sed -n 'N,Mp' arquivo`; `sort` sem `-o`; `uniq` sem arquivo de saída;
-    - `ps -p <pid> [-o campos]`, `javap` sem `-J`;
-    - `glab api <caminho> [--paginate]` (só GET), `glab mr view <n>`;
-    - leituras do `sonar` e do `taiga` sem `--url`, `herdr agent get`;
-    - o build pelo caminho de `--build-slot` (`./mvnw`, `mvn`, `go test`, `npm test`, `uv run pytest`…), sem `exec`/`antrun`.
-
-    O build executa o código da worktree por definição: é a mesma confiança dada ao executor, e o vigia só limita o comando do build, não o que os testes fazem.
+    - `ps -p <pid> [-o campos]`, sem a linha de comando; `javap` sem `-J`;
+    - `glab api` só GET em `user` e nos caminhos de MR, pipeline, job, issue e repositório de um projeto (nada de `variables`); `glab mr view <n>`;
+    - `sonar qg status`/`list issues`/`list hotspots` e `taiga story get|comments`, sem `--url`; `herdr agent get`;
+    - o build pelo caminho de `--build-slot`: Maven só com as fases `clean` a `install` e opções de uma lista (nada de `deploy`, plugin ou `-f`), `go test|build|vet` sem `-exec`, `npm test`/`npm run build`, `uv run pytest` sem `-p`.
   - **Para:**
     - todo o resto, inclusive `java`/`javac`/`python` de código escrito pelo agente;
     - nota ou comentário que o revisor vai publicar (o coordenador lê o texto antes);
     - diálogo de MCP ou de arquivo;
-    - opção 1 não selecionada logo abaixo de "Run this command?";
+    - opções do diálogo fora do formato, ou opção 1 não selecionada;
     - `blocked` sem diálogo reconhecido.
-  - **Comando em mais de uma linha na tela sempre para.** A quebra feita pela largura do pane não se distingue de uma nova linha do comando, que é outro comando. A revisão do PR skills#88 montou telas em que a junção das linhas aprovava `echo a` seguido de `mkdir`.
-  - **Enter uma vez só.** Se o diálogo continua na tela 10 s depois do `Enter`, o vigia sai com `decisao` sem reenviar. Se o `send-keys` falha, ele não registra aprovação e sai com `herdr-indisponivel`.
+  - **O diálogo é conferido na tela inteira.** O comando é texto do agente e pode imitar o diálogo. Por isso:
+    - o cabeçalho "Requesting permission for:", a pergunta "Run this command?" e a opção que persiste precisam aparecer uma vez só;
+    - o comando ocupa exatamente uma linha entre o cabeçalho e a pergunta;
+    - as quatro opções vêm logo abaixo, com a 1 selecionada e só ela.
+
+    Comando em mais de uma linha na tela sempre para: a quebra feita pela largura do pane não se distingue de uma nova linha do comando, que é outro comando. Comando terminado em `…` (truncado) também para.
+  - **Enter uma vez só.** Se o diálogo continua na tela 10 s depois do `Enter`, o vigia sai com `decisao` sem reenviar. Se o `send-keys` falha, ele não registra aprovação e sai com `herdr-indisponivel`. Se o `send-keys` passa de 20 s, registra `incerto` e sai com `decisao`.
   - **Depois de cada `decisao`:** responda no pane (registrando no mesmo log a hora, a opção, o comando e o motivo) e rearme o vigia. O comando que se repete e é seguro entra na tabela do classificador com um teste em `scripts/tests/vigia-agy.test.sh`, nunca numa exceção feita na hora.
   - **`ocioso`.** O agy fica `idle` enquanto espera uma tarefa em background que ele mesmo lançou (`/tasks` no rodapé). Antes de tratar como anomalia, olhe a tarefa. Na TG-32 era uma JVM de teste presa pelas threads do agendador do Spring depois de terminar os testes.
   - **O que o vigia não vê:** MR mesclada ou fechada e pendência respondida (esta chega pelo aviso do daemon). Quando a espera da onda depende de um merge, arme também a `espera-onda.sh --mr` para outro worker da onda.
   - **Origem:**
     - O ensaio da orq #108 usou um vigia de scratchpad. Na onda 317 (TG-32 do trabalhe-conosco, 2026-11-22), o revisor agy precisou de oito ajustes nele ao longo da revisão.
-    - A primeira versão versionada usava lista proibida por regex e foi reprovada na revisão do PR skills#88. Ela aprovava comandos que apagavam ou executavam:
-      - `cat x <$(…)`;
-      - `&` sozinho;
-      - aspas desemparelhadas;
-      - `sed -n 1p -e '1e …'`;
-      - `git grep -lOrm`;
-      - `sort -uo`;
-      - linhas juntadas.
+    - Na revisão do PR skills#88, duas rodadas reprovaram as versões anteriores com falsos "aprova" provados.
+      - **Rodada 1 (lista proibida por regex):**
+        - `cat x <$(…)`;
+        - `&` sozinho;
+        - aspas desemparelhadas;
+        - `sed -n 1p -e '1e …'`;
+        - `git grep -lOrm`;
+        - `sort -uo`;
+        - linhas juntadas.
+      - **Rodada 2 (`shlex`):**
+        - expansão de chaves, como `find {…,.} {-delete,-print}` e `cat {.,.}./etc/group`;
+        - separador entre aspas, como `rg x ';' cat --pre=sh`;
+        - comando de várias linhas forjando o próprio diálogo;
+        - `glab api …/variables`;
+        - `./mvnw deploy`/`flyway:clean`.
 
       Cada caso virou teste.
 

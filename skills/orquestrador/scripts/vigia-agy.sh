@@ -12,7 +12,12 @@
 # settings.json: só envia Enter, e só com "> 1. Yes, run command" logo abaixo de
 # "Run this command?". Comando que ocupa mais de uma linha na tela sempre para:
 # na tela, a quebra feita pela largura do pane não se distingue de uma nova linha
-# do comando, que seria outro comando.
+# do comando, que seria outro comando. Cabeçalho, pergunta e opção que persiste
+# precisam aparecer uma vez só na tela inteira (o comando pode imitá-los).
+#
+# LIMITE: evita o acidente de um agente honesto; não é fronteira contra agente
+# hostil (o agy lê qualquer arquivo sem aprovação e o build roda o código da
+# worktree, que ele edita sem aprovação no accept-edits).
 #
 # Feito para `run_in_background` no Claude Code: substitui a espera-onda.sh
 # para o worker agy (ela acordaria a cada diálogo, porque o diálogo deixa o
@@ -32,7 +37,7 @@
 #                só classifica (sem Herdr): imprime `aprova` ou `para: <motivo>`
 #                e sai 0 (aprova) ou 1 (para).
 #
-# Log (TSV): instante UTC, decisão (`aprovado`, `parado`, `falha`), comando como
+# Log (TSV): instante UTC, decisão (`aprovado`, `parado`, `falha`, `incerto`), comando como
 # apareceu na tela, motivo. É o registro de permissões da rodada: o autorrelato
 # do agy não serve para isso.
 #
@@ -162,23 +167,36 @@ pane_do_agente() {
 }
 ler_tela() { timeout 20 herdr pane read "$PANE" --source visible 2>/dev/null; }
 
-# dialogo <tela>: imprime as linhas do comando do ÚLTIMO diálogo de comando da
-# tela, entre a linha exata "Requesting permission for:" e a linha exata "Run
-# this command?", e, na última linha da saída, a linha logo abaixo (a opção
-# selecionada), com o prefixo @@SEL@@. Sai 1 se não há diálogo completo.
+# dialogo <tela>: lê o diálogo de comando da tela INTEIRA e imprime uma linha:
+#   SEM | REPETIDO | INCOMPLETO | LINHAS <n> | OPCOES | SELECAO | OK <comando>
+# O comando é texto do agente e pode imitar o diálogo; por isso o cabeçalho
+# "Requesting permission for:", a pergunta "Run this command?" e a opção que
+# persiste precisam aparecer UMA vez só na tela, o comando ocupa exatamente uma
+# linha entre eles, e as quatro opções vêm logo abaixo da pergunta, com a 1
+# selecionada e só ela.
 dialogo() {
   awk '
-    /^Requesting permission for: *$/ { em = 1; n = 0; fechado = 0; sel = ""; next }
-    em && /^Run this command\? *$/ { em = 0; fechado = 1; pega = 1; next }
-    em { cmd[++n] = $0; next }
-    pega { sel = $0; pega = 0 }
+    { linha[NR] = $0 }
+    /^Requesting permission for: *$/ { nh++; hl = NR }
+    /^Run this command\? *$/ { nq++; ql = NR }
+    /\(Persist to settings\.json\) *$/ { np++ }
     END {
-      if (!fechado) exit 1
-      for (i = 1; i <= n; i++) print cmd[i]
-      print "@@SEL@@" sel
+      if (nh == 0) { print "SEM"; exit }
+      if (nh > 1 || nq > 1 || np > 1) { print "REPETIDO"; exit }
+      if (nq == 0 || ql < hl) { print "INCOMPLETO"; exit }
+      nl = 0
+      for (i = hl + 1; i < ql; i++) if (linha[i] ~ /[^ ]/) { nl++; cmd = linha[i] }
+      if (nl != 1) { print "LINHAS " nl; exit }
+      o1 = linha[ql + 1]; o2 = linha[ql + 2]; o3 = linha[ql + 3]; o4 = linha[ql + 4]
+      if (o1 !~ /^(> |  )1\. Yes, run command *$/ || o2 !~ /^(> |  )2\. Yes, and always allow in this conversation / ||
+          o3 !~ /^(> |  )3\. Yes, and always allow for commands .*\(Persist to settings\.json\) *$/ || o4 !~ /^(> |  )4\. No, cancel *$/) {
+        print "OPCOES"; exit
+      }
+      if (o1 !~ /^> / || o2 ~ /^> / || o3 ~ /^> / || o4 ~ /^> /) { print "SELECAO"; exit }
+      sub(/^ +/, "", cmd); sub(/ +$/, "", cmd)
+      print "OK " cmd
     }' <<<"$1"
 }
-comando_do() { sed '$d' <<<"$1" | grep . | sed -E 's/^ +//; s/ +$//' | paste -sd ' ' -; }
 
 printf 'vigia-agy: armada para %s, ocioso %ss, limite %ss, log %s\n' "$AGENTE" "$OCIOSO_S" "$LIMITE_S" "$LOG"
 
@@ -220,43 +238,56 @@ while :; do
     fim 1 decisao "diálogo de arquivo no pane de $AGENTE"
   fi
 
-  if grep -q 'Requesting permission for:' <<<"$tela"; then
-    if ! d=$(dialogo "$tela"); then
-      sleep "$INTERVALO_S"; continue  # diálogo ainda desenhando
-    fi
-    sel=$(tail -1 <<<"$d"); sel=${sel#@@SEL@@}
-    linhas=$(sed '$d' <<<"$d" | grep -c .)
-    cmd=$(comando_do "$d")
-    if [ "$linhas" -ne 1 ]; then
-      registra parado "$cmd" "comando em $linhas linhas na tela"
-      fim 1 decisao "comando em $linhas linhas na tela (quebra da tela não se distingue de outro comando): $cmd"
-    fi
-    if ! [[ "$sel" =~ ^\ *\>\ 1\.\ Yes,\ run\ command\ *$ ]]; then
-      registra parado "$cmd" "opção 1 não está selecionada"
-      fim 1 decisao "opção 1 não selecionada no diálogo: $cmd"
-    fi
-    if ! classificar "$cmd"; then
-      registra parado "$cmd" "$MOTIVO"
-      fim 1 decisao "$MOTIVO :: $cmd"
-    fi
-    if ! timeout 20 herdr pane send-keys "$PANE" Enter >/dev/null 2>&1; then
-      registra falha "$cmd" "send-keys falhou; nada aprovado"
-      fim 8 herdr-indisponivel "send-keys falhou no pane de $AGENTE"
-    fi
-    registra aprovado "$cmd" "$MOTIVO (opção 1, uma vez)"
-    # O diálogo deste comando precisa sair da tela. Se continuar, não reenvia:
-    # o coordenador olha (um segundo Enter poderia responder a outro diálogo).
-    saiu=0
-    for _ in 1 2 3 4 5 6 7 8 9 10; do
-      sleep 1
-      t2=$(ler_tela) || continue
-      d2=$(dialogo "$t2") || { saiu=1; break; }
-      [ "$(comando_do "$d2")" = "$cmd" ] || { saiu=1; break; }
-    done
-    [ "$saiu" -eq 1 ] || fim 1 decisao "o diálogo continua na tela 10 s depois do Enter: $cmd"
-    bloq_desde=0
-    continue
-  fi
+  d=$(dialogo "$tela")
+  case "$d" in
+    SEM|INCOMPLETO) ;;  # sem diálogo, ou ainda desenhando: segue para o blocked
+    REPETIDO)
+      registra parado "-" "estrutura do diálogo repetida na tela (comando imitando o diálogo?)"
+      fim 1 decisao "estrutura do diálogo aparece mais de uma vez na tela de $AGENTE" ;;
+    LINHAS*)
+      registra parado "-" "comando em ${d#LINHAS } linhas na tela"
+      fim 1 decisao "comando em ${d#LINHAS } linhas na tela (quebra da tela não se distingue de outro comando)" ;;
+    OPCOES)
+      registra parado "-" "opções do diálogo fora do formato conhecido"
+      fim 1 decisao "opções do diálogo fora do formato conhecido no pane de $AGENTE" ;;
+    SELECAO)
+      registra parado "-" "opção 1 não está selecionada"
+      fim 1 decisao "opção 1 não selecionada no diálogo de $AGENTE" ;;
+    OK\ *)
+      cmd=${d#OK }
+      case "$cmd" in
+        *…|*...) registra parado "$cmd" "comando truncado na tela"; fim 1 decisao "comando truncado na tela: $cmd" ;;
+      esac
+      if ! classificar "$cmd"; then
+        registra parado "$cmd" "$MOTIVO"
+        fim 1 decisao "$MOTIVO :: $cmd"
+      fi
+      herdr pane send-keys "$PANE" Enter >/dev/null 2>&1 &
+      pid_envio=$!
+      ( sleep 20; kill "$pid_envio" 2>/dev/null ) &
+      pid_relogio=$!
+      wait "$pid_envio"; rc_envio=$?
+      kill "$pid_relogio" 2>/dev/null; wait "$pid_relogio" 2>/dev/null
+      if [ "$rc_envio" -gt 128 ]; then
+        registra incerto "$cmd" "send-keys passou de 20 s; a tecla pode ter chegado"
+        fim 1 decisao "send-keys passou de 20 s, confira o pane: $cmd"
+      elif [ "$rc_envio" -ne 0 ]; then
+        registra falha "$cmd" "send-keys falhou; nada aprovado"
+        fim 8 herdr-indisponivel "send-keys falhou no pane de $AGENTE"
+      fi
+      registra aprovado "$cmd" "$MOTIVO (opção 1, uma vez)"
+      # O diálogo deste comando precisa sair da tela. Se continuar, não reenvia:
+      # o coordenador olha (um segundo Enter poderia responder a outro diálogo).
+      saiu=0
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        sleep 1
+        t2=$(ler_tela) || continue
+        [ "$(dialogo "$t2")" = "OK $cmd" ] || { saiu=1; break; }
+      done
+      [ "$saiu" -eq 1 ] || fim 1 decisao "o diálogo continua na tela 10 s depois do Enter: $cmd"
+      bloq_desde=0
+      continue ;;
+  esac
 
   if [ "$st" = "blocked" ]; then
     [ "$bloq_desde" -gt 0 ] || bloq_desde=$agora
