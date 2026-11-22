@@ -159,6 +159,31 @@ zera
 rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$DEST/" beta >/dev/null 2>&1 || rc=$?
 confere "--destino real com barra final: gera (rc 0)" "$([ $rc = 0 ] && [ -f "$DEST/beta/agent.md" ]; echo $?)"
 
+# M2 (orq #113): componente inexistente + `..` + link gravava no alvo do link
+zera; rm -rf "$RAIZ/alvo-dl"; mkdir -p "$RAIZ/alvo-dl"
+for d in "$RAIZ/naoexiste/../dl" "$RAIZ/naoexiste/.." "$RAIZ/dl/.." "$RAIZ/real/../dl/"; do
+  rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$d" beta >"$RAIZ/saida" 2>"$RAIZ/erro" || rc=$?
+  confere "--destino com '..' ($d): rc 3, cita '..' e nada gravado" "$([ $rc = 3 ] && grep -q -- "'\.\.'" "$RAIZ/erro" && [ -z "$(ls -A "$RAIZ/alvo-dl")" ] && [ ! -e "$RAIZ/naoexiste" ]; echo $?)"
+done
+rc=0; (cd "$RAIZ" && bash "$SCRIPT" --agentes "$AG" --destino ../naoexiste/../dl beta >/dev/null 2>&1) || rc=$?
+confere "--destino relativo com '..': rc 3 e nada gravado" "$([ $rc = 3 ] && [ -z "$(ls -A "$RAIZ/alvo-dl")" ]; echo $?)"
+rc=0; bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/a..b/x" beta >/dev/null 2>&1 || rc=$?
+confere "--destino com '..' dentro do nome (a..b) não é recusado" "$([ $rc = 0 ] && [ -f "$RAIZ/a..b/x/beta/agent.md" ]; echo $?)"
+
+# M6 (orq #113): ancestral do $HOME como link é tolerado (ex. /home -> /var/home); QA3
+mkdir -p "$RAIZ/realhome/user" "$RAIZ/rl-home"; ln -s "$RAIZ/realhome" "$RAIZ/fakehome"
+rc=0; HOME="$RAIZ/fakehome/user" bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/fakehome/user/agents" beta >"$RAIZ/saida" 2>"$RAIZ/erro" || rc=$?
+confere "--destino sob \$HOME cujo ancestral é link: rc 0 e gerado" "$([ $rc = 0 ] && [ -f "$RAIZ/realhome/user/agents/beta/agent.md" ]; echo $?)"
+rc=0; HOME="$RAIZ/fakehome/user/" bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/fakehome/user/agents2" beta >/dev/null 2>&1 || rc=$?
+confere "idem com \$HOME terminado em barra: rc 0" "$([ $rc = 0 ] && [ -f "$RAIZ/realhome/user/agents2/beta/agent.md" ]; echo $?)"
+# um link FORA dos ancestrais do $HOME continua recusado mesmo com $HOME definido
+rc=0; HOME="$RAIZ/fakehome/user" bash "$SCRIPT" --agentes "$AG" --destino "$RAIZ/dl/x" beta >/dev/null 2>&1 || rc=$?
+confere "com \$HOME num link, link fora dos ancestrais segue recusado (rc 3)" "$([ $rc = 3 ]; echo $?)"
+# --destino vazio (QA4): rc 2 e nada criado no diretório corrente
+mkdir -p "$RAIZ/cwd-vazio"
+rc=0; (cd "$RAIZ/cwd-vazio" && bash "$SCRIPT" --agentes "$AG" --destino "" beta >"$RAIZ/saida" 2>"$RAIZ/erro") || rc=$?
+confere "--destino \"\": rc 2, cita --destino vazio e nada criado" "$([ $rc = 2 ] && grep -q -- '--destino vazio' "$RAIZ/erro" && [ -z "$(ls -A "$RAIZ/cwd-vazio")" ]; echo $?)"
+
 # ---------------------------------------------------------------- nomes e efeito parcial
 # defeito: nome com `.` aceito (ex. `.x`, `a.b`, `..`)
 for n in .x a.b .. -x; do
@@ -192,9 +217,10 @@ confere "description vazia: rc 1 e nada gravado" "$([ $rc = 1 ] && [ -z "$(ls -A
 printf -- '---\nname: x\ndescription: >-\n\nmode: subagent\n---\ncorpo\n' >"$AG/descdobradavazia.md"
 zera; roda descdobradavazia
 confere "description dobrada sem texto: rc 1" "$([ $rc = 1 ]; echo $?)"
-printf -- '---\nname: x\n---\ncorpo\n' >"$AG/semnome.md"
-roda semnome
-confere "sem name: rc 1" "$([ $rc = 1 ]; echo $?)"
+# M6 (orq #113): o arquivo OMITE o name e tem description; antes tinha name e faltava description
+printf -- '---\ndescription: d\n---\ncorpo\n' >"$AG/semnome.md"
+zera; roda semnome
+confere "sem name (com description): rc 1, mensagem 'sem name' (ausência, não vazio) e nada gravado" "$([ $rc = 1 ] && grep -q 'sem name' "$RAIZ/erro" && [ -z "$(ls -A "$DEST")" ]; echo $?)"
 # N4: description/name vazios ou reservados. Cada caso: rc 1 e nada gravado.
 rejeita() { # rejeita <descrição> <conteúdo do canônico com printf> [trecho esperado do erro]
   printf -- "$2" >"$AG/inv.md"; zera; roda inv
@@ -206,11 +232,29 @@ rejeita "description ''" "---\nname: x\ndescription: ''\n---\ncorpo\n" descripti
 rejeita "description só comentário" '---\nname: x\ndescription: # nada\n---\ncorpo\n' description
 rejeita "description dobrada só com comentário" '---\nname: x\ndescription: >-\n  # nada\n---\ncorpo\n' description
 rejeita "description em lista" '---\nname: x\ndescription:\n  - a\n  - b\n---\ncorpo\n' description
+# M3 (orq #113): description sem texto por outros caminhos
+rejeita "description dobrada com comentário no cabeçalho" '---\nname: x\ndescription: >- # nada\n---\ncorpo\n' description
+rejeita "description literal com comentário no cabeçalho" '---\nname: x\ndescription: | # nada\n---\ncorpo\n' description
+rejeita "description dobrada com indicador numérico" '---\nname: x\ndescription: >2\n---\ncorpo\n' description
+rejeita "description em lista precedida por comentário" '---\nname: x\ndescription:\n  # nota\n  - a\n  - b\n---\ncorpo\n' description
+rejeita "description em lista precedida por linha em branco" '---\nname: x\ndescription:\n\n  - a\n---\ncorpo\n' description
+rejeita "description []" '---\nname: x\ndescription: []\n---\ncorpo\n' description
+rejeita "description [a, b]" '---\nname: x\ndescription: [a, b]\n---\ncorpo\n' description
+rejeita "description {}" '---\nname: x\ndescription: {}\n---\ncorpo\n' description
+rejeita "description null" '---\nname: x\ndescription: null\n---\ncorpo\n' description
+rejeita "description ~" '---\nname: x\ndescription: ~\n---\ncorpo\n' description
+rejeita "description \"\" na linha de baixo" '---\nname: x\ndescription:\n  ""\n---\ncorpo\n' description
+rejeita "description null na linha de baixo" '---\nname: x\ndescription:\n  null\n---\ncorpo\n' description
 rejeita "name vazio" '---\nname:\ndescription: d\n---\ncorpo\n' name
 rejeita "name \"\"" '---\nname: ""\ndescription: d\n---\ncorpo\n' name
+rejeita "name ''" "---\nname: ''\ndescription: d\n---\ncorpo\n" name
 rejeita "name só comentário" '---\nname: # x\ndescription: d\n---\ncorpo\n' name
 for r in self browser research deepagent review-agent; do
   rejeita "name reservado '$r'" "---\nname: $r\ndescription: d\n---\ncorpo\n" reservado
+done
+# M4 (orq #113): reservado em outra caixa
+for r in Self SELF Review-Agent Browser; do
+  rejeita "name reservado em outra caixa '$r'" "---\nname: $r\ndescription: d\n---\ncorpo\n" reservado
 done
 rejeita "name reservado entre aspas" '---\nname: "self"\ndescription: d\n---\ncorpo\n' reservado
 # não pode recusar o que vale: description com `#` no meio do texto e name com aspas
@@ -222,6 +266,14 @@ rejeita "tools com padrão numa lista de blocos" '---\nname: x\ndescription: d\n
 rejeita "tools com padrão entre colchetes" '---\nname: x\ndescription: d\ntools: [Read, "Bash(git:*)"]\n---\ncorpo\n' tools
 rejeita "disallowedTools: Bash" '---\nname: x\ndescription: d\ndisallowedTools: Bash\n---\ncorpo\n' disallowedTools
 rejeita "disallowedTools junto de tools" '---\nname: x\ndescription: d\ntools: Read\ndisallowedTools: Write\n---\ncorpo\n' disallowedTools
+# M5 (orq #113): comentário YAML em tools não é grant nem recusa
+printf -- '---\nname: c1\ndescription: d\ntools: [Read, Write] # nota\n---\ncorpo\n' >"$AG/c1.md"; zera; roda c1
+confere "tools [Read, Write] # nota: read_file e write_file, sem aviso" "$([ $rc = 0 ] && tem "$DEST/c1/agent.md" 'tools: [read_file, write_file]' && ! grep -q aviso "$RAIZ/erro"; echo $?)"
+printf -- '---\nname: c2\ndescription: d\ntools:\n  - Read # leitura\n  - Write\n---\ncorpo\n' >"$AG/c2.md"; zera; roda c2
+confere "tools em lista com comentário inline: read_file e write_file" "$([ $rc = 0 ] && tem "$DEST/c2/agent.md" 'tools: [read_file, write_file]'; echo $?)"
+printf -- '---\nname: c3\ndescription: d\ntools: Read # (nota), outra\n---\ncorpo\n' >"$AG/c3.md"; zera; roda c3
+confere "tools com parêntese só no comentário: aceito, read_file" "$([ $rc = 0 ] && tem "$DEST/c3/agent.md" 'tools: [read_file]'; echo $?)"
+rejeita "tools com padrão antes do comentário ainda recusa" '---\nname: x\ndescription: d\ntools: Bash(git:*) # nota\n---\ncorpo\n' tools
 # N7: uma recusa, uma mensagem (sem o "frontmatter não fechado" espúrio depois)
 printf -- '---\nname: x\n---\ncorpo\n' >"$AG/semdesc2.md"; zera; roda semdesc2
 confere "sem description: só a mensagem da description, sem 'não fechado'" "$(grep -q 'description' "$RAIZ/erro" && ! grep -q 'não fechado' "$RAIZ/erro"; echo $?)"

@@ -39,6 +39,12 @@
 #   --destino  pasta de agentes do agy. Padrão: ${GEMINI_HOME:-~/.gemini}/config/agents.
 #              Recusado (rc 3) se ele ou qualquer diretório do caminho for link simbólico
 #              (barra final ignorada); só os ancestrais do $HOME ficam de fora da conferência.
+#              Componente `..` também é recusado (rc 3). Limite conhecido (orq #113, M7): com
+#              --destino RELATIVO, o caminho é lido a partir do $PWD lógico; se o $HOME é o
+#              caminho real (`/var/home/u`) e o $PWD entrou por um link (`/home/u`), o link
+#              do $PWD não é reconhecido como ancestral do $HOME e o destino é recusado (rc 3,
+#              falso positivo que não grava nada). Contorno: passe --destino absoluto.
+#   Nome reservado do agy é comparado sem distinguir caixa (`Self`, `SELF`).
 #   papel...   nomes (sem .md). Padrão: todos os `*.md` de --agentes.
 #   --substituir-link  troca por arquivo gerado um `agent.md` que hoje é link simbólico
 #              (a instalação antiga da orq #107). Sem a opção, o link é recusado.
@@ -112,6 +118,11 @@ done
 # final (`dl/` escapava do `-L` sobre o caminho inteiro; a subida por componentes pega).
 # Só os ancestrais do $HOME ficam de fora (ex. `/home` -> `/var/home`).
 [ -n "$DESTINO" ] || { echo "--destino vazio" >&2; exit 2; }
+# `..` é recusado: com componente inexistente antes dele (`naoexiste/../dl`) o `-L` não
+# vê o link e o `mkdir -p` depois atravessa (orq #113, M2).
+case "/$DESTINO/" in
+  */../*) echo "recusado: --destino $DESTINO tem componente '..'" >&2; exit 3 ;;
+esac
 case "$DESTINO" in /*) conf="$DESTINO" ;; *) conf="$PWD/$DESTINO" ;; esac
 while [ "$conf" != "/" ] && [ -n "$conf" ]; do
   if [ -L "$conf" ]; then
@@ -140,6 +151,7 @@ cabecalho() {
       usar[t] = 1
     }
     function achatar(s,   n, i, partes) {
+      sub(/(^|[ \t])#.*$/, "", s)   # comentário YAML não é grant
       gsub(/[\[\]]/, "", s); n = split(s, partes, ",")
       for (i = 1; i <= n; i++) mapear(partes[i])
     }
@@ -159,8 +171,8 @@ cabecalho() {
       if ($0 == "---") {
         if (!tem_name) falha("frontmatter sem name")
         if (nome == "") falha("frontmatter com name vazio")
-        if (nome ~ /^(self|browser|research|deepagent|review-agent)$/) falha("name reservado do agy: " nome " (prefixe o nome)")
-        if (!tem_desc || desc_txt == "") falha("frontmatter sem description (ou vazia)")
+        if (tolower(nome) ~ /^(self|browser|research|deepagent|review-agent)$/) falha("name reservado do agy: " nome " (prefixe o nome)")
+        if (!tem_desc || desc_txt == "" || desc_txt ~ /^(""|\047\047)$/ || tolower(desc_txt) ~ /^(null|~)$/ || desc_txt ~ /^(\[.*\]|\{.*\})$/) falha("frontmatter sem description (ou vazia, ou sem texto: \"\", null, ~, [], {})")
         if (desc_lista) falha("description em lista: não é texto")
         if (tem_dis) falha("disallowedTools não tem equivalente no agy: papel recusado")
         if (tem_tools) {
@@ -179,16 +191,18 @@ cabecalho() {
         chave = $0; sub(/:.*/, "", chave); resto = $0; sub(/^[^:]*:[ \t]*/, "", resto)
         manter = (chave == "name" || chave == "description"); modo = chave; primeira = 1
         if (chave == "name") { tem_name = 1; nome = limpo(resto) }
-        if (chave == "description") { tem_desc = 1; v = resto; sub(/^[>|][-+]?[ \t]*$/, "", v); v = limpo(v); desc_txt = v; desc_cab = (v != "") }
+        if (chave == "description") { tem_desc = 1; v = resto; sub(/^[>|][-+0-9]*[ \t]*(#.*)?$/, "", v); v = limpo(v); desc_txt = v; desc_cab = (v != "") }
         if (chave == "tools") { tem_tools = 1; achatar(resto) }
         if (chave == "disallowedTools") tem_dis = 1
       } else if (modo == "description") {
         v = $0
-        if (!desc_cab && primeira && v ~ /^[ \t]*-[ \t]/) desc_lista = 1
-        if (v !~ /^[ \t]*#/) { gsub(/[ \t]/, "", v); desc_txt = desc_txt v }
-        if (v != "") primeira = 0
+        if (v !~ /^[ \t]*#/ && v !~ /^[ \t]*$/) {   # linha em branco ou só comentário não conta
+          if (!desc_cab && primeira && v ~ /^[ \t]*-[ \t]/) desc_lista = 1
+          primeira = 0
+          gsub(/[ \t]/, "", v); desc_txt = desc_txt v
+        }
       } else if (modo == "tools" && $0 ~ /^[ \t]*-[ \t]/) {
-        v = $0; sub(/^[ \t]*-[ \t]*/, "", v); mapear(v)
+        v = $0; sub(/^[ \t]*-[ \t]*/, "", v); sub(/(^|[ \t])#.*$/, "", v); mapear(v)
       }
       if (manter) print
       next
