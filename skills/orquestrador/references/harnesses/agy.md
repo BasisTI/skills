@@ -45,39 +45,57 @@ No `accept-edits` os arquivos passam sozinhos, mas **comando de shell e chamada 
   5. confere o `settings.json` (regra acima) e rearma a espera.
 
   Em **modo autônomo**, `blocked` repetido sem decisão possível pela regra (comando fora da regra que não é claramente negável, script que não dá para ler, prefixo amplo) vira **pendência** pelo arquivo, sem aprovar às cegas e sem deixar o worker parado em silêncio.
-- **Vigia.** Com worker `agy` ativo, o coordenador roda o [`scripts/vigia-agy.sh`](../../scripts/vigia-agy.sh) em background **no lugar** da `espera-onda.sh` daquele worker. A espera acordaria a cada diálogo, porque o diálogo deixa o agente `blocked`. O vigia lê o pane, responde "uma vez" (opção 1, `Enter`) só ao que está na lista fechada e sai com `decisao` em todo o resto, para o coordenador seguir o procedimento acima. Também sai no relatório gravado, como a espera:
+- **Vigia.** Com worker `agy` ativo, o coordenador roda o [`scripts/vigia-agy.sh`](../../scripts/vigia-agy.sh) em background **no lugar** da `espera-onda.sh` daquele worker. A espera acordaria a cada diálogo, porque o diálogo deixa o agente `blocked`. O vigia lê o pane e responde "uma vez" (opção 1, `Enter`) só ao comando que o [`vigia_agy_classificar.py`](../../scripts/vigia_agy_classificar.py) aprova. Em todo o resto sai com `decisao`, para o coordenador seguir o procedimento acima. Ele também sai no relatório gravado, como a espera:
 
   ```bash
   scripts/vigia-agy.sh <agente>=<relatório> --log <pasta da US>/aprovacoes-<papel>.log \
-    --build-slot <build-slot.sh do projeto>    # run_in_background
+    --build-slot <build-slot.sh do projeto> \
+    --raiz <worktree> --raiz <pasta da US> --raiz <TMPDIR da US> --raiz ~/.m2/repository   # run_in_background
   ```
 
-  - **Aprova uma vez:** git de leitura, `grep`/`rg`, `ls`, `cat`, `head`/`tail`, `jq`, `find` sem `-exec`/`-delete`, `sed -n 'N,Mp'`, `glab api` só GET, `glab mr view`, leituras do `sonar` e do `taiga`, `herdr agent get`, `ps -p`, `javap` e o build pelo caminho de `--build-slot` (`./mvnw`, `mvn`, `go test`, `npm test`, `uv run pytest`…). `< arquivo`, que só lê, passa. A lista completa está no script: `vigia-agy.sh --classificar '<comando>'` diz o que ele faria com um comando, sem Herdr.
+  - **Como classifica.** É lista fechada por palavra, não regex sobre o texto:
+    - o comando é separado com `shlex` e cortado em `|`, `&&`, `||` e `;`;
+    - cada comando precisa estar na tabela do classificador e passar pelo validador dele;
+    - antes disso, param `$` (qualquer expansão), crase, barra invertida antes de aspas ou no fim, aspas que não fecham e qualquer outro operador (`&` sozinho, `(`, `<<`, `>|`…);
+    - redirecionamento, só `>/dev/null`, `2>&1` e `< arquivo`;
+    - caminho com `..` para; caminho absoluto ou com `~` só vale dentro de uma `--raiz`;
+    - nome de segredo em qualquer palavra para, sem distinguir caixa (`token`, `secret`, `credenc`, `.env`, `.ssh`, `glab-cli`, `.docker`, `.pgpass`…).
+
+    `vigia-agy.sh --classificar '<comando>' [--build-slot …] [--raiz …]` mostra a decisão sem Herdr.
+  - **Aprova uma vez:**
+    - git de leitura sem `-O`/`--open*`/`--output`/`--ext-diff`;
+    - `grep`, `rg` sem `--pre`, `ls`, `cat`, `head`/`tail`, `wc`, `jq` sem `env`;
+    - `find` sem `-exec*`/`-ok*`/`-delete`/`-fprint*`/`-fls`;
+    - `sed`, só `sed -n 'N,Mp' arquivo`; `sort` sem `-o`; `uniq` sem arquivo de saída;
+    - `ps -p <pid> [-o campos]`, `javap` sem `-J`;
+    - `glab api <caminho> [--paginate]` (só GET), `glab mr view <n>`;
+    - leituras do `sonar` e do `taiga` sem `--url`, `herdr agent get`;
+    - o build pelo caminho de `--build-slot` (`./mvnw`, `mvn`, `go test`, `npm test`, `uv run pytest`…), sem `exec`/`antrun`.
+
+    O build executa o código da worktree por definição: é a mesma confiança dada ao executor, e o vigia só limita o comando do build, não o que os testes fazem.
   - **Para:**
-    - `$(...)`, crase, `<<`, `<(` e `>` para arquivo;
-    - comando que escreve, apaga, mata, sobe container ou acessa a rede (`rm`, `mv`, `cp`, `kill`, `docker`, `curl`, `ssh`, `xargs`, `tee`…);
-    - `git` que muda algo, `gh`, `glab` com `-X`/`-f`/`-F` ou `mr merge`/`note`;
-    - variável na frente do comando;
-    - nome de segredo no comando (`token`, `secret`, `.env`…);
-    - `./mvnw` fora do build-slot, `java`/`javac`/`python` de código escrito pelo agente;
-    - diálogo de MCP ou de arquivo, opção 1 não selecionada, mais de 8 linhas;
+    - todo o resto, inclusive `java`/`javac`/`python` de código escrito pelo agente;
+    - nota ou comentário que o revisor vai publicar (o coordenador lê o texto antes);
+    - diálogo de MCP ou de arquivo;
+    - opção 1 não selecionada logo abaixo de "Run this command?";
     - `blocked` sem diálogo reconhecido.
+  - **Comando em mais de uma linha na tela sempre para.** A quebra feita pela largura do pane não se distingue de uma nova linha do comando, que é outro comando. A revisão do PR skills#88 montou telas em que a junção das linhas aprovava `echo a` seguido de `mkdir`.
+  - **Enter uma vez só.** Se o diálogo continua na tela 10 s depois do `Enter`, o vigia sai com `decisao` sem reenviar. Se o `send-keys` falha, ele não registra aprovação e sai com `herdr-indisponivel`.
+  - **Depois de cada `decisao`:** responda no pane (registrando no mesmo log a hora, a opção, o comando e o motivo) e rearme o vigia. O comando que se repete e é seguro entra na tabela do classificador com um teste em `scripts/tests/vigia-agy.test.sh`, nunca numa exceção feita na hora.
+  - **`ocioso`.** O agy fica `idle` enquanto espera uma tarefa em background que ele mesmo lançou (`/tasks` no rodapé). Antes de tratar como anomalia, olhe a tarefa. Na TG-32 era uma JVM de teste presa pelas threads do agendador do Spring depois de terminar os testes.
+  - **O que o vigia não vê:** MR mesclada ou fechada e pendência respondida (esta chega pelo aviso do daemon). Quando a espera da onda depende de um merge, arme também a `espera-onda.sh --mr` para outro worker da onda.
+  - **Origem:**
+    - O ensaio da orq #108 usou um vigia de scratchpad. Na onda 317 (TG-32 do trabalhe-conosco, 2026-11-22), o revisor agy precisou de oito ajustes nele ao longo da revisão.
+    - A primeira versão versionada usava lista proibida por regex e foi reprovada na revisão do PR skills#88. Ela aprovava comandos que apagavam ou executavam:
+      - `cat x <$(…)`;
+      - `&` sozinho;
+      - aspas desemparelhadas;
+      - `sed -n 1p -e '1e …'`;
+      - `git grep -lOrm`;
+      - `sort -uo`;
+      - linhas juntadas.
 
-    Uma nota ou comentário que o revisor vai publicar também para o vigia: o coordenador lê o texto antes de aprovar.
-  - **Comando longo.** A tela quebra o comando em várias linhas. O vigia só as junta quando a quebra é da tela: a linha estava cheia, ou a primeira palavra da linha seguinte não caberia nela. Qualquer outra quebra é uma nova linha de verdade, ou seja, outro comando, e para. `echo a` seguido de `rm -rf /` passaria pela lista se fosse juntado.
-  - **Depois de cada `decisao`:** responda no pane (registrando no mesmo log a hora, a opção, o comando e o motivo) e rearme o vigia. O comando que se repete e é seguro vai para a lista com um teste em `scripts/tests/vigia-agy.test.sh`, não para uma exceção feita na hora.
-  - **`ocioso`.** O agy fica `idle` enquanto espera uma tarefa em background que ele mesmo lançou (`/tasks` no rodapé). Antes de tratar como anomalia, olhe a tarefa. Na TG-32 era uma JVM de teste presa pelas threads do agendador do Spring depois de terminar os testes, e o revisor só a encerrou depois do aviso.
-  - **Origem:** o ensaio da orq #108 usou um vigia de scratchpad. Na onda 317 (TG-32 do trabalhe-conosco, 2026-11-22), o revisor agy `gemini-4-neon-high` precisou de oito ajustes no vigia ao longo da revisão:
-    - comando em duas linhas;
-    - pipe dentro de aspas simples;
-    - pipe dentro de aspas duplas;
-    - caminho do build-slot escrito com `~`;
-    - `javap` com `$(find ~/.m2 …)`;
-    - `javac` no rascunho do agy;
-    - `ps -p`;
-    - `< arquivo`.
-
-    Cada um virou caso de teste.
+      Cada caso virou teste.
 
 ## Pré-aprovação com `--settings`
 
@@ -136,7 +154,7 @@ Consequências:
 
 A espera do coordenador depende do harness **do coordenador**, não do worker: Claude Code com `espera-onda.sh` em background ([Claude Code](claude-code.md#espera)), Codex com o laço no turno ([Codex](codex.md#espera)). O `espera-onda.sh` lê o estado do worker pelo Herdr, então o `agy` entra como qualquer outro agente, com as particularidades de [estados](#estados-no-herdr).
 
-No Claude Code, o worker `agy` fica com o [vigia](#aprovações-do-coordenador) (`vigia-agy.sh`) no lugar da `espera-onda.sh`: os dois saem no relatório, mas só o vigia responde aos diálogos sem acordar o coordenador a cada um. A pendência respondida chega pelo aviso do daemon. Os workers de outros harnesses na mesma onda continuam na `espera-onda.sh`.
+No Claude Code, o worker `agy` fica com o [vigia](#aprovações-do-coordenador) (`vigia-agy.sh`) no lugar da `espera-onda.sh`: os dois saem no relatório, mas só o vigia responde aos diálogos sem acordar o coordenador a cada um. O vigia não vê pendência (chega pelo aviso do daemon) nem MR; os workers de outros harnesses na mesma onda continuam na `espera-onda.sh`.
 
 Quando o coordenador for um `agy`: se ele acorda ao fim de um comando em background **não foi testado** (o ensaio teve coordenador Claude Code); sem isso, use o laço do Codex.
 
