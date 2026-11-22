@@ -49,6 +49,10 @@ de erro e saída de comando como estão.
    no retorno e na pendência: `[argocd-apps!650](url)` ou a URL crua. `!650`
    sozinho não se escreve: com mais de um projeto na onda, não dá para saber de
    qual repositório é. O projeto vem da URL da MR, não do projeto da onda.
+7. **Pane do Herdr citado pelo nome**, na conversa, no retorno e na pendência:
+   `<workspace>/<pane>`, como `colaboradados/ci-templates-v1231`; sem nome no
+   pane, `<workspace>/<tab>`. O id vem só entre parênteses, nunca sozinho:
+   `w12:p4` não ajuda a pessoa a achar o pane.
 
 ## Condução
 

@@ -1,7 +1,7 @@
 # Pacote de implementação
 
-- Origem: coordenador (rótulo, nome de agente e id do pane), missão e referência da conversa.
-- Worker: rótulo, nome de agente e id do pane do destinatário ([nomes](../references/despacho.md#nomes-dos-panes)).
+- Origem: coordenador (rótulo, nome de agente e pane como `<workspace>/<pane>`, com o id entre parênteses), missão e referência da conversa.
+- Worker: rótulo, nome de agente e pane (`<workspace>/<pane>`, id entre parênteses) do destinatário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Alvo: chave do projeto, caminho, board e story, instruções canônicas.
 - Objetivo e critérios de aceite: links e escopo.
 - Plano, dependências incorporadas e decisões relevantes.
@@ -18,4 +18,5 @@
 - Servidor temporário (`python3 -m http.server`, `kubectl port-forward` etc.): escuta só em `127.0.0.1` e o próprio worker o encerra ao terminar, antes do relatório ([fim de onda](../references/conclusao-e-limpeza.md#fim-de-onda)).
 - Diretório da rodada e caminho do relatório persistente. Não serve de argumento da pendência: ela usa `<pasta da US>/pendencias`.
 - Citação de MR ou PR (relatório, comentário, pendência): sempre com link e o repositório como prefixo, `[argocd-apps!650](url)` ou a URL crua; `!650` sozinho não ([como citar](../SKILL.md#como-citar-uma-mr-ou-pr)).
+- Pane citado para a pessoa (relatório, pendência, aviso): `<workspace>/<pane>`, ou `<workspace>/<tab>` sem nome no pane, como `colaboradados/ci-templates-v1231`; o id só entre parênteses, nunca sozinho ([como citar](../SKILL.md#como-citar-um-pane)).
 - Aviso ao coordenador depois de gravar o relatório: [despacho](../references/despacho.md#aviso-ao-coordenador).

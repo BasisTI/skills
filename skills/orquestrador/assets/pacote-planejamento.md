@@ -1,7 +1,7 @@
 # Handoff de planejamento
 
 - Apresentação inicial: esta conversa vem do Orquestrador de <projeto> para <assunto>.
-- Origem: missão, conversa e coordenador (rótulo, nome de agente e id do pane).
+- Origem: missão, conversa e coordenador (rótulo, nome de agente e pane como `<workspace>/<pane>`, com o id entre parênteses).
 - Projeto alvo, board, stories e documentos.
 - Objetivo e questões que o usuário quer discutir.
 - Estado da execução em paralelo e dependências.
@@ -9,10 +9,11 @@
 - Alias e harness/modelo/esforço resolvidos.
 - Papel: adote o `planejador` (`agents/planejador.md` do `BasisTI/skills`, instalado como o `qa-adversarial`); planejador `agy`: o coordenador confere `agy agents` **antes** do lançamento (o `agent.md` do `agy` é gerado por `scripts/agy-gerar-papeis.sh`, com `tools`; sem isso o papel sobe sem shell nem escrita) e, na espera, passa um `--parado-s` que cubra a resposta da pessoa (o `agy` esperando a pessoa fica `done`) e passa `--agent planejador` no `start` (opção da sessão, não vale pelo prompt), e o pacote registra o papel já selecionado; sem o papel disponível (inclusive o `agy` que não o liste), o pacote traz o conteúdo do arquivo e informa a adaptação, o modo arquivo como reserva registrada ([agy](../references/harnesses/agy.md#papéis-como-agentes-nativos)). Origem: decisão de 2026-11-12 na orq #52.
 - Autorização para conversar; escritas externas/implementação exigem escopo próprio.
-- Pane do planejador: rótulo, nome de agente e id, a comunicar ao usuário ([nomes](../references/despacho.md#nomes-dos-panes)).
+- Pane do planejador: rótulo, nome de agente e pane (`<workspace>/<pane>`, id entre parênteses), a comunicar ao usuário ([nomes](../references/despacho.md#nomes-dos-panes)).
 - Entrega: plano, critérios, dependências e decisões com origem, no modelo fixo [retorno-planejamento](retorno-planejamento.md).
 - Pendências da story abertas, com o id da Central (`P<n>`). A conversa com a pessoa dispensa pendência por pergunta (a única exceção à [regra de pendência para toda pergunta de decisão](../references/acompanhamento.md#toda-pergunta-de-decisão-vira-pendência-mesmo-com-a-pessoa-no-pane)), e nenhuma pendência abre antes do fechamento ([papel](../../../agents/planejador.md#fechamento-o-único-momento-de-repassar)); só o que a pessoa mandar adiar ou ficar sem resposta no fim vira pendência pelo arquivo `<pasta da US>/pendencias/<slug>.md`, uma por proposta, gravando `.<slug>.md.tmp` e rodando `<caminho absoluto do script> <pasta da US>/pendencias <slug>` (o coordenador escreve aqui o caminho do `espera-pendencia-registrada.sh` na cópia instalada dele, ex. `<raiz do coordenador>/.agents/skills/orquestrador/scripts/espera-pendencia-registrada.sh`; o worker não tem a skill) (espera 30 s pelo `.registrada.json` ou pelo `.erro.txt`, sem glob); o retorno cita o id devolvido. Saída 3 do script: "pendência não registrada: `<arquivo>`" no retorno. **Proibido** `orq pend responder` e `orq pend resolver`. [Regra e modelo](../references/acompanhamento.md#abrir-a-pendência-pelo-arquivo); sem o daemon da #15, o pacote traz o próximo id livre. Origem: TG-249 do colaboradados (2026-11-06), sete propostas ficaram só no retorno e não apareceram na Central.
 - Shell dos workers (zsh): repasse a [regra de shell](../references/despacho.md#regra-de-shell-dos-workers), com o caminho absoluto dos scripts de espera conferidos na cópia instalada do coordenador.
 - Artefato de retorno ao coordenador: caminho do `retorno-planejamento.md`, no modelo [retorno-planejamento](retorno-planejamento.md).
 - Citação de MR ou PR (conversa, retorno, pendência): sempre com link e o repositório como prefixo, `[argocd-apps!650](url)` ou a URL crua; `!650` sozinho não ([como citar](../SKILL.md#como-citar-uma-mr-ou-pr)).
+- Pane citado para a pessoa (relatório, pendência, aviso): `<workspace>/<pane>`, ou `<workspace>/<tab>` sem nome no pane, como `colaboradados/ci-templates-v1231`; o id só entre parênteses, nunca sozinho ([como citar](../SKILL.md#como-citar-um-pane)).
 - Aviso ao coordenador depois de gravar o retorno, com papel `planejamento`: [despacho](../references/despacho.md#aviso-ao-coordenador).

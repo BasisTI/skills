@@ -45,6 +45,10 @@ Registre alias e combinação resolvida, pane, worktree, URL completa da MR, SHA
 
 Em relatório, mensagem, pacote, pendência e comentário, toda MR ou PR citada leva **link**, e o repositório vem como prefixo: `<projeto>!<iid>` no GitLab e `<repo>#<n>` no GitHub. Duas formas valem: o texto com prefixo apontando para a URL, `[argocd-apps!650](https://gitlab.exemplo.com/grupo/argocd-apps/-/merge_requests/650)` (no GitHub, `[orq#66](url)`), ou a URL completa crua. Sem link renderizado (arquivo de texto, prompt para outro agente), escreva a URL completa. A única exceção é o token de sidebar, que não comporta link nem a URL: use `argocd-apps!650`. O projeto vem da URL da MR, não do projeto da onda ou da story: uma onda do colaboradados pode ter MR no `argocd-apps`. `!650` sozinho, sem prefixo, é ambíguo e não se escreve; com ou sem link, o prefixo não se omite. É a mesma forma que a Central web, o TUI e os tokens do `orq` mostram.
 
+## Como citar um pane
+
+Para a pessoa (chat, relatório, pendência, pacote, aviso), o pane do Herdr é citado pelo **nome do workspace e do pane**: `<workspace>/<pane>`, como `colaboradados/ci-templates-v1231`. Pane sem nome: `<workspace>/<tab>`, o mínimo que ajuda a achá-lo. O id pode vir entre parênteses, `colaboradados/ci-templates-v1231 (w12:p4)`, nunca sozinho: `w12:p4` não diz à pessoa onde olhar. Os nomes vêm do Herdr (`herdr api snapshot`: `label` do workspace, do pane e da tab) e, com a Central, de `referencia` no `orq snapshot`. O id continua valendo como argumento de comando (`herdr agent prompt`, `--pane`), onde é endereço e não texto para a pessoa. É a mesma forma que a saída do `orq` usa; o nome do pane do coordenador vem da onda ([nomes](references/despacho.md#nomes-dos-panes)).
+
 ## Recursos
 
 - [Configuração](references/configuracao.md) e [exemplo TOML](assets/orquestrador.example.toml).
