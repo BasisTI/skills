@@ -30,7 +30,10 @@
 #                [--build-slot <caminho>] (repetível) build-slot.sh do projeto
 #                [--raiz <dir>]      (repetível) onde caminho absoluto pode ser lido:
 #                                    worktree, pasta da US, TMPDIR, ~/.m2/repository…
-#                                    Vale também onde `mv` escreve e de onde `node` roda arquivo.
+#                                    Também limita de onde `node` roda arquivo (caminho resolvido).
+#                [--escrita <dir>]   (repetível) onde o `mv` pode escrever: o diretório da
+#                                    rodada do worker (<pasta da US>/<papel>/r<n>). Nunca a
+#                                    pasta da US inteira nem cache. Sem ela, `mv` é `decisao`.
 #                [--identidade <dir>] (repetível) diretório de identidade do glab que o
 #                                    papel usa: só `GLAB_CONFIG_DIR=<dir>` passa na frente
 #                                    de comando (nenhuma outra variável)
@@ -38,7 +41,7 @@
 #                [--ocioso-s N]      (padrão 600, máx. 7200) idle/done sem relatório
 #                [--bloqueado-s N]   (padrão 20, máx. 600) blocked sem diálogo reconhecido
 #                [--intervalo-s N]   (padrão 3, 1 a 60) pausa entre leituras do pane
-#   vigia-agy.sh --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>] [--identidade <dir>]
+#   vigia-agy.sh --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>] [--escrita <dir>] [--identidade <dir>]
 #                só classifica (sem Herdr): imprime `aprova` ou `para: <motivo>`
 #                e sai 0 (aprova) ou 1 (para).
 #
@@ -65,8 +68,10 @@
 # scripts/tests/vigia-agy.test.sh. Textos do diálogo conferidos no agy 1.5.14.
 # Casos novos (orq #119, 2026-11-26), do revisor agy da TG-408 (2026-11-25), que
 # parou o vigia 9 vezes em comando legítimo: `GLAB_CONFIG_DIR=<identidade>` na
-# frente, `node <arquivo>` e `mv` dentro das raízes, subshell de comandos que já
-# passam. Comando em várias linhas na tela segue parando (ver o diálogo "⋯ (N lines hidden)").
+# frente, `node <arquivo>` dentro das raízes, `mv` só da entrega atômica dentro
+# de `--escrita`, subshell de comandos que já passam. (r2 do PR skills#90: o `mv`
+# nasceu com `--raiz` como escopo de escrita; a revisão provou que isso alcançava
+# recursos.json e o cache Maven.) Comando em várias linhas na tela segue parando (ver o diálogo "⋯ (N lines hidden)").
 
 set -uo pipefail
 export LC_ALL=C.UTF-8
@@ -88,7 +93,7 @@ MODO_CLASSIFICAR=0
 OPC_CLASSIF=()
 
 uso() {
-  echo "uso: $0 <agente>=<relatorio> --log <arquivo> [--build-slot <caminho>] [--raiz <dir>] [--identidade <dir>] [--limite-s N] [--ocioso-s N] [--bloqueado-s N] [--intervalo-s N] | --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>] [--identidade <dir>]" >&2
+  echo "uso: $0 <agente>=<relatorio> --log <arquivo> [--build-slot <caminho>] [--raiz <dir>] [--escrita <dir>] [--identidade <dir>] [--limite-s N] [--ocioso-s N] [--bloqueado-s N] [--intervalo-s N] | --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>] [--escrita <dir>] [--identidade <dir>]" >&2
   echo "vigia-agy: sinal=uso $1"
   exit 2
 }
@@ -104,6 +109,7 @@ while [ $# -gt 0 ]; do
     --log) [ -n "${2:-}" ] || uso "--log pede o arquivo"; LOG=$2; shift 2 ;;
     --build-slot) [ -n "${2:-}" ] || uso "--build-slot pede o caminho"; OPC_CLASSIF+=(--build-slot "$2"); shift 2 ;;
     --raiz) [ -n "${2:-}" ] || uso "--raiz pede o diretório"; OPC_CLASSIF+=(--raiz "$2"); shift 2 ;;
+    --escrita) [ -n "${2:-}" ] || uso "--escrita pede o diretório"; OPC_CLASSIF+=(--escrita "$2"); shift 2 ;;
     --identidade) [ -n "${2:-}" ] || uso "--identidade pede o diretório"; OPC_CLASSIF+=(--identidade "$2"); shift 2 ;;
     --limite-s) numero "$1" "${2:-}" 1 7200; LIMITE_S=$NUM; shift 2 ;;
     --ocioso-s) numero "$1" "${2:-}" 1 7200; OCIOSO_S=$NUM; shift 2 ;;

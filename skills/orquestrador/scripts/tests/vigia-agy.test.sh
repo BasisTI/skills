@@ -92,7 +92,14 @@ WT="$HOME/Projetos/proj.TG-1"
 TMPUS="/tmp/orq/proj/TG-1"
 ID="$HOME/tmp/orquestrador/proj/identidades/revisor-glab-cli"
 OUTRO_ID="$HOME/tmp/orquestrador/proj/identidades/implementador-glab-cli"
-OPC=(--build-slot "$SLOT" --raiz "$WT" --raiz "$TMPUS" --raiz "$HOME/.m2/repository" --identidade "$ID")
+# fixtures reais: o mv e a conferência de links olham o disco
+ESC="$RAIZ/esc"; FORA="$RAIZ/fora"; M2="$RAIZ/m2/repository"
+mkdir -p "$ESC/pendencias" "$ESC/dir" "$FORA" "$M2/org"
+: >"$ESC/.relatorio.md.tmp"; : >"$ESC/a"; : >"$ESC/.b.tmp"; : >"$ESC/b"; : >"$ESC/recursos.json"; : >"$ESC/.recursos.json.tmp"
+: >"$ESC/pendencias/p.md"; : >"$ESC/.p.md.tmp"; : >"$ESC/x.registrada.json"; : >"$ESC/.x.registrada.json.tmp"; : >"$ESC/e.erro.txt"
+: >"$ESC/dir/c"; : >"$ESC/dir/.c.tmp"; : >"$ESC/dir/b"; : >"$M2/org/a.jar"; : >"$M2/org/.a.jar.tmp"; : >"$FORA/x.mjs"; : >"$FORA/alvo"; : >"$ESC/probe.mjs"
+ln -s "$FORA/x.mjs" "$ESC/link.mjs"; ln -s "$FORA" "$ESC/lnkdir"; ln -s "$ESC/a" "$ESC/lnk-a"
+OPC=(--build-slot "$SLOT" --raiz "$WT" --raiz "$TMPUS" --raiz "$ESC" --raiz "$M2" --raiz "$HOME/.m2/repository" --identidade "$ID" --escrita "$ESC")
 
 roda() {  # roda <args extras...>: vigia com intervalo curto; saída em $SAIDA, código em $RC
   SAIDA=$(timeout 90 bash "$SCRIPT" "tg-1_revisor=$REL" --log "$LOG" --intervalo-s 1 "${OPC[@]}" "$@" 2>&1)
@@ -141,10 +148,11 @@ aprova=(
   "node $TMPUS/probe.mjs"
   "node $TMPUS/probe.mjs --arquivo $WT/src/A.java | tail -20"
   "node ~/Projetos/proj.TG-1/probe.js"
-  # caso 4: mv com origem e destino dentro das --raiz
-  "mv $TMPUS/.relatorio.md.tmp $TMPUS/relatorio.md"
-  "mv -f $WT/a.tmp $WT/a"
-  "mv -n -f $WT/a.tmp $WT/a"
+  # caso 4 (mv): os aprovados usam arquivos reais, na seção "mv e links" abaixo
+  "GLAB_CONFIG_DIR=$HOME/tmp/orquestrador/proj/./identidades/revisor-glab-cli glab api user"
+  "GLAB_CONFIG_DIR=$HOME/tmp/orquestrador/proj/identidades//revisor-glab-cli glab api user"
+  "GLAB_CONFIG_DIR=$HOME/tmp/orquestrador/proj/identidades/\"revisor-glab-cli\" glab api user"
+  "GLAB_CONFIG_DIR='$ID' glab api user"
   # caso 5: subshell só com comandos que passariam sozinhos
   "(node $TMPUS/probe.mjs || true)"
   "(cd $WT && git status --short)"
@@ -330,6 +338,19 @@ para=(
   "node $TMPUS/probe.mjs /etc/passwd"
   "node $TMPUS/probe.mjs > $TMPUS/saida"
   "node $TMPUS/token.mjs"
+  # identidade: o filtro de segredo não escapa fora do operando validado
+  "cat GLAB_CONFIG_DIR=$ID"
+  "GLAB_CONFIG_DIR=$ID/. cat $ID"
+  "GLAB_CONFIG_DIR=$HOME/tmp/orquestrador/proj/./identidades/revisor-glab-cli/x glab api user"
+  "GLAB_CONFIG_DIR=\"$ID glab api user"
+  "GLAB_CONFIG_DIR=$ID glab api user $ID"
+  "GLAB_CONFIG_DIR=$ID glab api user > $ID/saida"
+  "echo $ID"
+  "(pwd) > /dev/null"
+  "(pwd) 2> /dev/null"
+  "(ls) >> /dev/null"
+  "(ls) &> /dev/null"
+  "(ls) >&2"
   # caso 4 recusado: origem ou destino fora da raiz, relativo, '..', glob, opção, aridade
   "mv $TMPUS/a /etc/a"
   "mv /etc/a $TMPUS/a"
@@ -395,6 +416,94 @@ for c in "${para[@]}"; do
     case "$out" in para:*) ok "para: ${c//$'\n'/ ⏎ }" ;; *) erro "saída inesperada para $c: $out" ;; esac
   fi
 done
+# --- 1b. mv (só entrega atômica em --escrita) e links ----------------------------------
+mv_aprova=(
+  "mv $ESC/.relatorio.md.tmp $ESC/relatorio.md"
+  "mv -f $ESC/.relatorio.md.tmp $ESC/relatorio.md"
+  "mv -n $ESC/a $ESC/novo"
+  "mv $ESC/a $ESC/novo-nome"
+  "mv $ESC/.b.tmp $ESC/b"
+  "(mv $ESC/.b.tmp $ESC/b || true)"
+  "node $ESC/probe.mjs && mv $ESC/.b.tmp $ESC/b"
+)
+mv_para=(
+  # os três casos do revisor da r1: destino existente, diretório inteiro, dentro do cache
+  "mv $ESC/a $ESC/b"
+  "mv -f $ESC/a $ESC/b"
+  "mv $ESC/dir $ESC/dir2"
+  "mv $ESC/dir $ESC/dir/x"
+  "mv $M2/org/.a.jar.tmp $M2/org/a.jar"
+  "mv $M2/org/a.jar $M2/org/novo.jar"
+  "mv $M2/org $M2/org2"
+  # arquivos de controle da US
+  "mv $ESC/.recursos.json.tmp $ESC/recursos.json"
+  "mv $ESC/recursos.json $ESC/outro.json"
+  "mv $ESC/a $ESC/recursos.json"
+  "mv $ESC/.p.md.tmp $ESC/pendencias/p.md"
+  "mv $ESC/pendencias/p.md $ESC/novo.md"
+  "mv $ESC/a $ESC/pendencias/novo.md"
+  "mv $ESC/.x.registrada.json.tmp $ESC/x.registrada.json"
+  "mv $ESC/x.registrada.json $ESC/y.json"
+  "mv $ESC/a $ESC/z.registrada.json"
+  "mv $ESC/e.erro.txt $ESC/e2.erro.txt"
+  # entrega atômica só no mesmo diretório e com o nome exato
+  "mv $ESC/.relatorio.md.tmp $ESC/dir"
+  "mv $ESC/.relatorio.md.tmp $ESC/b"
+  "mv $ESC/.b.tmp $ESC/dir/c"
+  "mv $ESC/.b.tmp $ESC/dir/b"
+  "mv $ESC/dir/.c.tmp $ESC/b"
+  "mv $ESC/.relatorio.md.tmp $ESC/.relatorio.md.tmp"
+  # origem inexistente, link, fora da escrita, destino que sai por link
+  "mv $ESC/nao-existe $ESC/novo"
+  "mv $ESC/lnk-a $ESC/novo"
+  "mv $ESC/link.mjs $ESC/novo"
+  "mv $ESC/a $ESC/lnkdir/novo"
+  "mv $ESC/lnkdir/alvo $ESC/novo"
+  "mv $ESC/a $FORA/novo"
+  "mv $FORA/alvo $ESC/novo"
+  "mv $ESC/a /etc/novo"
+  "mv $ESC/a $WT/novo"
+  # opções e aridade
+  "mv -v $ESC/a $ESC/novo"
+  "mv -t $ESC $ESC/a"
+  "mv $ESC/a"
+  "mv $ESC/a $ESC/n1 $ESC/n2"
+  "mv $ESC/*.tmp $ESC/novo"
+  "mv ~/.bashrc $ESC/novo"
+  # subshell não esconde o mv
+  "(mv $ESC/a $ESC/b)"
+  "(mv $ESC/a $ESC/b || true)"
+)
+for c in "${mv_aprova[@]}"; do
+  if out=$(bash "$SCRIPT" --classificar "$c" "${OPC[@]}" 2>&1); then ok "mv aprova: ${c//$RAIZ/R}"; else erro "devia aprovar: ${c//$RAIZ/R} => ${out//$RAIZ/R}"; fi
+done
+for c in "${mv_para[@]}"; do
+  if out=$(bash "$SCRIPT" --classificar "$c" "${OPC[@]}" 2>&1); then erro "devia parar: ${c//$RAIZ/R}"; else
+    case "$out" in para:*) ok "mv para: ${c//$RAIZ/R}" ;; *) erro "saída inesperada para ${c//$RAIZ/R}: $out" ;; esac
+  fi
+done
+# sem --escrita o mv é decisao, mesmo com a mesma pasta em --raiz
+SEM_ESC=(--build-slot "$SLOT" --raiz "$WT" --raiz "$ESC" --raiz "$M2" --identidade "$ID")
+for c in "mv $ESC/.relatorio.md.tmp $ESC/relatorio.md" "mv $ESC/a $ESC/novo"; do
+  if bash "$SCRIPT" --classificar "$c" "${SEM_ESC[@]}" >/dev/null 2>&1; then erro "mv sem --escrita devia parar: ${c//$RAIZ/R}"; else ok "mv sem --escrita para: ${c//$RAIZ/R}"; fi
+done
+# --escrita vale só para o mv: não amplia a leitura de caminho absoluto
+if bash "$SCRIPT" --classificar "cat $FORA/alvo" --escrita "$FORA" >/dev/null 2>&1; then erro "--escrita não pode abrir a leitura"; else ok "--escrita não abre a leitura"; fi
+# --escrita inválida
+if bash "$SCRIPT" --classificar "ls" --escrita "rel/x" >/dev/null 2>&1; then erro "--escrita relativa devia parar"; else ok "--escrita relativa para"; fi
+if bash "$SCRIPT" --classificar "ls" --escrita "$ESC/../x" >/dev/null 2>&1; then erro "--escrita com '..' devia parar"; else ok "--escrita com '..' para"; fi
+# --escrita que é link para fora: o mv resolve os dois lados
+if bash "$SCRIPT" --classificar "mv $ESC/a $ESC/lnkdir/novo" "${OPC[@]}" >/dev/null 2>&1; then erro "destino por link devia parar"; else ok "destino por link para"; fi
+# node: contenção pelo caminho resolvido
+for c in "node $ESC/link.mjs" "node $ESC/lnkdir/x.mjs" "node $ESC/lnkdir/../probe.mjs" "node $ESC/dir/../probe.mjs"; do
+  if bash "$SCRIPT" --classificar "$c" "${OPC[@]}" >/dev/null 2>&1; then erro "node devia parar: ${c//$RAIZ/R}"; else ok "node para: ${c//$RAIZ/R}"; fi
+done
+if bash "$SCRIPT" --classificar "node $ESC/probe.mjs" "${OPC[@]}" >/dev/null 2>&1; then ok "node de arquivo real na raiz passa"; else erro "node de arquivo real na raiz devia passar"; fi
+# raiz que é link para fora: o arquivo resolvido sai dela
+ln -s "$FORA" "$RAIZ/raiz-link"
+if bash "$SCRIPT" --classificar "node $RAIZ/raiz-link/x.mjs" --raiz "$RAIZ/esc" >/dev/null 2>&1; then erro "node por link de raiz devia parar"; else ok "node por link fora da raiz para"; fi
+if bash "$SCRIPT" --classificar "node $RAIZ/raiz-link/x.mjs" --raiz "$RAIZ/raiz-link" >/dev/null 2>&1; then ok "raiz que é link e arquivo dentro do destino resolvido passa"; else erro "raiz-link com arquivo no destino devia passar"; fi
+
 if bash "$SCRIPT" --classificar "$SLOT ./mvnw verify" >/dev/null 2>&1; then erro "slot sem --build-slot devia parar"; else ok "slot sem --build-slot para"; fi
 if bash "$SCRIPT" --classificar "cat $WT/a" >/dev/null 2>&1; then erro "caminho absoluto sem --raiz devia parar"; else ok "caminho absoluto sem --raiz para"; fi
 
@@ -407,7 +516,7 @@ if [ "$RC" -eq 0 ] && grep -q 'sinal=relatorio' <<<"$SAIDA" && [ "$(cat "$EST/ke
    grep -q $'\taprovado\tgit status --short\t' "$LOG"; then ok "aprova uma vez, registra e sai no relatório"; else erro "aprovação+relatório: rc=$RC saida=$SAIDA keys=$(cat "$EST/keys" 2>/dev/null)"; fi
 
 # --- 2b. os casos do revisor da TG-408 passam pelo laço com --identidade ---------------
-for c in "GLAB_CONFIG_DIR=$ID glab api user" "node $TMPUS/probe.mjs" "mv $TMPUS/.relatorio.md.tmp $TMPUS/relatorio.md" "(node $TMPUS/probe.mjs || true)"; do
+for c in "GLAB_CONFIG_DIR=$ID glab api user" "node $TMPUS/probe.mjs" "mv $ESC/.relatorio.md.tmp $ESC/relatorio.md" "(node $TMPUS/probe.mjs || true)"; do
   limpar; echo blocked >"$EST/st"
   tela_dialogo 1 "$c"
   echo "$REL" >"$EST/cria.relatorio"
