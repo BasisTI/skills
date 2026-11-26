@@ -126,6 +126,13 @@ caso "start agy com --agent (papel na sessão)" 0 iniciado -- W start --kind agy
 confere "--agent repassado" grep -qx -- '--agent' "$FAKE_LOG"
 confere "papel repassado" grep -qx -- 'qa-adversarial' "$FAKE_LOG"
 confere "--agent depois do kind agy" test "$(grep -nx -- '--agent' "$FAKE_LOG" | head -1 | cut -d: -f1)" -gt "$(grep -nx 'agy' "$FAKE_LOG" | head -1 | cut -d: -f1)"
+# orq #119: o lançamento padrão do agy é --mode auto; o script só repassa os argumentos nativos
+caso "start agy com --mode auto (padrão)" 0 iniciado -- W start --kind agy tg-1_executor=w1:p3 -- --model gemini-4-neon-medium --mode auto --add-dir /w/a --add-dir /w/b
+confere "--mode auto repassado" grep -qx -- 'auto' "$FAKE_LOG"
+confere "--mode auto: --mode repassado uma vez" test "$(grep -cx -- '--mode' "$FAKE_LOG")" -eq 1
+confere "--mode auto: sem accept-edits" test "$(grep -cx -- 'accept-edits' "$FAKE_LOG")" -eq 0
+confere "--mode auto: os dois --add-dir repassados" test "$(grep -cx -- '--add-dir' "$FAKE_LOG")" -eq 2
+confere "--mode auto: sem --effort" test "$(grep -cx -- '--effort' "$FAKE_LOG")" -eq 0
 export FAKE_START_FALHA=tg-2_executor
 caso "start com uma falha" 1 falhou -- W start --kind claude tg-1_executor=w1:p3 tg-2_executor=w1:p4 tg-3_executor=w1:p5
 confere "start segue depois da falha" test "$(chamadas)" -eq 3

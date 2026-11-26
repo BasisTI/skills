@@ -57,6 +57,7 @@ O Bash tool dos workers roda em **zsh**, e o pacote repassa esta regra (os três
 - **Nomes e palavras:** nunca `status=` como variável (somente leitura no zsh); palavra que começa com `=` quebra (`echo ======` dá "not found": use `printf '%s\n' '======'`).
 - **`rm`:** só com caminho literal. Exceção: o temporário criado por `mktemp -d`, validado, removido por `trap`.
 - **Heredoc:** arquivo gerado por heredoc usa `<<'EOF'` (com aspas). Sem aspas só quando a expansão é desejada, e então crases e `$` literais vão escapados; sem isso as crases rodam como comando e somem do texto, com saída 0. Vale para o worker e para o coordenador que gera pacote (em 2026-11-12 um pacote chegou com a proibição de `pkill` mutilada).
+- **Arquivo grande:** probe, script ou texto longo se grava com a **ferramenta de escrita** (`Write`), não com heredoc no Bash. O pedido de permissão de um heredoc grande não é aprovado no modo auto e o worker fica parado. Origem: onda 329 do liven-painel (2026-11-25), dois workers Claude travaram assim; a ferramenta de escrita resolveu (orq #119). Heredoc fica para texto curto, sempre com `<<'EOF'`.
 - **Processos:** só se mata o que o próprio worker criou, pelo PID guardado na criação; nunca por linha de comando (`pkill`, `pgrep -f`, `args == "sleep 30"`), inclusive no subagente `qa-adversarial`. Origem: na revisão r1 da infra-2025 #443 (2026-11-12), o subagente matou o `sleep` de esperas de dois coordenadores.
 
 ### Fatos de ambiente

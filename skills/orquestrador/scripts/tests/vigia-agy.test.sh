@@ -89,7 +89,10 @@ limpar() { rm -f "$EST"/*; rm -f "$RAIZ"/relatorio.md "$RAIZ"/aprov.log; ANTES="
 REL="$RAIZ/relatorio.md"; LOG="$RAIZ/aprov.log"
 SLOT="$HOME/tmp/orquestrador/proj/build-slot.sh"
 WT="$HOME/Projetos/proj.TG-1"
-OPC=(--build-slot "$SLOT" --raiz "$WT" --raiz "$HOME/.m2/repository")
+TMPUS="/tmp/orq/proj/TG-1"
+ID="$HOME/tmp/orquestrador/proj/identidades/revisor-glab-cli"
+OUTRO_ID="$HOME/tmp/orquestrador/proj/identidades/implementador-glab-cli"
+OPC=(--build-slot "$SLOT" --raiz "$WT" --raiz "$TMPUS" --raiz "$HOME/.m2/repository" --identidade "$ID")
 
 roda() {  # roda <args extras...>: vigia com intervalo curto; saída em $SAIDA, código em $RC
   SAIDA=$(timeout 90 bash "$SCRIPT" "tg-1_revisor=$REL" --log "$LOG" --intervalo-s 1 "${OPC[@]}" "$@" 2>&1)
@@ -128,6 +131,27 @@ aprova=(
   "sonar list issues -p proj-core --pull-request 38"
   "$SLOT ./mvnw -B -pl core -am -Dtest=FooIT verify"
   "rg -n 'a;b' src"
+  # orq #119, caso 1: variável na frente só com GLAB_CONFIG_DIR=<identidade conhecida>
+  "GLAB_CONFIG_DIR=$ID glab api user"
+  "GLAB_CONFIG_DIR=\"$ID\" glab api 'projects/5375/merge_requests/36/notes?per_page=100' | jq -r '.[].body'"
+  "GLAB_CONFIG_DIR=~/tmp/orquestrador/proj/identidades/revisor-glab-cli glab mr view 38"
+  "export GLAB_CONFIG_DIR=$ID"
+  "export GLAB_CONFIG_DIR=$ID && glab api user | jq -r .username"
+  # caso 2: node de arquivo dentro de uma --raiz
+  "node $TMPUS/probe.mjs"
+  "node $TMPUS/probe.mjs --arquivo $WT/src/A.java | tail -20"
+  "node ~/Projetos/proj.TG-1/probe.js"
+  # caso 4: mv com origem e destino dentro das --raiz
+  "mv $TMPUS/.relatorio.md.tmp $TMPUS/relatorio.md"
+  "mv -f $WT/a.tmp $WT/a"
+  "mv -n -f $WT/a.tmp $WT/a"
+  # caso 5: subshell só com comandos que passariam sozinhos
+  "(node $TMPUS/probe.mjs || true)"
+  "(cd $WT && git status --short)"
+  "(ls)"
+  "(ls; (pwd))"
+  "(git status && git diff --stat) | tail -5"
+  "GLAB_CONFIG_DIR=$ID glab api user && (node $TMPUS/p.mjs || true)"
 )
 para=(
   # comando fora da lista ou fora do build
@@ -161,7 +185,6 @@ para=(
   "cat x >| y"
   "cat <<EOF"
   "diff <(ls a) <(ls b)"
-  "(ls)"
   "echo a\\"
   # aspas desemparelhadas ou escapadas
   "echo \"'\" ; command rm -rf /tmp/v3 ; echo \"'\""
@@ -264,13 +287,112 @@ para=(
   "sonar issues delete --all"
   "ls # comentário"
   ""
+  # orq #119, caso 1 recusado: outra variável, outra identidade, mais de uma, sem comando
+  "TMPDIR=/x ls"
+  "FOO=1 glab api user"
+  "GLAB_CONFIG_DIR=$OUTRO_ID glab api user"
+  "GLAB_CONFIG_DIR=/etc glab api user"
+  "GLAB_CONFIG_DIR=$ID/.. glab api user"
+  "GLAB_CONFIG_DIR=$ID/x glab api user"
+  "GLAB_CONFIG_DIR= glab api user"
+  "GLAB_CONFIG_DIR=\$HOME glab api user"
+  "GLAB_CONFIG_DIR=$ID"
+  "GLAB_CONFIG_DIR=$ID rm -rf target"
+  "GLAB_CONFIG_DIR=$ID glab mr merge 38"
+  "GLAB_CONFIG_DIR=$ID FOO=1 glab api user"
+  "GLAB_CONFIG_DIR=$ID GLAB_CONFIG_DIR=$ID glab api user"
+  "GLAB_CONFIG_DIR=$ID cat $ID/config.yml"
+  "export GLAB_CONFIG_DIR=$OUTRO_ID"
+  "export PATH=$WT/bin"
+  "export GLAB_CONFIG_DIR=$ID FOO=1"
+  "export -p"
+  "export GLAB_CONFIG_DIR=$ID; for i in 1 2; do glab api user; done"
+  "env GLAB_CONFIG_DIR=$ID glab api user"
+  # caso 2 recusado: node com -e/--eval/-p/--require/--import/--loader, fora da raiz, relativo, '..'
+  "node -e 'process.exit()'"
+  "node --eval 'x' $TMPUS/probe.mjs"
+  "node -p 1"
+  "node --require $TMPUS/x.js $TMPUS/probe.mjs"
+  "node --import $TMPUS/x.mjs $TMPUS/probe.mjs"
+  "node --loader $TMPUS/x.mjs $TMPUS/probe.mjs"
+  "node --test $TMPUS/probe.mjs"
+  "node $TMPUS/probe.mjs -e 'x'"
+  "node $TMPUS/probe.mjs --require=$TMPUS/x.js"
+  "node $TMPUS/probe.mjs --import $TMPUS/x.mjs"
+  "node /tmp/outro/probe.mjs"
+  "node $TMPUS/../outro/probe.mjs"
+  "node probe.mjs"
+  "node ./probe.mjs"
+  "node $TMPUS/probe"
+  "node $TMPUS/"
+  "node $TMPUS"
+  "node"
+  "node $TMPUS/probe.mjs /etc/passwd"
+  "node $TMPUS/probe.mjs > $TMPUS/saida"
+  "node $TMPUS/token.mjs"
+  # caso 4 recusado: origem ou destino fora da raiz, relativo, '..', glob, opção, aridade
+  "mv $TMPUS/a /etc/a"
+  "mv /etc/a $TMPUS/a"
+  "mv $TMPUS/a $TMPUS/../b"
+  "mv $TMPUS/../a $TMPUS/b"
+  "mv a $TMPUS/b"
+  "mv $TMPUS/a b"
+  "mv $TMPUS/a $TMPUS/b $TMPUS/c"
+  "mv $TMPUS/a"
+  "mv"
+  "mv -t $TMPUS $TMPUS/a"
+  "mv -v $TMPUS/a $TMPUS/b"
+  "mv --force $TMPUS/a $TMPUS/b"
+  "mv -fn $TMPUS/a $TMPUS/b"
+  "mv -- $TMPUS/a $TMPUS/b"
+  "mv $TMPUS/*.tmp $TMPUS/b"
+  "mv $TMPUS/a $TMPUS"
+  "mv $TMPUS $TMPUS/x"
+  "mv $WT $WT/x"
+  "mv $TMPUS/a $HOME/.bashrc"
+  "mv $TMPUS/a ~/.bashrc"
+  "mv $TMPUS/.env $TMPUS/b"
+  "mv $TMPUS/a $TMPUS/token"
+  # caso 5 recusado: subshell com comando fora da lista, em volta de outra coisa, vazio, sem fechar
+  "(rm -rf $TMPUS/x)"
+  "(ls; rm x)"
+  "(ls && python3 x.py)"
+  "(node -e x)"
+  "(FOO=1 ls)"
+  "(ls) rm x"
+  "rm x (ls)"
+  "ls (pwd)"
+  "(ls)(pwd)"
+  "()"
+  "( )"
+  "(ls"
+  "ls)"
+  "(ls))"
+  "((ls))"
+  "((ls) || (pwd))"
+  "(((((ls)))))"
+  "(ls) > $TMPUS/x"
+  "(ls) < $TMPUS/x"
+  "(ls;)"
+  "f() { ls; }"
+  "ls <(ls)"
+  "ls >(cat)"
+  "\$(ls)"
+  "(ls) &"
+  "(ls) & (rm x)"
+  "(ls |& cat)"
+  "(cat \$(id))"
+  "(cd /etc && ls)"
+  # caso 3: várias linhas continuam recusadas (ver o teste do diálogo abaixo)
+  "ls
+pwd"
 )
 for c in "${aprova[@]}"; do
-  if out=$(bash "$SCRIPT" --classificar "$c" "${OPC[@]}" 2>&1); then ok "aprova: ${c:0:70}"; else erro "devia aprovar: $c => $out"; fi
+  if out=$(bash "$SCRIPT" --classificar "$c" "${OPC[@]}" 2>&1); then ok "aprova: ${c//$'\n'/ ⏎ }"; else erro "devia aprovar: $c => $out"; fi
 done
 for c in "${para[@]}"; do
   if out=$(bash "$SCRIPT" --classificar "$c" "${OPC[@]}" 2>&1); then erro "devia parar: $c"; else
-    case "$out" in para:*) ok "para: ${c:0:70}" ;; *) erro "saída inesperada para $c: $out" ;; esac
+    case "$out" in para:*) ok "para: ${c//$'\n'/ ⏎ }" ;; *) erro "saída inesperada para $c: $out" ;; esac
   fi
 done
 if bash "$SCRIPT" --classificar "$SLOT ./mvnw verify" >/dev/null 2>&1; then erro "slot sem --build-slot devia parar"; else ok "slot sem --build-slot para"; fi
@@ -283,6 +405,24 @@ echo "$REL" >"$EST/cria.relatorio"
 roda --limite-s 30
 if [ "$RC" -eq 0 ] && grep -q 'sinal=relatorio' <<<"$SAIDA" && [ "$(cat "$EST/keys")" = "Enter" ] &&
    grep -q $'\taprovado\tgit status --short\t' "$LOG"; then ok "aprova uma vez, registra e sai no relatório"; else erro "aprovação+relatório: rc=$RC saida=$SAIDA keys=$(cat "$EST/keys" 2>/dev/null)"; fi
+
+# --- 2b. os casos do revisor da TG-408 passam pelo laço com --identidade ---------------
+for c in "GLAB_CONFIG_DIR=$ID glab api user" "node $TMPUS/probe.mjs" "mv $TMPUS/.relatorio.md.tmp $TMPUS/relatorio.md" "(node $TMPUS/probe.mjs || true)"; do
+  limpar; echo blocked >"$EST/st"
+  tela_dialogo 1 "$c"
+  echo "$REL" >"$EST/cria.relatorio"
+  roda --limite-s 30
+  if [ "$RC" -eq 0 ] && [ "$(cat "$EST/keys")" = "Enter" ] && grep -qF "aprovado	$c	" "$LOG"; then ok "laço aprova: ${c:0:60}"; else erro "laço aprova $c: rc=$RC saida=$SAIDA"; fi
+done
+limpar; echo blocked >"$EST/st"
+tela_dialogo 1 "GLAB_CONFIG_DIR=$OUTRO_ID glab api user"
+roda --limite-s 30
+if [ "$RC" -eq 1 ] && [ ! -e "$EST/keys" ] && grep -q 'GLAB_CONFIG_DIR' <<<"$SAIDA"; then ok "laço: outra identidade para sem tecla"; else erro "laço outra identidade: rc=$RC saida=$SAIDA"; fi
+# sem --identidade, GLAB_CONFIG_DIR para
+if bash "$SCRIPT" --classificar "GLAB_CONFIG_DIR=$ID glab api user" --raiz "$WT" >/dev/null 2>&1; then erro "GLAB_CONFIG_DIR sem --identidade devia parar"; else ok "GLAB_CONFIG_DIR sem --identidade para"; fi
+if bash "$SCRIPT" --classificar "ls" --identidade "rel/ativo" >/dev/null 2>&1; then erro "--identidade relativa devia parar"; else ok "--identidade relativa para"; fi
+if bash "$SCRIPT" --classificar "ls" --identidade "$HOME/x/../y" >/dev/null 2>&1; then erro "--identidade com '..' devia parar"; else ok "--identidade com '..' para"; fi
+if bash "$SCRIPT" --classificar "node $TMPUS/probe.mjs" --build-slot "$SLOT" >/dev/null 2>&1; then erro "node sem --raiz devia parar"; else ok "node sem --raiz para"; fi
 
 # --- 3. comando proibido: não responde, sai com decisao ----------------------
 limpar; echo blocked >"$EST/st"
@@ -315,6 +455,15 @@ for caso in "${casos_linhas[@]}"; do
   roda --limite-s 30
   if [ "$RC" -eq 1 ] && grep -q 'linhas na tela' <<<"$SAIDA" && [ ! -e "$EST/keys" ]; then ok "várias linhas para: ${caso:0:50}"; else erro "várias linhas: $caso rc=$RC saida=$SAIDA"; fi
 done
+# diálogo com linhas escondidas pelo agy ("⋯ (N lines hidden)"): o comando visível não é o inteiro
+limpar; echo blocked >"$EST/st"
+tela_dialogo 1 "glab api 'projects/5375/merge_requests/36/notes' | jq '.[]'" "⋯ (3 lines hidden)"
+roda --limite-s 30
+if [ "$RC" -eq 1 ] && grep -q 'linhas na tela' <<<"$SAIDA" && [ ! -e "$EST/keys" ]; then ok "linhas escondidas (N lines hidden) param sem tecla"; else erro "lines hidden: rc=$RC saida=$SAIDA keys=$(cat "$EST/keys" 2>/dev/null)"; fi
+limpar; echo blocked >"$EST/st"
+tela_dialogo 1 "⋯ (3 lines hidden)"
+roda --limite-s 30
+if [ "$RC" -eq 1 ] && [ ! -e "$EST/keys" ]; then ok "só a marca de linhas escondidas para sem tecla"; else erro "só lines hidden: rc=$RC saida=$SAIDA"; fi
 # linha "────" curta na saída anterior não muda nada (não há mais largura)
 limpar; echo blocked >"$EST/st"
 ANTES=$(printf '─%.0s' $(seq 1 20))

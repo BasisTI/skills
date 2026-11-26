@@ -1,8 +1,9 @@
 #!/bin/bash
 # Vigia de aprovações do worker agy (references/harnesses/agy.md#aprovações-do-coordenador).
 #
-# O agy em `--mode accept-edits` ainda pede aprovação para cada comando de
-# shell, e quem responde é o coordenador. Este script lê o pane do worker e,
+# O agy pede aprovação para o comando de shell que o modo não libera sozinho
+# (`--mode accept-edits`: todos; `--mode auto`: os que ele não julga seguros), e
+# quem responde é o coordenador. Este script lê o pane do worker e,
 # quando aparece o diálogo "Requesting permission for: … Run this command?",
 # passa o comando pelo vigia_agy_classificar.py (lista fechada por palavra):
 #   - aprovado: responde "uma vez" (Enter com a opção 1 selecionada) e registra;
@@ -17,7 +18,7 @@
 #
 # LIMITE: evita o acidente de um agente honesto; não é fronteira contra agente
 # hostil (o agy lê qualquer arquivo sem aprovação e o build roda o código da
-# worktree, que ele edita sem aprovação no accept-edits).
+# worktree, que ele edita sem aprovação no auto e no accept-edits).
 #
 # Feito para `run_in_background` no Claude Code: substitui a espera-onda.sh
 # para o worker agy (ela acordaria a cada diálogo, porque o diálogo deixa o
@@ -29,11 +30,15 @@
 #                [--build-slot <caminho>] (repetível) build-slot.sh do projeto
 #                [--raiz <dir>]      (repetível) onde caminho absoluto pode ser lido:
 #                                    worktree, pasta da US, TMPDIR, ~/.m2/repository…
+#                                    Vale também onde `mv` escreve e de onde `node` roda arquivo.
+#                [--identidade <dir>] (repetível) diretório de identidade do glab que o
+#                                    papel usa: só `GLAB_CONFIG_DIR=<dir>` passa na frente
+#                                    de comando (nenhuma outra variável)
 #                [--limite-s N]      (padrão 6600, máx. 7200)
 #                [--ocioso-s N]      (padrão 600, máx. 7200) idle/done sem relatório
 #                [--bloqueado-s N]   (padrão 20, máx. 600) blocked sem diálogo reconhecido
 #                [--intervalo-s N]   (padrão 3, 1 a 60) pausa entre leituras do pane
-#   vigia-agy.sh --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>]
+#   vigia-agy.sh --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>] [--identidade <dir>]
 #                só classifica (sem Herdr): imprime `aprova` ou `para: <motivo>`
 #                e sai 0 (aprova) ou 1 (para).
 #
@@ -58,6 +63,10 @@
 # desemparelhadas, `sed -n 1p -e`, `git grep -lO`, `sort -uo` e linhas juntadas
 # aprovavam comandos que apagavam ou executavam. Cada caso virou teste em
 # scripts/tests/vigia-agy.test.sh. Textos do diálogo conferidos no agy 1.5.14.
+# Casos novos (orq #119, 2026-11-26), do revisor agy da TG-408 (2026-11-25), que
+# parou o vigia 9 vezes em comando legítimo: `GLAB_CONFIG_DIR=<identidade>` na
+# frente, `node <arquivo>` e `mv` dentro das raízes, subshell de comandos que já
+# passam. Comando em várias linhas na tela segue parando (ver o diálogo "⋯ (N lines hidden)").
 
 set -uo pipefail
 export LC_ALL=C.UTF-8
@@ -79,7 +88,7 @@ MODO_CLASSIFICAR=0
 OPC_CLASSIF=()
 
 uso() {
-  echo "uso: $0 <agente>=<relatorio> --log <arquivo> [--build-slot <caminho>] [--raiz <dir>] [--limite-s N] [--ocioso-s N] [--bloqueado-s N] [--intervalo-s N] | --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>]" >&2
+  echo "uso: $0 <agente>=<relatorio> --log <arquivo> [--build-slot <caminho>] [--raiz <dir>] [--identidade <dir>] [--limite-s N] [--ocioso-s N] [--bloqueado-s N] [--intervalo-s N] | --classificar '<comando>' [--build-slot <caminho>] [--raiz <dir>] [--identidade <dir>]" >&2
   echo "vigia-agy: sinal=uso $1"
   exit 2
 }
@@ -95,6 +104,7 @@ while [ $# -gt 0 ]; do
     --log) [ -n "${2:-}" ] || uso "--log pede o arquivo"; LOG=$2; shift 2 ;;
     --build-slot) [ -n "${2:-}" ] || uso "--build-slot pede o caminho"; OPC_CLASSIF+=(--build-slot "$2"); shift 2 ;;
     --raiz) [ -n "${2:-}" ] || uso "--raiz pede o diretório"; OPC_CLASSIF+=(--raiz "$2"); shift 2 ;;
+    --identidade) [ -n "${2:-}" ] || uso "--identidade pede o diretório"; OPC_CLASSIF+=(--identidade "$2"); shift 2 ;;
     --limite-s) numero "$1" "${2:-}" 1 7200; LIMITE_S=$NUM; shift 2 ;;
     --ocioso-s) numero "$1" "${2:-}" 1 7200; OCIOSO_S=$NUM; shift 2 ;;
     --bloqueado-s) numero "$1" "${2:-}" 1 600; BLOQUEADO_S=$NUM; shift 2 ;;
@@ -234,7 +244,7 @@ while :; do
     fim 1 decisao "diálogo de MCP no pane de $AGENTE"
   fi
   if grep -Eq 'Allow creation of this file\?|Accept this file edit\?' <<<"$tela"; then
-    registra parado "-" "diálogo de arquivo (o worker não está em accept-edits?)"
+    registra parado "-" "diálogo de arquivo (o worker não está em auto nem em accept-edits?)"
     fim 1 decisao "diálogo de arquivo no pane de $AGENTE"
   fi
 

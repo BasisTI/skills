@@ -19,12 +19,21 @@ estava entre aspas:
 4. Caminho: nada com `..`; absoluto ou com `~` só dentro das raízes (`--raiz`);
    vale também para o valor colado de opção (`-f/x`, `--x=/y`, listas com `:`).
    Nome de segredo em qualquer palavra, já sem as aspas, para.
+5. Variável na frente: só `GLAB_CONFIG_DIR=<dir>` (e `export GLAB_CONFIG_DIR=<dir>`
+   sozinho) com <dir> igual a uma `--identidade`; o resto do segmento passa
+   pelas regras acima. Qualquer outra variável para.
+6. `node <arquivo>.js|.mjs|.cjs` e `mv <origem> <destino>`: caminhos absolutos
+   (ou `~`) dentro das raízes, sem as opções que executam código (`node`) e só
+   com `-f`/`-n` (`mv`). Por isso `--raiz` vale também como escopo de escrita
+   do `mv` e de execução do `node`: não ponha ali diretório que o worker não deva mexer.
+7. Subshell `( … )`: só quando cada comando de dentro passaria sozinho (regra
+   recursiva), sem palavra antes ou depois do grupo.
 
 LIMITE: isto evita o acidente de um agente honesto. Não é fronteira contra um
-agente hostil: o agy lê qualquer arquivo sem pedir aprovação, e o build executa
-o código da worktree, que o agente edita sem aprovação no accept-edits.
+agente hostil: o agy lê qualquer arquivo sem pedir aprovação, e o build e o
+`node` executam código que o agente escreve sem aprovação (accept-edits e auto).
 
-Uso: vigia_agy_classificar.py [--build-slot P]... [--raiz D]... -- '<comando>'
+Uso: vigia_agy_classificar.py [--build-slot P]... [--raiz D]... [--identidade D]... -- '<comando>'
 Imprime `aprova` (saída 0) ou `para: <motivo>` (saída 1).
 """
 
@@ -68,6 +77,19 @@ class Op(str):
     """Operador do shell (fora de aspas)."""
 
 
+class Sub:
+    """Subshell `( … )` já separado: guarda os tokens de dentro."""
+
+    def __init__(self, toks):
+        self.toks = toks
+
+
+MAX_SUBSHELL = 3
+VAR_ATRIBUICAO = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\+?=.*", re.S)
+NODE_PROIBIDAS = {"-e", "--eval", "-p", "--print", "-r", "--require", "--import", "--loader",
+                  "--experimental-loader", "--env-file", "--inspect", "--inspect-brk", "-i", "--interactive"}
+
+
 # --- leitura do comando ---------------------------------------------------------
 
 def lexar(cmd):
@@ -103,10 +125,15 @@ def lexar(cmd):
             if i + 1 >= n:
                 raise Para("barra invertida no fim")
             cur = (cur or "") + cmd[i + 1]; i += 2; continue
+        if c in "()":
+            if c == "(" and i > 0 and cmd[i - 1] == "(":
+                raise Para("'((' é aritmética do bash, não subshell")
+            fecha()
+            toks.append(Op(c)); i += 1; continue
         if c in CHARS_OP:
             fecha()
             j = i
-            while j < n and cmd[j] in CHARS_OP:
+            while j < n and cmd[j] in CHARS_OP and cmd[j] not in "()":
                 j += 1
             toks.append(Op(cmd[i:j])); i = j; continue
         if c in EXPANSAO:
@@ -116,6 +143,28 @@ def lexar(cmd):
         cur = (cur or "") + c; i += 1
     fecha()
     return toks
+
+
+def aninha(toks):
+    """Troca cada `( … )` do nível de cima por um Sub com os tokens de dentro."""
+    saida, i = [], 0
+    while i < len(toks):
+        t = toks[i]
+        if isinstance(t, Op) and t == "(":
+            prof, j = 1, i + 1
+            while j < len(toks) and prof:
+                if isinstance(toks[j], Op) and toks[j] == "(":
+                    prof += 1
+                elif isinstance(toks[j], Op) and toks[j] == ")":
+                    prof -= 1
+                j += 1
+            if prof:
+                raise Para("parêntese que não fecha")
+            saida.append(Sub(toks[i + 1:j - 1])); i = j; continue
+        if isinstance(t, Op) and t == ")":
+            raise Para("parêntese sem abertura")
+        saida.append(t); i += 1
+    return saida
 
 
 def segmentos(toks):
@@ -428,6 +477,44 @@ def v_herdr(args, raizes):
         raise Para("herdr fora de 'agent get <nome>'")
 
 
+def caminho_absoluto_na_raiz(p, raizes, o_que):
+    """Caminho absoluto (ou `~`) estritamente dentro de uma raiz; relativo para."""
+    q = expande_til(p)
+    if not q.startswith("/"):
+        raise Para(f"{o_que}: só caminho absoluto, o diretório de trabalho não é conhecido: {p}")
+    confere_caminho(p, raizes)
+    n = os.path.normpath(q)
+    if any(n == r for r in raizes):
+        raise Para(f"{o_que}: o próprio diretório raiz não vale: {p}")
+    return n
+
+
+def v_node(args, raizes):
+    if not args or args[0].startswith("-"):
+        raise Para("node só na forma node <arquivo>.js|.mjs|.cjs (sem opção antes do arquivo)")
+    if not re.search(r"\.(js|mjs|cjs)$", args[0]):
+        raise Para(f"node de arquivo sem extensão .js/.mjs/.cjs: {args[0]}")
+    caminho_absoluto_na_raiz(args[0], raizes, "node")
+    for a in args[1:]:
+        if a.split("=", 1)[0] in NODE_PROIBIDAS:
+            raise Para(f"node com {a}")
+    confere_args(args[1:], raizes)
+
+
+def v_mv(args, raizes):
+    pos = []
+    for a in args:
+        if a in ("-f", "-n"):
+            continue
+        if a.startswith("-"):
+            raise Para(f"mv com opção fora de -f/-n: {a}")
+        pos.append(a)
+    if len(pos) != 2:
+        raise Para("mv só com uma origem e um destino")
+    for p in pos:
+        caminho_absoluto_na_raiz(p, raizes, "mv")
+
+
 COMANDOS = {
     "cd": v_cd, "true": v_sem_args("true"), "pwd": v_sem_args("pwd"),
     "git": v_git, "grep": v_grep, "rg": v_rg, "jq": v_jq,
@@ -436,6 +523,7 @@ COMANDOS = {
     "tr": v_so_imprime, "which": v_so_imprime, "echo": v_so_imprime, "printf": v_printf, "date": v_date,
     "find": v_find, "sed": v_sed, "sort": v_sort, "uniq": v_uniq, "ps": v_ps, "javap": v_javap,
     "glab": v_glab, "sonar": v_sonar, "taiga": v_taiga, "herdr": v_herdr,
+    "node": v_node, "mv": v_mv,
 }
 
 
@@ -467,7 +555,64 @@ def confere_build(tokens, slots, raizes):
     return True
 
 
-def classificar(cmd, slots, raizes):
+def identidade_valida(valor, identidades):
+    """`GLAB_CONFIG_DIR=<valor>`: o valor precisa ser exatamente uma identidade."""
+    if ".." in valor.split("/"):
+        raise Para(f"GLAB_CONFIG_DIR com '..': {valor}")
+    if not valor or not identidades or os.path.normpath(expande_til(valor)) not in identidades:
+        raise Para(f"variável na frente do comando fora de GLAB_CONFIG_DIR=<identidade conhecida>: GLAB_CONFIG_DIR={valor}")
+
+
+def tira_variavel(seg, identidades):
+    """Se o segmento abre com `GLAB_CONFIG_DIR=<identidade>` (ou `export …` sozinho),
+    devolve o resto; outra variável na frente para."""
+    if seg[0] == "export":
+        if len(seg) != 2 or not seg[1].startswith("GLAB_CONFIG_DIR="):
+            raise Para("export só na forma export GLAB_CONFIG_DIR=<identidade>")
+        identidade_valida(seg[1].split("=", 1)[1], identidades)
+        return None
+    if seg[0].startswith("GLAB_CONFIG_DIR="):
+        identidade_valida(seg[0].split("=", 1)[1], identidades)
+        if len(seg) == 1:
+            raise Para("GLAB_CONFIG_DIR sozinho, sem comando depois")
+        return seg[1:]
+    if VAR_ATRIBUICAO.fullmatch(seg[0]):
+        raise Para(f"variável na frente do comando: {seg[0].split('=', 1)[0]}")
+    return seg
+
+
+def valida_toks(toks, slots, raizes, identidades, prof=0):
+    for seg in segmentos(aninha(toks)):
+        if not seg:
+            raise Para("comando vazio entre separadores")
+        if any(isinstance(t, Sub) for t in seg):
+            if len(seg) != 1:
+                raise Para("subshell com palavra ou redirecionamento junto")
+            if prof >= MAX_SUBSHELL:
+                raise Para("subshell aninhado demais")
+            if not seg[0].toks:
+                raise Para("subshell vazio")
+            valida_toks(seg[0].toks, slots, raizes, identidades, prof + 1)
+            continue
+        for e in [t[1] for t in seg if isinstance(t, tuple)]:
+            confere_caminho(e, raizes)
+        seg = [t for t in seg if not isinstance(t, tuple)]
+        if not seg:
+            raise Para("redirecionamento sem comando")
+        seg = tira_variavel(seg, identidades)
+        if seg is None:
+            continue
+        if VAR_ATRIBUICAO.fullmatch(seg[0]):
+            raise Para(f"variável na frente do comando: {seg[0].split('=', 1)[0]}")
+        if confere_build(seg, slots, raizes):
+            continue
+        v = COMANDOS.get(seg[0])
+        if v is None:
+            raise Para(f"fora da lista: {seg[0]}")
+        v(seg[1:], raizes)
+
+
+def classificar(cmd, slots, raizes, identidades=()):
     if not cmd.strip():
         raise Para("comando vazio")
     if "\n" in cmd or "\r" in cmd or "\x1b" in cmd:
@@ -479,39 +624,41 @@ def classificar(cmd, slots, raizes):
     if "`" in texto:
         raise Para("crase")
     toks = lexar(texto)
+    # O diretório de identidade pode ter nome de segredo (glab-cli…): ele é
+    # conferido por igualdade exata em tira_variavel, então sai só da busca por segredo.
+    bruto = cmd
+    for d in sorted(identidades, key=len, reverse=True):
+        for forma in {d, d.replace(HOME, "~", 1) if d.startswith(HOME) else d}:
+            bruto = re.sub(r"GLAB_CONFIG_DIR=([\"']?)" + re.escape(forma) + r"\1(?=[ \t]|$)", "GLAB_CONFIG_DIR=", bruto)
     for t in toks:
-        if not isinstance(t, Op) and SEGREDO.search(t):
-            raise Para(f"nome de segredo: {SEGREDO.search(t).group(0)}")
-    if SEGREDO.search(cmd):
-        raise Para(f"nome de segredo: {SEGREDO.search(cmd).group(0)}")
-    for seg in segmentos(toks):
-        if not seg:
-            raise Para("comando vazio entre separadores")
-        for e in [t[1] for t in seg if isinstance(t, tuple)]:
-            confere_caminho(e, raizes)
-        seg = [t for t in seg if not isinstance(t, tuple)]
-        if not seg:
-            raise Para("redirecionamento sem comando")
-        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\+?=.*", seg[0]):
-            raise Para(f"variável na frente do comando: {seg[0]}")
-        if confere_build(seg, slots, raizes):
-            continue
-        v = COMANDOS.get(seg[0])
-        if v is None:
-            raise Para(f"fora da lista: {seg[0]}")
-        v(seg[1:], raizes)
+        if not isinstance(t, Op):
+            t_s = t
+            for d in identidades:
+                if t_s == "GLAB_CONFIG_DIR=" + d or t_s == "GLAB_CONFIG_DIR=" + d.replace(HOME, "~", 1):
+                    t_s = "GLAB_CONFIG_DIR="
+            if SEGREDO.search(t_s):
+                raise Para(f"nome de segredo: {SEGREDO.search(t_s).group(0)}")
+    if SEGREDO.search(bruto):
+        raise Para(f"nome de segredo: {SEGREDO.search(bruto).group(0)}")
+    valida_toks(toks, slots, raizes, identidades)
 
 
 def main():
     ap = argparse.ArgumentParser(description="classificador do vigia-agy.sh")
     ap.add_argument("--build-slot", action="append", default=[])
     ap.add_argument("--raiz", action="append", default=[])
+    ap.add_argument("--identidade", action="append", default=[])
     ap.add_argument("comando")
     a = ap.parse_args()
     try:
         slots = [os.path.normpath(expande_til(s)) for s in a.build_slot]
         raizes = [os.path.normpath(expande_til(r)) for r in a.raiz]
-        classificar(a.comando, slots, raizes)
+        identidades = []
+        for d in a.identidade:
+            if not (d.startswith("/") or d == "~" or d.startswith("~/")) or ".." in d.split("/"):
+                raise Para(f"--identidade precisa ser caminho absoluto sem '..': {d}")
+            identidades.append(os.path.normpath(expande_til(d)))
+        classificar(a.comando, slots, raizes, identidades)
     except Para as e:
         print(f"para: {e}")
         return 1
