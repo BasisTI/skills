@@ -499,6 +499,17 @@ uma pipeline duplicada. Como `develop` é a origem da MR develop→main já aber
 `ci.skip` suprime **também** a pipeline daquela MR: o head fica sem job nenhum, aparece como
 `skipped`, e **não bloqueia o merge**. Não é falha.
 
+<a id="merge-durante-o-publish-develop"></a>**Merge na `develop` durante o `publish-develop`.** Desde o
+ci-templates `v1.23.0` (orchestrator `3.23.0`), o bump é reaplicado sobre o head remoto da
+`develop`: o job busca o head, só grava se a versão nova for maior que a do arquivo e repete o
+push recusado por non-fast-forward, até 4 tentativas. A `v1.23.1` (orchestrator `3.23.1`) repete
+também a corrida no servidor (`incorrect old value provided`, `reference already exists`). Com o
+`ref` do include em `v1.23.0` ou mais recente **no `.gitlab-ci.yml` da `develop`**, mesclar outra
+MR enquanto o `publish-develop` roda é seguro: não espere o commit de bump chegar ao topo. Com
+`ref` anterior, o push do bump é recusado e o job falha com as imagens já publicadas; espere o
+bump antes do próximo merge, ou suba o `ref`. Limite conhecido: servidor Git com backend reftable
+ainda falha na corrida.
+
 É exatamente por isso que `check-images-ready` roda **duas vezes** — na MR (onde
 frequentemente é suprimida) e obrigatoriamente no push para `main`. A segunda é a que de
 fato garante que as imagens existem antes do promote.
