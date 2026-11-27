@@ -185,6 +185,10 @@ git push -o ci.skip ...
 
 O objetivo é não disparar uma pipeline de branch duplicada pelo próprio commit de bump.
 
+Desde a `v1.23.0`, o bump é reaplicado sobre o head remoto da `develop` e o push recusado é
+repetido; outra MR pode ser mesclada enquanto o `publish-develop` roda. Versões e limite em
+[merge durante o `publish-develop`](../SKILL.md#merge-durante-o-publish-develop).
+
 **O efeito colateral que assusta:** como `develop` é a branch de origem de uma MR
 develop→main já aberta, o `ci.skip` suprime **também** a pipeline de merge request daquele
 commit. O head da MR fica sem job nenhum, aparece como `skipped`, e **não bloqueia o merge**.

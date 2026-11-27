@@ -499,6 +499,21 @@ uma pipeline duplicada. Como `develop` é a origem da MR develop→main já aber
 `ci.skip` suprime **também** a pipeline daquela MR: o head fica sem job nenhum, aparece como
 `skipped`, e **não bloqueia o merge**. Não é falha.
 
+<a id="merge-durante-o-publish-develop"></a>**Merge na `develop` durante o `publish-develop`.** Desde o
+ci-templates `v1.23.0` (orchestrator `3.23.0`), o bump é reaplicado sobre o head remoto da
+`develop`: o job busca o head, só grava se a versão nova for maior que a do arquivo (versão que
+não é CalVer é sobrescrita; igual não grava) e repete o push recusado porque a branch andou
+(`non-fast-forward`, `fetch first`), até 4 tentativas. A `v1.23.1` (orchestrator `3.23.1`) repete
+também a corrida no servidor (`incorrect old value provided`, `reference already exists`,
+`cannot lock ref`, `failed to update ref`). Com o `ref` do include em `v1.23.0` ou mais recente
+**no `.gitlab-ci.yml` da `develop`**, mesclar outra MR enquanto o `publish-develop` roda é seguro:
+não espere o commit de bump chegar ao topo. Com `ref` anterior, o push do bump é recusado e o job
+falha com as imagens já publicadas; espere o bump antes do próximo merge, ou suba o `ref`. Projeto
+que sobrescreve `DAGGER_MODULE` (versão própria do orchestrator ou módulo `.`) não herda a
+correção pelo `ref`: confira a versão do orchestrator que ele usa. Hook, branch protegida e
+falha de permissão continuam falhando na primeira recusa (detalhes no README do daggerverse,
+"Bump on top of the remote head").
+
 É exatamente por isso que `check-images-ready` roda **duas vezes** — na MR (onde
 frequentemente é suprimida) e obrigatoriamente no push para `main`. A segunda é a que de
 fato garante que as imagens existem antes do promote.
