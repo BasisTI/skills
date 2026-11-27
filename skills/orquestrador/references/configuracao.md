@@ -85,7 +85,7 @@ Lista de branches de destino; hoje só `["develop"]`. O coordenador mescla a MR 
 5. sem discussão bloqueante: `blocking_discussions_resolved` verdadeiro e nenhuma discussão resolvível aberta, a de evidência do executor inclusa ([revisão](revisao.md));
 6. sem conflito e não atrás da base: `has_conflicts` falso, `detailed_merge_status` que permita mesclar e `diverged_commits_count` zero (`glab mr view <mr> --output json`). Estar mesclável não basta: MR atrás da base não tem CI na base nova.
 
-O `publish-develop` de um merge anterior ainda rodando não é condição: com o ci-templates em `v1.23.0` ou mais recente na `develop`, o bump é reaplicado sobre o head remoto e o merge não espera por ele. Com `ref` anterior, espere o commit de bump antes de mesclar ([basis-ci-gitlab](../../basis-ci-gitlab/SKILL.md#merge-durante-o-publish-develop)).
+O `publish-develop` de um merge anterior ainda rodando não é condição: com o ci-templates em `v1.23.0` ou mais recente na `develop` (e sem `DAGGER_MODULE` próprio anterior ao orchestrator `3.23.0`), o bump é reaplicado sobre o head remoto e o merge não espera por ele. Com `ref` anterior, espere o commit de bump antes de mesclar ([basis-ci-gitlab](../../basis-ci-gitlab/SKILL.md#merge-durante-o-publish-develop)).
 
 <a id="atras-da-base"></a>**Atrás da base, o merge espera a vez.** MR atrás da base (`diverged_commits_count` maior que zero), com ou sem conflito, não é mesclada automaticamente: a base entra antes, o head muda e as condições 1 a 3 voltam a valer no head novo, com os mesmos qualificadores acima (projeto sem Sonar, story `config`). Esta é a regra canônica; as outras páginas só remetem a ela.
 
