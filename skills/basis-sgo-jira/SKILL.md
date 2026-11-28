@@ -9,8 +9,9 @@ description: >-
   Jira", "o Jira devolveu 400", "Field cannot be set", "a data do grid veio um dia antes", "o
   campo gravou vazio e ninguém viu", "a opção não existe no catálogo"; ao configurar credencial
   do SGO numa aplicação; e **antes de qualquer escrita a partir de dev ou de staging**, porque
-  existe um SGO só e ele é o de produção. Vale para Java (Spring `@HttpExchange`) e para Python
-  (`ks-jira` + biblioteca `jira`).
+  a aplicação escreve no SGO da URL configurada, que pode ser a produção, e teste de escrita vai
+  para o SGO de staging (`sgo.stg.basis.com.br`). Vale para Java (Spring `@HttpExchange`) e para
+  Python (`ks-jira` + biblioteca `jira`).
 ---
 
 # Integração com o SGO
@@ -29,10 +30,12 @@ Profissional, vagas — são grids do plugin **idalko iGrid**, que tem árvore R
 `scripted-field` calculado que não aceita escrita, e há **post-function reescrevendo o que você
 mandou** depois que o `POST` respondeu `201`.
 
-**E existe um SGO só.** Não há instância de homologação. Desenvolvimento, staging e produção
-apontam para `https://sgo.basis.com.br`, para os mesmos projetos e para a mesma fila do RH. Toda
-escrita que sai de qualquer ambiente é registro de verdade sobre gente de verdade — e é por isso
-que a §9 existe e não é opcional.
+**E o SGO de produção é registro de verdade.** `https://sgo.basis.com.br` tem os projetos e a
+fila do RH reais: toda escrita nele é registro de verdade sobre gente de verdade. Para testar
+escrita existe o SGO de staging, `https://sgo.stg.basis.com.br`, com as mesmas credenciais e os
+tipos reais de ocorrência. A aplicação escreve no SGO da URL que está na configuração dela, não
+no do ambiente onde roda: um dev ou um staging configurado com a URL de produção escreve na
+produção. É por isso que a §9 existe e não é opcional.
 
 ## Quando usar
 
@@ -260,10 +263,14 @@ A classificação é **pelo corpo**, nunca pelo código HTTP sozinho:
 dado. E `permanente` e `alertar` são **eixos diferentes**: um `401` é transitório e merece
 alerta; um `400` com `errorMessages` é permanente e não merece nenhum.
 
-## 9. Escrever num SGO que todos os ambientes compartilham
+## 9. Escrever sem atingir a produção
 
-Não existe SGO de homologação. Duas aplicações da Basis chegaram à mesma necessidade por
-caminhos diferentes, e as duas soluções valem:
+Teste de escrita vai para o SGO de staging (`https://sgo.stg.basis.com.br`, mesmas credenciais,
+tipos reais de ocorrência), com a URL dele na configuração do ambiente de teste. Confira essa URL
+antes da primeira escrita: é ela, não o nome do ambiente, que decide onde o registro cai.
+
+Antes do staging, duas aplicações da Basis chegaram por caminhos diferentes às proteções abaixo.
+As duas continuam valendo para qualquer configuração que aponte para a produção:
 
 **A chave que desliga a escrita — checada em runtime, nunca por `@ConditionalOnProperty`.** A
 condição do Spring é avaliada uma vez só e, em imagem nativa, essa vez é o **build**: o
@@ -279,7 +286,7 @@ construção: nenhuma rotina de entrega o seleciona. Publicar o que foi ensaiado
 deliberado com log próprio, não um `UPDATE` à mão. Duas marcas distintas nos logs (`[DRY RUN]` e
 `[JIRA DRY RUN]`) porque os dois modos deixam estados muito diferentes para trás.
 
-**E, quando é inevitável escrever de verdade:**
+**E, quando é inevitável escrever na produção:**
 
 - Combine antes com quem é dono da fila, e avise no fim.
 - Marque de forma inconfundível (`[TESTE — IGNORAR]`) **num campo que a post-function não
@@ -378,7 +385,8 @@ Ocorrência de RH tem CPF, RG, endereço e telefone dentro. Isso não é observa
   lado Python usa esse parâmetro em produção nos `PUT` de correção — trate como caminho conhecido,
   e confirme na sua conta antes de contar com ele. Sem ele, **toda edição notifica quem observa a
   ocorrência**: um fluxo de atualização manda e-mail a cada retomada.
-- **"Staging escreve em staging."** Não existe staging. §9.
+- **"Staging escreve em staging."** O ambiente escreve no SGO da URL configurada, que pode ser a
+  produção. Confira a URL antes de escrever. §9.
 
 ## Checklist
 
@@ -391,8 +399,10 @@ Ocorrência de RH tem CPF, RG, endereço e telefone dentro. Isso não é observa
 - [ ] Fixture do `createmeta` versionada com a data no nome, e teste cobrando as contagens
 - [ ] A chave que desliga a escrita é checada **em runtime**, e testada no artefato que vai rodar
 - [ ] Nenhum log imprime payload, JQL nem mensagem de exceção de busca
+- [ ] Testes de escrita apontam para o SGO de staging, e a URL do SGO de cada ambiente foi
+  conferida
 
-**Antes de rodar contra o SGO de verdade**
+**Antes de escrever no SGO de produção**
 
 - [ ] Combinado com quem é dono da fila
 - [ ] Marca de teste num campo que a post-function não reescreve

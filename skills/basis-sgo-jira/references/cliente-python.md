@@ -198,8 +198,8 @@ As três propriedades que são o desenho inteiro:
 
 Estados: `pending` → `sending` → `sent` | `failed`, mais **`suppressed`** — a linha que uma
 execução de ensaio gravou e que nenhuma rotina de entrega seleciona. Inerte por construção; só
-um ato deliberado (`release_suppressed`) a devolve para `pending`. É assim que se ensaia contra
-um SGO que é o de produção (§9 da SKILL).
+um ato deliberado (`release_suppressed`) a devolve para `pending`. É assim que se ensaia numa
+configuração que aponta para o SGO de produção (§9 da SKILL).
 
 Teto de tentativas generoso e explícito: o Jira recusa corpo malformado (projeto inexistente,
 tipo inválido) de forma idêntica para sempre, e retentar isso a cada execução soterra as entradas
