@@ -202,5 +202,5 @@ O teste que vale mais do que parece: o de integração que **lê a parte do mult
 servidor** e compara o hash dela com o registrado. Ele prova o que saiu pela rede, não o que o
 código pretendia mandar.
 
-A verificação de ponta a ponta contra o SGO de verdade é manual, atrás de um profile próprio, e
-segue as regras da §9 da SKILL.
+A verificação de ponta a ponta é manual, atrás de um profile próprio, contra o SGO de staging
+(§9 da SKILL); na produção, só pelas regras da §9.
