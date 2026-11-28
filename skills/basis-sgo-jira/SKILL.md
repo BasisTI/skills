@@ -8,9 +8,9 @@ description: >-
   Jira", "customfield", "createmeta", "TableGrid", "iGrid", "JQL", "anexo no Jira", "webhook do
   Jira", "o Jira devolveu 400", "Field cannot be set", "a data do grid veio um dia antes", "o
   campo gravou vazio e ninguém viu", "a opção não existe no catálogo"; ao configurar credencial
-  do SGO numa aplicação; e **antes de qualquer escrita a partir de dev ou de staging**, porque
-  a aplicação escreve no SGO da URL configurada, que pode ser a produção, e teste de escrita vai
-  para o SGO de staging (`sgo.stg.basis.com.br`). Vale para Java (Spring `@HttpExchange`) e para
+  do SGO numa aplicação; e **antes de qualquer escrita a partir do dev ou do staging da
+  aplicação**, porque ela escreve no SGO da URL configurada, que pode ser a produção, e teste de
+  escrita vai para o SGO de staging (`sgo.stg.basis.com.br`). Vale para Java (Spring `@HttpExchange`) e para
   Python (`ks-jira` + biblioteca `jira`).
 ---
 
@@ -30,12 +30,13 @@ Profissional, vagas — são grids do plugin **idalko iGrid**, que tem árvore R
 `scripted-field` calculado que não aceita escrita, e há **post-function reescrevendo o que você
 mandou** depois que o `POST` respondeu `201`.
 
-**E o SGO de produção é registro de verdade.** `https://sgo.basis.com.br` tem os projetos e a
-fila do RH reais: toda escrita nele é registro de verdade sobre gente de verdade. Para testar
+**E só a URL separa a fila real do RH do ambiente de teste.** `https://sgo.basis.com.br` tem os
+projetos e a fila do RH reais: toda escrita nele é registro sobre gente de verdade. Para testar
 escrita existe o SGO de staging, `https://sgo.stg.basis.com.br`, com as mesmas credenciais e os
-tipos reais de ocorrência. A aplicação escreve no SGO da URL que está na configuração dela, não
-no do ambiente onde roda: um dev ou um staging configurado com a URL de produção escreve na
-produção. É por isso que a §9 existe e não é opcional.
+tipos reais de ocorrência. Como a credencial é a mesma, uma URL errada não falha na autenticação:
+a aplicação escreve no SGO da URL que está na configuração dela, não no do ambiente onde roda, e
+um dev ou um staging configurado com a URL de produção escreve na produção sem erro nenhum. É
+por isso que a §9 existe e não é opcional.
 
 ## Quando usar
 
@@ -66,7 +67,7 @@ Nada disso se deduz, e nada disso se chumba no código de regra:
 
 | O quê | Exemplo | De onde |
 |---|---|---|
-| `base-url` | `https://sgo.basis.com.br` | configuração |
+| `base-url` | `https://sgo.basis.com.br` (produção) ou `https://sgo.stg.basis.com.br` (staging) | configuração |
 | `project-id` | numérico, do projeto de destino | configuração |
 | `issue-type-id` | `3` = Tarefa, no uso mais comum | configuração |
 | `grid-id` do TableGrid | **é o próprio id do customfield** do grid | configuração |
@@ -269,8 +270,18 @@ Teste de escrita vai para o SGO de staging (`https://sgo.stg.basis.com.br`, mesm
 tipos reais de ocorrência), com a URL dele na configuração do ambiente de teste. Confira essa URL
 antes da primeira escrita: é ela, não o nome do ambiente, que decide onde o registro cai.
 
-Antes do staging, duas aplicações da Basis chegaram por caminhos diferentes às proteções abaixo.
-As duas continuam valendo para qualquer configuração que aponte para a produção:
+**O default das aplicações da casa é a produção.** No `ks-jira`, `sgo_server_url` nasce com
+`https://sgo.basis.com.br` e só muda com `KS_SGO_SERVER_URL`; no trabalhe-conosco, o
+`application.yml` traz `base-url: https://sgo.basis.com.br`. O staging só é usado com
+sobrescrita explícita, e um ambiente em que a sobrescrita faltou escreve na produção. Registre
+a URL em uso no arranque e confira antes de escrever.
+
+**Não suponha que os ids coincidem.** Nada garante que `project-id`, `issue-type-id`, `grid-id`
+e ids de opção do staging sejam os da produção: leia o `createmeta` da instância configurada, e
+mantenha configuração e fixture por instância.
+
+Antes de existir o staging, duas aplicações da Basis chegaram por caminhos diferentes às duas
+proteções abaixo, que continuam valendo para qualquer configuração que aponte para a produção:
 
 **A chave que desliga a escrita — checada em runtime, nunca por `@ConditionalOnProperty`.** A
 condição do Spring é avaliada uma vez só e, em imagem nativa, essa vez é o **build**: o
@@ -399,8 +410,8 @@ Ocorrência de RH tem CPF, RG, endereço e telefone dentro. Isso não é observa
 - [ ] Fixture do `createmeta` versionada com a data no nome, e teste cobrando as contagens
 - [ ] A chave que desliga a escrita é checada **em runtime**, e testada no artefato que vai rodar
 - [ ] Nenhum log imprime payload, JQL nem mensagem de exceção de busca
-- [ ] Testes de escrita apontam para o SGO de staging, e a URL do SGO de cada ambiente foi
-  conferida
+- [ ] A verificação manual de escrita (ponta a ponta) aponta para o SGO de staging, e a URL do
+  SGO de cada ambiente foi conferida; testes automatizados continuam sem tocar SGO nenhum
 
 **Antes de escrever no SGO de produção**
 

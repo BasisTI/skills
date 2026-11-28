@@ -9,7 +9,7 @@ declarativa e crua; aqui há um SDK — e a diferença tem consequências.
 ```python
 # ks_jira/config.py
 class JiraSettings(BaseSettings):
-    sgo_server_url: str = "https://sgo.basis.com.br"
+    sgo_server_url: str = "https://sgo.basis.com.br"  # produção; staging só com KS_SGO_SERVER_URL
     sgo_user: Optional[str] = None
     sgo_password: Optional[str] = None
 
